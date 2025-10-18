@@ -1,0 +1,68 @@
+site_name: sec2md
+site_description: Convert SEC EDGAR filings to clean, LLM-ready Markdown
+site_author: Lucas Astorian
+site_url: https://sec2md.readthedocs.io
+
+repo_name: sec2md
+repo_url: https://github.com/yourusername/sec2md
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.details
+  - tables
+  - attr_list
+  - md_in_html
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Usage:
+      - Direct Conversion: usage/direct-conversion.md
+      - EdgarTools Integration: usage/edgartools.md
+      - Section Extraction: usage/sections.md
+      - Chunking: usage/chunking.md
+  - API Reference:
+      - convert_to_markdown: api/convert_to_markdown.md
+      - extract_sections: api/extract_sections.md
+      - chunk: api/chunk.md
+
+plugins:
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/yourusername/sec2md
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/sec2md
