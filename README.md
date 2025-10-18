@@ -7,6 +7,9 @@ Transform messy SEC filings into clean, structured Markdown.
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-readthedocs-blue.svg)](https://sec2md.readthedocs.io)
 
+![Before and After Comparison](comparison.png)
+*Apple 10-K cover page: Raw SEC HTML (left) vs. Clean Markdown (right)*
+
 ---
 
 ## The Problem
@@ -44,16 +47,6 @@ Your RAG system is only as good as your data. Garbage in, garbage out.
 | **8-K Press Releases**     | ✅     | Clean prose extraction               |
 | **Proxy Statements (DEF 14A)** | ✅ | Executive compensation, governance   |
 | **Exhibits** (Contracts)   | ✅     | Merger agreements, material contracts|
-
----
-
-## See the Difference
-
-Raw SEC filings are a mess of XBRL tags, inline styles, and complex tables. `sec2md` transforms them into clean, LLM-ready Markdown:
-
-![Before and After Comparison](comparison.png)
-
-*Apple 10-K cover page: Raw SEC HTML (left) vs. Clean Markdown (right)*
 
 ---
 
