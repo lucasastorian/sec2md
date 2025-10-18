@@ -44,6 +44,16 @@ Standard HTML-to-text converters produce garbage. Your RAG pipeline deserves bet
 
 ---
 
+## See the Difference
+
+Raw SEC filings are a mess of XBRL tags, inline styles, and complex tables. `sec2md` transforms them into clean, LLM-ready Markdown:
+
+![Before and After Comparison](comparison.png)
+
+*Apple 10-K cover page: Raw SEC HTML (left) vs. Clean Markdown (right)*
+
+---
+
 ## Installation
 
 ```bash

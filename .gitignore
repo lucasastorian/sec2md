@@ -44,5 +44,10 @@ htmlcov/
 # Distribution
 *.whl
 
+# Examples
+examples/comparison.png
+examples/raw_html.png
+examples/clean_markdown.png
+
 .claude
 
