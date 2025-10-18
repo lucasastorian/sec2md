@@ -13,7 +13,7 @@ Transform messy SEC filings into clean, structured Markdown.
 
 RAG pipelines fail on SEC filings because **standard parsers destroy document structure.**
 
-When you flatten a 200-page 10-K to plain text, you:
+When you flatten a 200-page 10-K to plain text:
 
 - ❌ **Tables break** — Complex financial statements become misaligned text
 - ❌ **Pages are lost** — Can't cite sources or trace answers back
