@@ -4,7 +4,6 @@ Transform messy SEC filings into clean, structured Markdown.
 **Built for AI. Optimized for retrieval. Ready for production.**
 
 [![PyPI](https://img.shields.io/pypi/v/sec2md.svg)](https://pypi.org/project/sec2md)
-[![Downloads](https://pepy.tech/badge/sec2md)](https://pepy.tech/project/sec2md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-readthedocs-blue.svg)](https://sec2md.readthedocs.io)
 
