@@ -13,7 +13,7 @@ import sec2md
 import re
 
 # Setup
-set_identity("Lucas Astorian <lucas@intellifin.ai>")
+set_identity("Your Name <you@example.com>")
 
 # Get Apple's latest 10-K
 print("Fetching Apple 10-K...")
