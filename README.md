@@ -11,13 +11,17 @@ Transform messy SEC filings into clean, structured Markdown.
 
 ## The Problem
 
-SEC filings are a nightmare for LLMs:
-- ❌ **XBRL tags** pollute the text (`<us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax>`)
-- ❌ **Nested tables** with absolute positioning break standard parsers
-- ❌ **Inline CSS** and presentational HTML obscure semantic structure
-- ❌ **200+ page documents** with no clear section boundaries
+RAG pipelines fail on SEC filings because **standard parsers destroy document structure.**
 
-Standard HTML-to-text converters produce garbage. Your RAG pipeline deserves better.
+When you flatten a 200-page 10-K to plain text, you:
+
+- ❌ **Tables break** — Complex financial statements become misaligned text
+- ❌ **Pages are lost** — Can't cite sources or trace answers back
+- ❌ **Sections merge** — Risk Factors and MD&A become indistinguishable
+- ❌ **Formatting is stripped** — Headers, bolds, lists (LLM reasoning cues) gone
+- ❌ **Retrieval fails** — Chunks without structure return wrong context
+
+Your RAG system is only as good as your data. Garbage in, garbage out.
 
 ## The Solution
 
@@ -152,21 +156,12 @@ Most libraries force you to choose between speed and accuracy. `sec2md` gives yo
 - 🎯 **Accurate** - Purpose-built for SEC document structure
 - 🔧 **Simple** - One function call, zero configuration
 
-### Built for Production RAG
+### Built for Agentic RAG
 Don't rebuild what we've already solved:
 - ✅ **Page tracking** - Cite sources with exact page numbers
 - ✅ **Section detection** - Extract just what you need (Risk Factors, MD&A)
 - ✅ **Smart chunking** - Respects table boundaries, preserves context
 - ✅ **Metadata headers** - Boost embedding quality 2-3x with contextual headers
-
-### Avoid the Maintenance Nightmare
-Building your own SEC parser starts simple - scaling it is another story. What begins as BeautifulSoup and regex quickly turns into:
-- 🔴 Edge cases for every filing format variation
-- 🔴 Table parsing that breaks on nested structures
-- 🔴 XBRL tag stripping that misses new namespaces
-- 🔴 Section detection that fails on formatting changes
-
-**`sec2md` handles this for you.** Focus on building AI features, not parsing documents.
 
 ---
 
