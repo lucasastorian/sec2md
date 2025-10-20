@@ -29,16 +29,6 @@ md = sec2md.convert_to_markdown(html)
 print(md)
 ```
 
-## CLI Usage
-
-```bash
-# Convert from URL
-sec2md https://www.sec.gov/.../10k.htm --user-agent "you@example.com" --out filing.md
-
-# Pipe to other tools
-sec2md filing.html | grep "risk factors"
-```
-
 ## What You Get
 
 Clean Markdown with:

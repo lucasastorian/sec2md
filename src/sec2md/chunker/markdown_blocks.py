@@ -2,15 +2,26 @@ import re
 from abc import ABC
 from typing import List
 
+try:
+    import tiktoken
+    TIKTOKEN_AVAILABLE = True
+except ImportError:
+    TIKTOKEN_AVAILABLE = False
+
 
 def estimate_tokens(text: str) -> int:
     """
-    Estimate token count using character/4 heuristic.
+    Calculate token count for text.
 
-    This is a simple approximation. For exact token counting,
-    use your embedding provider's tokenizer.
+    Uses tiktoken with cl100k_base encoding (gpt-3.5-turbo/gpt-4) if available.
+    Falls back to character/4 heuristic if tiktoken is not installed.
     """
-    return max(1, len(text) // 4)
+    if TIKTOKEN_AVAILABLE:
+        encoding = tiktoken.get_encoding("cl100k_base")
+        return len(encoding.encode(text))
+    else:
+        # Fallback: simple heuristic
+        return max(1, len(text) // 4)
 
 
 def split_sentences(text: str) -> List[str]:
