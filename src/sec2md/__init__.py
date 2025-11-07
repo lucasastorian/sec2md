@@ -10,7 +10,7 @@ from sec2md.chunker.markdown_chunker import MarkdownChunker
 from sec2md.parser import Parser
 from sec2md.section_extractor import SectionExtractor
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 __all__ = [
     "convert_to_markdown",
     "flatten_note",
