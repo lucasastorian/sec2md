@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import List, Dict, Optional, Literal
+from typing import List, Dict, Optional, Literal, Union, Any
 
 LEAD_WRAP = r'(?:\*\*|__)?\s*(?:</?[^>]+>\s*)*'
 
@@ -53,8 +53,21 @@ FILING_STRUCTURES = {
 
 
 class SectionExtractor:
-    def __init__(self, pages: List[Dict], filing_type: Optional[Literal["10-K", "10-Q", "20-F"]] = None, debug: bool = False):
-        self.pages = pages
+    def __init__(self, pages: List[Any], filing_type: Optional[Literal["10-K", "10-Q", "20-F"]] = None, debug: bool = False):
+        """Initialize SectionExtractor.
+
+        Args:
+            pages: List of Page objects
+            filing_type: Type of filing ("10-K", "10-Q", or "20-F")
+            debug: Enable debug logging
+        """
+        from sec2md.models import Page
+
+        # Store original Page objects to preserve elements
+        self._original_pages = {p.number: p for p in pages}
+
+        # Convert to dict format for internal processing
+        self.pages = [{"page": p.number, "content": p.content} for p in pages]
         self.filing_type = filing_type
         self.structure = FILING_STRUCTURES.get(filing_type) if filing_type else None
         self.debug = debug
@@ -302,15 +315,54 @@ class SectionExtractor:
             sections = fixed
             self._log(f"DEBUG: Sections after validation: {len(sections)}")
 
-        return sections
+        # Convert to Section objects with Page objects (preserving elements)
+        from sec2md.models import Section, Page
 
-    def get_section(self, part: str, item: Optional[str] = None) -> Optional[Dict]:
+        section_objects = []
+        for section_data in sections:
+            # Build Page objects for this section, preserving elements from originals
+            section_pages = []
+            for page_dict in section_data["pages"]:
+                page_num = page_dict["page"]
+                original_page = self._original_pages.get(page_num)
+
+                section_pages.append(
+                    Page(
+                        number=page_num,
+                        content=page_dict["content"],
+                        elements=original_page.elements if original_page else None
+                    )
+                )
+
+            section_objects.append(
+                Section(
+                    part=section_data["part"],
+                    item=section_data["item"],
+                    item_title=section_data["item_title"],
+                    pages=section_pages
+                )
+            )
+
+        return section_objects
+
+    def get_section(self, part: str, item: Optional[str] = None):
+        """Get a specific section by part and item.
+
+        Args:
+            part: Part name (e.g., "PART I")
+            item: Optional item name (e.g., "ITEM 1A")
+
+        Returns:
+            Section object if found, None otherwise
+        """
+        from sec2md.models import Section
+
         part_normalized = self._normalize_section(part)
         item_normalized = self._normalize_section(item) if item else None
         sections = self.get_sections()
 
         for section in sections:
-            if section["part"] == part_normalized:
-                if item_normalized is None or section["item"] == item_normalized:
+            if section.part == part_normalized:
+                if item_normalized is None or section.item == item_normalized:
                     return section
         return None

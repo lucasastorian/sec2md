@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import re
 import logging
+import hashlib
 from collections import defaultdict
-from typing import List, Dict, Union,  Optional
+from dataclasses import dataclass
+from typing import List, Dict, Union, Optional, Tuple
 from bs4 import BeautifulSoup
 from bs4.element import NavigableString, Tag
 
 from sec2md.absolute_table_parser import AbsolutelyPositionedTableParser, median
 from sec2md.table_parser import TableParser
-from sec2md.models import Page
+from sec2md.models import Page, Element
 
 BLOCK_TAGS = {"div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "table", "br", "hr", "ul", "ol", "li"}
 BOLD_TAGS = {"b", "strong"}
@@ -30,6 +32,8 @@ class Parser:
         self.soup = BeautifulSoup(content, "lxml")
         self.includes_table = False
         self.pages: Dict[int, List[str]] = defaultdict(list)
+        # Track DOM provenance: (content, source_node)
+        self.page_segments: Dict[int, List[Tuple[str, Optional[Tag]]]] = defaultdict(list)
         self.input_char_count = len(self.soup.get_text())
 
     @staticmethod
@@ -122,20 +126,24 @@ class Parser:
             return "*"
         return ""
 
-    def _append(self, page_num: int, s: str) -> None:
+    def _append(self, page_num: int, s: str, source_node: Optional[Tag] = None) -> None:
         if s:
             self.pages[page_num].append(s)
+            self.page_segments[page_num].append((s, source_node))
 
     def _blankline_before(self, page_num: int) -> None:
         """Ensure exactly one blank line before the next block."""
         buf = self.pages[page_num]
+        seg_buf = self.page_segments[page_num]
         if not buf:
             return
         if not buf[-1].endswith("\n"):
             buf.append("\n")
+            seg_buf.append(("\n", None))
         if len(buf) >= 2 and buf[-1] == "\n" and buf[-2] == "\n":
             return
         buf.append("\n")
+        seg_buf.append(("\n", None))
 
     def _blankline_after(self, page_num: int) -> None:
         """Mirror `_blankline_before` for symmetry; same rule."""
@@ -431,7 +439,8 @@ class Parser:
                 self.includes_table = True
                 markdown_table = table_parser.to_markdown()
                 if markdown_table:
-                    self._append(page_num, markdown_table)
+                    # Use first element of group as source node
+                    self._append(page_num, markdown_table, source_node=group[0] if group else None)
                     self._blankline_after(page_num)
             else:
                 # Not a table - group by visual lines and render as text
@@ -439,7 +448,8 @@ class Parser:
                 if text:
                     if i > 0:
                         self._blankline_before(page_num)
-                    self._append(page_num, text)
+                    # Use first element of group as source node
+                    self._append(page_num, text, source_node=group[0] if group else None)
 
         return page_num
 
@@ -451,7 +461,9 @@ class Parser:
         if isinstance(root, NavigableString):
             t = self._process_text_node(root)
             if t:
-                self._append(page_num, t + " ")
+                # For text nodes, use parent as source
+                parent = root.parent if isinstance(root.parent, Tag) else None
+                self._append(page_num, t + " ", source_node=parent)
             return page_num
 
         if not isinstance(root, Tag):
@@ -486,7 +498,7 @@ class Parser:
         if root.name in {"table", "ul", "ol"}:
             t = self._process_element(root)
             if t:
-                self._append(page_num, t)
+                self._append(page_num, t, source_node=root)
             self._blankline_after(page_num)
             if self._has_break_after(root):
                 page_num += 1
@@ -497,7 +509,7 @@ class Parser:
         if wrap and not is_block:
             t = self._process_element(root)
             if t:
-                self._append(page_num, t + " ")
+                self._append(page_num, t + " ", source_node=root)
             if self._has_break_after(root):
                 page_num += 1
             return page_num
@@ -515,9 +527,18 @@ class Parser:
 
         return current
 
-    def get_pages(self) -> List[Page]:
-        """Get parsed pages as Page objects."""
+    def get_pages(self, include_elements: bool = False) -> List[Page]:
+        """Get parsed pages as Page objects.
+
+        Args:
+            include_elements: If True, include structured Element objects with each page
+
+        Returns:
+            List of Page objects, optionally with elements
+        """
+        # Parse content using existing stream parser
         self.pages = defaultdict(list)
+        self.page_segments = defaultdict(list)
         self.includes_table = False
         root = self.soup.body if self.soup.body else self.soup
         self._stream_pages(root, page_num=1)
@@ -536,7 +557,7 @@ class Parser:
                     lines.append(line)
             content = "\n".join(lines).strip()
 
-            result.append(Page(number=page_num, content=content))
+            result.append(Page(number=page_num, content=content, elements=None))
 
         # CONTENT-LOSS WATCHDOG
         total_output_chars = sum(len(p.content) for p in result)
@@ -548,6 +569,10 @@ class Parser:
                 pass
             else:
                 logger.debug(f"✓ Content retention: {100 * retention_ratio:.1f}%")
+
+        # If elements requested, process further
+        if include_elements:
+            result = self._add_elements_to_pages(result)
 
         return result
 
@@ -580,7 +605,368 @@ class Parser:
         # generic flatten (avoid markdown pipes which might be misread later)
         return " ".join(t for t in texts if t).strip()
 
+    def _add_elements_to_pages(self, pages: List[Page]) -> List[Page]:
+        """Add structured elements to pages.
+
+        Simple approach:
+        1. Group segments into blocks (split on double newlines)
+        2. Collect source nodes for each block
+        3. Generate IDs and augment HTML
+        4. Create Element objects
+        5. Attach elements to pages
+        """
+        # Build elements for each page, tracking their nodes
+        page_elements: Dict[int, List[Element]] = {}
+        block_nodes_map: Dict[str, List[Tag]] = {}
+
+        for page in pages:
+            page_num = page.number
+            segments = self.page_segments.get(page_num, [])
+
+            if not segments:
+                page_elements[page_num] = []
+                continue
+
+            # Group segments into blocks (returns (Element, nodes) tuples)
+            blocks_with_nodes = self._group_segments_into_blocks(segments, page_num)
+
+            # Merge small blocks into larger semantic units
+            merged_blocks = self._merge_small_blocks(blocks_with_nodes, page_num, min_chars=500)
+
+            # Separate elements and nodes
+            elements = []
+            for element, nodes in merged_blocks:
+                elements.append(element)
+                block_nodes_map[element.id] = nodes
+
+            page_elements[page_num] = elements
+
+        # Augment HTML with IDs
+        self._augment_html_with_ids(page_elements, block_nodes_map)
+
+        # Attach elements to pages
+        result = []
+        for page in pages:
+            elements = page_elements.get(page.number, [])
+            result.append(Page(
+                number=page.number,
+                content=page.content,
+                elements=elements if elements else None
+            ))
+
+        return result
+
+    def _is_bold_header(self, element: Element) -> bool:
+        """Check if element is a bold header (main section marker).
+
+        Bold headers start with ** and contain only a short title (< 50 chars typically).
+        Example: **Services**, **Competition**, **Markets and Distribution**
+        """
+        content = element.content.strip()
+
+        # Check if content starts and ends with **
+        if not (content.startswith('**') and '**' in content[2:]):
+            return False
+
+        # Extract the bold part
+        first_line = content.split('\n')[0].strip()
+
+        # Bold headers are typically short and standalone
+        # If the first line is entirely bold and short, it's likely a header
+        if first_line.startswith('**') and first_line.endswith('**'):
+            bold_text = first_line[2:-2].strip()
+            # Bold headers are typically < 50 chars and don't contain much punctuation
+            if len(bold_text) < 50 and bold_text.count('.') <= 1:
+                return True
+
+        return False
+
+    def _merge_small_blocks(
+        self,
+        blocks_with_nodes: List[Tuple[Element, List[Tag]]],
+        page_num: int,
+        min_chars: int = 500
+    ) -> List[Tuple[Element, List[Tag]]]:
+        """Merge consecutive small blocks into larger semantic units.
+
+        Rules:
+        - Tables always stay separate
+        - Bold headers (**text**) start new sections
+        - Italic headers (*text*) stay within sections
+        - Merge consecutive blocks until min_chars threshold
+        - Regenerate IDs for merged blocks
+
+        Args:
+            blocks_with_nodes: List of (Element, nodes) tuples
+            page_num: Page number for ID generation
+            min_chars: Minimum characters per block (default: 500)
+
+        Returns:
+            List of merged (Element, nodes) tuples
+        """
+        if not blocks_with_nodes:
+            return []
+
+        merged = []
+        current_elements = []
+        current_nodes = []
+        current_chars = 0
+
+        def flush(block_idx: int):
+            nonlocal current_elements, current_nodes, current_chars
+            if not current_elements:
+                return
+
+            # Merge content from all elements
+            merged_content = '\n\n'.join(e.content for e in current_elements)
+
+            # Infer kind from merged elements
+            kinds = [e.kind for e in current_elements]
+            if 'table' in kinds:
+                kind = 'table'
+            elif 'header' in kinds:
+                kind = 'section'
+            else:
+                kind = current_elements[0].kind
+
+            # Generate new ID
+            block_id = self._generate_block_id(page_num, block_idx, merged_content, kind)
+
+            merged_element = Element(
+                id=block_id,
+                content=merged_content,
+                kind=kind,
+                page_start=page_num,
+                page_end=page_num
+            )
+
+            merged.append((merged_element, list(current_nodes)))
+            current_elements = []
+            current_nodes = []
+            current_chars = 0
+
+        for i, (element, nodes) in enumerate(blocks_with_nodes):
+            # Check if this is a table
+            if element.kind == 'table':
+                # If we have accumulated text AND it's small (< min_chars), merge it with the table
+                # This handles captions/headers before tables
+                if current_elements and current_chars < min_chars:
+                    # Merge caption with table
+                    current_elements.append(element)
+                    current_nodes.extend([n for n in nodes if n not in current_nodes])
+                    flush(len(merged))
+                else:
+                    # Flush current, then add table separately
+                    flush(len(merged))
+                    merged.append((element, nodes))
+                continue
+
+            # Check if this is a bold header (main section break)
+            is_bold_header = self._is_bold_header(element)
+
+            # If we hit a bold header and have content, flush before starting new section
+            # BUT: never flush if current content is ONLY headers (headers need content)
+            if is_bold_header and current_elements:
+                # Check if ALL current elements are headers (no actual content)
+                all_headers = all(self._is_bold_header(e) for e in current_elements)
+                is_current_only_headers = all_headers and current_chars < 200
+
+                if not is_current_only_headers:
+                    flush(len(merged))
+
+            # Add to current merge group
+            current_elements.append(element)
+            current_nodes.extend([n for n in nodes if n not in current_nodes])
+            current_chars += element.char_count
+
+            # Decide whether to flush
+            # IMPORTANT: Never flush if current block is only headers - headers need content
+            should_flush = False
+
+            # Flush if we've hit min_chars (paragraph is big enough)
+            if current_chars >= min_chars:
+                should_flush = True
+
+            # OR flush if next element is a bold header (section boundary)
+            if i + 1 < len(blocks_with_nodes):
+                next_element, _ = blocks_with_nodes[i + 1]
+                if self._is_bold_header(next_element):
+                    should_flush = True
+
+            # OR flush if we're at the end
+            if i == len(blocks_with_nodes) - 1:
+                should_flush = True
+
+            if should_flush:
+                # Check if ALL current elements are headers (no actual content)
+                all_headers = all(self._is_bold_header(e) for e in current_elements)
+                is_only_headers = all_headers and current_chars < 200
+
+                if not is_only_headers:
+                    flush(len(merged))
+
+        # Flush remaining
+        if current_elements:
+            flush(len(merged))
+
+        return merged
+
+    def _group_segments_into_blocks(self, segments: List[Tuple[str, Optional[Tag]]], page_num: int) -> List[Tuple[Element, List[Tag]]]:
+        """Group sequential segments into semantic blocks.
+
+        Returns:
+            List of (Element, nodes) tuples where nodes are the DOM nodes for that block
+        """
+        blocks = []
+        current_block_segments = []
+        current_block_nodes = []
+        block_idx = 0
+
+        for content, node in segments:
+            # Check if this is a block boundary (double newline)
+            if content == "\n":
+                # Check if previous segment was also a newline
+                if current_block_segments and current_block_segments[-1] == "\n":
+                    # Double newline - flush current block
+                    if len(current_block_segments) > 1:  # Has content beyond the trailing newline
+                        block = self._create_block(
+                            current_block_segments[:-1],  # Exclude trailing newline
+                            current_block_nodes,
+                            page_num,
+                            block_idx
+                        )
+                        if block:
+                            blocks.append((block, list(current_block_nodes)))
+                            block_idx += 1
+                    current_block_segments = []
+                    current_block_nodes = []
+                    continue
+
+            current_block_segments.append(content)
+            if node is not None and node not in current_block_nodes:
+                current_block_nodes.append(node)
+
+        # Flush remaining block
+        if current_block_segments:
+            # Remove trailing newlines
+            while current_block_segments and current_block_segments[-1] == "\n":
+                current_block_segments.pop()
+
+            if current_block_segments:
+                block = self._create_block(
+                    current_block_segments,
+                    current_block_nodes,
+                    page_num,
+                    block_idx
+                )
+                if block:
+                    blocks.append((block, list(current_block_nodes)))
+
+        return blocks
+
+    def _create_block(
+        self,
+        segments: List[str],
+        nodes: List[Tag],
+        page_num: int,
+        block_idx: int
+    ) -> Optional[Element]:
+        """Create an Element from segments and nodes."""
+        content = "".join(segments).strip()
+        if not content:
+            return None
+
+        # Infer block kind from nodes
+        kind = self._infer_kind_from_nodes(nodes)
+
+        # Generate stable ID
+        block_id = self._generate_block_id(page_num, block_idx, content, kind)
+
+        return Element(
+            id=block_id,
+            content=content,
+            kind=kind,
+            page_start=page_num,
+            page_end=page_num
+        )
+
+    def _infer_kind_from_nodes(self, nodes: List[Tag]) -> str:
+        """Infer block kind from DOM nodes."""
+        if not nodes:
+            return "text"
+
+        # Check first meaningful node
+        for node in nodes:
+            if node.name in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+                return "header"
+            elif node.name == "table":
+                return "table"
+            elif node.name in {"ul", "ol"}:
+                return "list"
+            elif node.name == "p":
+                return "paragraph"
+
+        return "text"
+
+    def _generate_block_id(self, page: int, idx: int, content: str, kind: str) -> str:
+        """Generate stable block ID using normalized content hash."""
+        # Normalize: collapse whitespace for stable hashing
+        normalized = re.sub(r'\s+', ' ', content.strip()).lower()
+        hash_part = hashlib.sha1(normalized.encode('utf-8')).hexdigest()[:8]
+        kind_prefix = kind[0] if kind else "b"
+        return f"sec2md-p{page}-{kind_prefix}{idx}-{hash_part}"
+
+    def _augment_html_with_ids(self, page_elements: Dict[int, List[Element]], block_nodes_map: Dict[str, List[Tag]]) -> None:
+        """Add id attributes and data-sec2md-block to DOM nodes.
+
+        Args:
+            page_elements: Map of page_num -> List[Element]
+            block_nodes_map: Map of element.id -> List[Tag] (the nodes for that element)
+        """
+        seen_pages = set()
+
+        # Augment HTML
+        for page_num in sorted(page_elements.keys()):
+            elements = page_elements[page_num]
+
+            for i, element in enumerate(elements):
+                nodes = block_nodes_map.get(element.id, [])
+                if not nodes:
+                    continue
+
+                first_node = nodes[0]
+
+                # Add page ID to first block on this page
+                if page_num not in seen_pages:
+                    # Add page-N as an additional ID on the first node
+                    if 'id' in first_node.attrs:
+                        # Node already has an ID, add page ID as a class instead
+                        existing_classes = first_node.get('class', [])
+                        if isinstance(existing_classes, str):
+                            existing_classes = existing_classes.split()
+                        existing_classes.append(f"page-{page_num}")
+                        first_node['class'] = existing_classes
+                    else:
+                        first_node['id'] = f"page-{page_num}"
+                    seen_pages.add(page_num)
+
+                # Add block ID to first node (if it doesn't already have page ID)
+                if 'id' not in first_node.attrs:
+                    first_node['id'] = element.id
+
+                # Add data attribute to all nodes for highlighting
+                for node in nodes:
+                    node['data-sec2md-block'] = element.id
+
     def markdown(self) -> str:
         """Get full document as markdown string."""
         pages = self.get_pages()
         return "\n\n".join(page.content for page in pages if page.content)
+
+    def html(self) -> str:
+        """Get the HTML with augmented anchors and data attributes.
+
+        Note: Call get_pages(include_elements=True) first to augment the HTML.
+        If called before get_pages(), returns the original unmodified HTML.
+        """
+        return str(self.soup)

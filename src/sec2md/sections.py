@@ -27,34 +27,14 @@ def extract_sections(
         >>> for section in sections:
         ...     print(f"{section.item}: {section.item_title}")
     """
-    # Convert Page objects to dict format for SectionExtractor
-    pages_data = [{"page": p.number, "content": p.content} for p in pages]
-
     extractor = SectionExtractor(
-        pages=pages_data,
+        pages=pages,
         filing_type=filing_type,
         debug=debug
     )
 
-    sections_data = extractor.get_sections()
-
-    # Convert back to Section objects with Page objects
-    sections = []
-    for section_data in sections_data:
-        section_pages = [
-            Page(number=p["page"], content=p["content"])
-            for p in section_data["pages"]
-        ]
-        sections.append(
-            Section(
-                part=section_data["part"],
-                item=section_data["item"],
-                item_title=section_data["item_title"],
-                pages=section_pages
-            )
-        )
-
-    return sections
+    # SectionExtractor now returns Section objects directly
+    return extractor.get_sections()
 
 
 def get_section(

@@ -1,17 +1,27 @@
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from sec2md.chunker.markdown_blocks import BaseBlock
+
+if TYPE_CHECKING:
+    from sec2md.models import Element
 
 
 class MarkdownChunk:
     """Represents a chunk of markdown content that can be embedded"""
 
-    def __init__(self, blocks: List[BaseBlock], header: Optional[str] = None):
-        """Initialize a markdown chunk with blocks and optional header for embedding"""
+    def __init__(self, blocks: List[BaseBlock], header: Optional[str] = None, elements: Optional[List['Element']] = None):
+        """Initialize a markdown chunk with blocks and optional header for embedding
+
+        Args:
+            blocks: List of markdown blocks in this chunk
+            header: Optional header for embedding context
+            elements: List of Element objects this chunk overlaps with (for citation)
+        """
         self.vector: Optional[List[float]] = None
         self.blocks = blocks
         self.page = blocks[0].page
         self.header = header
+        self.elements = elements or []
 
     def set_vector(self, vector: List[float]):
         """Set the vector embedding for this chunk"""

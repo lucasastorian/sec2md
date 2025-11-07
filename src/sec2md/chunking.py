@@ -16,23 +16,23 @@ def chunk_pages(
     Chunk pages into overlapping markdown chunks.
 
     Args:
-        pages: List of Page objects
+        pages: List of Page objects (with optional elements)
         chunk_size: Target chunk size in tokens (estimated as chars/4)
         chunk_overlap: Overlap between chunks in tokens
         header: Optional header to prepend to each chunk's embedding_text
 
     Returns:
-        List of MarkdownChunk objects with page tracking
+        List of MarkdownChunk objects with page tracking and elements
 
     Example:
-        >>> pages = sec2md.convert_to_markdown(html, return_pages=True)
+        >>> pages = sec2md.convert_to_markdown(html, return_pages=True, include_elements=True)
         >>> chunks = sec2md.chunk_pages(pages, chunk_size=512)
         >>> for chunk in chunks:
         ...     print(f"Page {chunk.page}: {chunk.content[:100]}...")
+        ...     print(f"Elements: {chunk.elements}")
     """
     chunker = MarkdownChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    pages_data = [{"page": p.number, "content": p.content} for p in pages]
-    return chunker.split(pages=pages_data, header=header)
+    return chunker.split(pages=pages, header=header)
 
 
 def chunk_section(
