@@ -25,6 +25,13 @@ PART_HEADER_CELL_RE = re.compile(r"^\s*Part\s+([IVX]+)\s*$", re.I)
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class TextBlockInfo:
+    """Tracks XBRL TextBlock context during parsing."""
+    name: str  # e.g., "us-gaap:DebtDisclosureTextBlock"
+    title: Optional[str] = None  # e.g., "Note 9 – Debt"
+
+
 class Parser:
     """Document parser with support for regular tables and pseudo-tables."""
 
@@ -32,9 +39,80 @@ class Parser:
         self.soup = BeautifulSoup(content, "lxml")
         self.includes_table = False
         self.pages: Dict[int, List[str]] = defaultdict(list)
-        # Track DOM provenance: (content, source_node)
-        self.page_segments: Dict[int, List[Tuple[str, Optional[Tag]]]] = defaultdict(list)
+        # Track DOM provenance and TextBlock: (content, source_node, text_block_info)
+        self.page_segments: Dict[int, List[Tuple[str, Optional[Tag], Optional[TextBlockInfo]]]] = defaultdict(list)
         self.input_char_count = len(self.soup.get_text())
+
+        # Track current TextBlock context
+        self.current_text_block: Optional[TextBlockInfo] = None
+        # Map continuation IDs to TextBlock context
+        self.continuation_map: Dict[str, TextBlockInfo] = {}
+
+    @staticmethod
+    def _is_text_block_tag(el: Tag) -> bool:
+        """Check if element is an ix:nonnumeric with a TextBlock name."""
+        if not isinstance(el, Tag):
+            return False
+        if el.name not in ('ix:nonnumeric', 'nonnumeric'):
+            return False
+        name = el.get('name', '')
+        return 'TextBlock' in name
+
+    @staticmethod
+    def _find_text_block_in_tree(el: Tag) -> Optional[TextBlockInfo]:
+        """Find first TextBlock tag in element or its descendants."""
+        if not isinstance(el, Tag):
+            return None
+
+        # Check current element
+        if Parser._is_text_block_tag(el):
+            return Parser._extract_text_block_info(el)
+
+        # Recursively check children
+        for child in el.descendants:
+            if isinstance(child, Tag) and Parser._is_text_block_tag(child):
+                return Parser._extract_text_block_info(child)
+
+        return None
+
+    @staticmethod
+    def _extract_text_block_info(el: Tag) -> Optional[TextBlockInfo]:
+        """Extract TextBlock name and title from ix:nonnumeric tag.
+
+        Since we only track outermost TextBlocks, these should have short titles
+        (e.g., "Segment Information and Geographic Data") inside the tag.
+        """
+        if not isinstance(el, Tag):
+            return None
+        name = el.get('name', '')
+        if not name or 'TextBlock' not in name:
+            return None
+
+        # Get text content from tag
+        tag_text = el.get_text(strip=True) or ''
+
+        # Use tag content if reasonable length (<200 chars is a note title)
+        # Otherwise derive from XBRL name
+        if tag_text and len(tag_text) < 200:
+            title = tag_text
+        else:
+            # Fallback: Derive from XBRL name
+            # "SegmentReportingDisclosureTextBlock" -> "Segment Reporting Disclosure"
+            import re
+            name_part = name.split(':')[-1].replace('TextBlock', '')
+            # Insert spaces before capitals
+            title = re.sub(r'([A-Z])', r' \1', name_part).strip()
+            # Clean up double spaces
+            title = re.sub(r'\s+', ' ', title)
+
+        return TextBlockInfo(name=name, title=title)
+
+    @staticmethod
+    def _is_continuation_tag(el: Tag) -> bool:
+        """Check if element is an ix:continuation tag."""
+        if not isinstance(el, Tag):
+            return False
+        return el.name in ('ix:continuation', 'continuation')
 
     @staticmethod
     def _is_bold(el: Tag) -> bool:
@@ -126,10 +204,12 @@ class Parser:
             return "*"
         return ""
 
-    def _append(self, page_num: int, s: str, source_node: Optional[Tag] = None) -> None:
+    def _append(self, page_num: int, s: str, source_node: Optional[Tag] = None, text_block: Optional[TextBlockInfo] = None) -> None:
         if s:
             self.pages[page_num].append(s)
-            self.page_segments[page_num].append((s, source_node))
+            # Use current_text_block if not explicitly provided
+            tb = text_block if text_block is not None else self.current_text_block
+            self.page_segments[page_num].append((s, source_node, tb))
 
     def _blankline_before(self, page_num: int) -> None:
         """Ensure exactly one blank line before the next block."""
@@ -139,11 +219,11 @@ class Parser:
             return
         if not buf[-1].endswith("\n"):
             buf.append("\n")
-            seg_buf.append(("\n", None))
+            seg_buf.append(("\n", None, self.current_text_block))
         if len(buf) >= 2 and buf[-1] == "\n" and buf[-2] == "\n":
             return
         buf.append("\n")
-        seg_buf.append(("\n", None))
+        seg_buf.append(("\n", None, self.current_text_block))
 
     def _blankline_after(self, page_num: int) -> None:
         """Mirror `_blankline_before` for symmetry; same rule."""
@@ -472,6 +552,33 @@ class Parser:
         if self._is_hidden(root):
             return page_num
 
+        # Track XBRL TextBlock context
+        text_block_started = False
+        previous_text_block = self.current_text_block
+
+        # Check if this element or its descendants contain a TextBlock tag
+        # Only track OUTERMOST TextBlock (ignore nested ones)
+        tb_in_tree = self._find_text_block_in_tree(root)
+        if tb_in_tree and not self.current_text_block:
+            # Only set if we're NOT already inside a TextBlock (ignore nested)
+            self.current_text_block = tb_in_tree
+            text_block_started = True
+            # Check for continuedat attribute
+            continuedat = root.get('continuedat')
+            if continuedat:
+                self.continuation_map[continuedat] = tb_in_tree
+
+        # Check if this is a continuation tag
+        if self._is_continuation_tag(root):
+            cont_id = root.get('id')
+            if cont_id and cont_id in self.continuation_map:
+                self.current_text_block = self.continuation_map[cont_id]
+                text_block_started = True
+                # Check if continues further
+                continuedat = root.get('continuedat')
+                if continuedat:
+                    self.continuation_map[continuedat] = self.current_text_block
+
         # Check if this is a container with absolutely positioned children
         is_absolutely_positioned = self._is_absolutely_positioned(root)
         has_positioned_children = not is_absolutely_positioned and any(
@@ -524,6 +631,11 @@ class Parser:
 
         if self._has_break_after(root):
             current += 1
+
+        # Restore previous TextBlock context if we started a new one
+        # (unless this has continuedat, meaning the context continues elsewhere)
+        if text_block_started and not root.get('continuedat'):
+            self.current_text_block = previous_text_block
 
         return current
 
@@ -606,17 +718,20 @@ class Parser:
         return " ".join(t for t in texts if t).strip()
 
     def _add_elements_to_pages(self, pages: List[Page]) -> List[Page]:
-        """Add structured elements to pages.
+        """Add structured elements and TextBlocks to pages.
 
-        Simple approach:
+        Steps:
         1. Group segments into blocks (split on double newlines)
-        2. Collect source nodes for each block
+        2. Collect source nodes and TextBlock info for each block
         3. Generate IDs and augment HTML
-        4. Create Element objects
-        5. Attach elements to pages
+        4. Create Element and TextBlock objects
+        5. Attach to pages
         """
-        # Build elements for each page, tracking their nodes
+        from sec2md.models import TextBlock
+
+        # Build elements for each page, tracking their nodes and TextBlocks
         page_elements: Dict[int, List[Element]] = {}
+        page_text_blocks: Dict[int, List[TextBlock]] = {}
         block_nodes_map: Dict[str, List[Tag]] = {}
 
         for page in pages:
@@ -625,33 +740,69 @@ class Parser:
 
             if not segments:
                 page_elements[page_num] = []
+                page_text_blocks[page_num] = []
                 continue
 
-            # Group segments into blocks (returns (Element, nodes) tuples)
+            # Group segments into blocks (returns (Element, nodes, text_block) tuples)
             blocks_with_nodes = self._group_segments_into_blocks(segments, page_num)
 
             # Merge small blocks into larger semantic units
             merged_blocks = self._merge_small_blocks(blocks_with_nodes, page_num, min_chars=500)
 
-            # Separate elements and nodes
+            # Separate elements, nodes, and group by TextBlock
             elements = []
-            for element, nodes in merged_blocks:
+            text_block_map: Dict[str, List[str]] = {}  # TextBlock name -> element IDs
+
+            for element, nodes, text_block_info in merged_blocks:
                 elements.append(element)
                 block_nodes_map[element.id] = nodes
 
+                # Track which TextBlock this element belongs to
+                if text_block_info:
+                    tb_name = text_block_info.name
+                    if tb_name not in text_block_map:
+                        text_block_map[tb_name] = []
+                    text_block_map[tb_name].append(element.id)
+
             page_elements[page_num] = elements
+
+            # Create TextBlock objects with actual Element objects
+            text_blocks = []
+            # Group by name to get unique TextBlocks with their titles
+            seen_names = {}
+            for element, nodes, text_block_info in merged_blocks:
+                if text_block_info and text_block_info.name not in seen_names:
+                    seen_names[text_block_info.name] = text_block_info
+
+            # Build element ID to Element map
+            element_map = {elem.id: elem for elem in elements}
+
+            for tb_name, tb_info in seen_names.items():
+                element_ids = text_block_map.get(tb_name, [])
+                if element_ids:
+                    # Get actual Element objects
+                    tb_elements = [element_map[eid] for eid in element_ids if eid in element_map]
+                    text_blocks.append(TextBlock(
+                        name=tb_name,
+                        title=tb_info.title,
+                        elements=tb_elements
+                    ))
+
+            page_text_blocks[page_num] = text_blocks
 
         # Augment HTML with IDs
         self._augment_html_with_ids(page_elements, block_nodes_map)
 
-        # Attach elements to pages
+        # Attach elements and TextBlocks to pages
         result = []
         for page in pages:
             elements = page_elements.get(page.number, [])
+            text_blocks = page_text_blocks.get(page.number, [])
             result.append(Page(
                 number=page.number,
                 content=page.content,
-                elements=elements if elements else None
+                elements=elements if elements else None,
+                text_blocks=text_blocks if text_blocks else None
             ))
 
         return result
@@ -683,26 +834,26 @@ class Parser:
 
     def _merge_small_blocks(
         self,
-        blocks_with_nodes: List[Tuple[Element, List[Tag]]],
+        blocks_with_nodes: List[Tuple[Element, List[Tag], Optional[TextBlockInfo]]],
         page_num: int,
         min_chars: int = 500
-    ) -> List[Tuple[Element, List[Tag]]]:
+    ) -> List[Tuple[Element, List[Tag], Optional[TextBlockInfo]]]:
         """Merge consecutive small blocks into larger semantic units.
 
         Rules:
         - Tables always stay separate
         - Bold headers (**text**) start new sections
-        - Italic headers (*text*) stay within sections
+        - TextBlock boundaries always flush
         - Merge consecutive blocks until min_chars threshold
         - Regenerate IDs for merged blocks
 
         Args:
-            blocks_with_nodes: List of (Element, nodes) tuples
+            blocks_with_nodes: List of (Element, nodes, text_block) tuples
             page_num: Page number for ID generation
             min_chars: Minimum characters per block (default: 500)
 
         Returns:
-            List of merged (Element, nodes) tuples
+            List of merged (Element, nodes, text_block) tuples
         """
         if not blocks_with_nodes:
             return []
@@ -711,6 +862,7 @@ class Parser:
         current_elements = []
         current_nodes = []
         current_chars = 0
+        current_text_block = None
 
         def flush(block_idx: int):
             nonlocal current_elements, current_nodes, current_chars
@@ -740,12 +892,29 @@ class Parser:
                 page_end=page_num
             )
 
-            merged.append((merged_element, list(current_nodes)))
+            merged.append((merged_element, list(current_nodes), current_text_block))
             current_elements = []
             current_nodes = []
             current_chars = 0
 
-        for i, (element, nodes) in enumerate(blocks_with_nodes):
+        for i, (element, nodes, text_block) in enumerate(blocks_with_nodes):
+            # Check if TextBlock changed - this is a hard boundary, always flush
+            text_block_changed = False
+            if current_text_block is not None or text_block is not None:
+                # Compare TextBlock names (None != anything)
+                if current_text_block is None and text_block is not None:
+                    text_block_changed = True
+                elif current_text_block is not None and text_block is None:
+                    text_block_changed = True
+                elif current_text_block is not None and text_block is not None:
+                    text_block_changed = current_text_block.name != text_block.name
+
+            if text_block_changed and current_elements:
+                flush(len(merged))
+
+            # Update current TextBlock
+            current_text_block = text_block
+
             # Check if this is a table
             if element.kind == 'table':
                 # If we have accumulated text AND it's small (< min_chars), merge it with the table
@@ -758,7 +927,7 @@ class Parser:
                 else:
                     # Flush current, then add table separately
                     flush(len(merged))
-                    merged.append((element, nodes))
+                    merged.append((element, nodes, text_block))
                 continue
 
             # Check if this is a bold header (main section break)
@@ -789,7 +958,7 @@ class Parser:
 
             # OR flush if next element is a bold header (section boundary)
             if i + 1 < len(blocks_with_nodes):
-                next_element, _ = blocks_with_nodes[i + 1]
+                next_element, _, _ = blocks_with_nodes[i + 1]
                 if self._is_bold_header(next_element):
                     should_flush = True
 
@@ -811,18 +980,19 @@ class Parser:
 
         return merged
 
-    def _group_segments_into_blocks(self, segments: List[Tuple[str, Optional[Tag]]], page_num: int) -> List[Tuple[Element, List[Tag]]]:
+    def _group_segments_into_blocks(self, segments: List[Tuple[str, Optional[Tag], Optional[TextBlockInfo]]], page_num: int) -> List[Tuple[Element, List[Tag], Optional[TextBlockInfo]]]:
         """Group sequential segments into semantic blocks.
 
         Returns:
-            List of (Element, nodes) tuples where nodes are the DOM nodes for that block
+            List of (Element, nodes, text_block) tuples
         """
         blocks = []
         current_block_segments = []
         current_block_nodes = []
+        current_text_block = None
         block_idx = 0
 
-        for content, node in segments:
+        for content, node, text_block in segments:
             # Check if this is a block boundary (double newline)
             if content == "\n":
                 # Check if previous segment was also a newline
@@ -836,15 +1006,19 @@ class Parser:
                             block_idx
                         )
                         if block:
-                            blocks.append((block, list(current_block_nodes)))
+                            blocks.append((block, list(current_block_nodes), current_text_block))
                             block_idx += 1
                     current_block_segments = []
                     current_block_nodes = []
+                    current_text_block = None
                     continue
 
             current_block_segments.append(content)
             if node is not None and node not in current_block_nodes:
                 current_block_nodes.append(node)
+            # Track TextBlock (use last non-None value)
+            if text_block is not None:
+                current_text_block = text_block
 
         # Flush remaining block
         if current_block_segments:
@@ -860,7 +1034,7 @@ class Parser:
                     block_idx
                 )
                 if block:
-                    blocks.append((block, list(current_block_nodes)))
+                    blocks.append((block, list(current_block_nodes), current_text_block))
 
         return blocks
 

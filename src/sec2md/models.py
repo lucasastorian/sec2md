@@ -140,6 +140,23 @@ ITEM_10Q_MAPPING: dict[Item10Q, Tuple[str, str]] = {
 
 
 @dataclass
+class TextBlock:
+    """XBRL TextBlock (e.g., financial statement note)."""
+
+    name: str  # XBRL tag name (e.g., "us-gaap:DebtDisclosureTextBlock")
+    title: Optional[str]  # Human-readable title (e.g., "Note 9 – Debt")
+    elements: List['Element']  # Element objects that belong to this TextBlock
+
+    @property
+    def element_ids(self) -> List[str]:
+        """Get list of element IDs."""
+        return [e.id for e in self.elements]
+
+    def __repr__(self) -> str:
+        return f"TextBlock(name='{self.name}', title='{self.title}', elements={len(self.elements)})"
+
+
+@dataclass
 class Element:
     """Citable semantic block of content."""
 
@@ -172,6 +189,7 @@ class Page:
     number: int
     content: str
     elements: Optional[List[Element]] = None
+    text_blocks: Optional[List[TextBlock]] = None
 
     def __str__(self) -> str:
         return self.content
@@ -179,7 +197,8 @@ class Page:
     def __repr__(self) -> str:
         preview = self.content[:100].replace('\n', ' ')
         elem_info = f", elements={len(self.elements)}" if self.elements else ""
-        return f"Page(number={self.number}, tokens={self.tokens}{elem_info}, preview='{preview}...')"
+        tb_info = f", text_blocks={len(self.text_blocks)}" if self.text_blocks else ""
+        return f"Page(number={self.number}, tokens={self.tokens}{elem_info}{tb_info}, preview='{preview}...')"
 
     @property
     def tokens(self) -> int:
