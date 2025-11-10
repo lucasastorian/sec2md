@@ -710,7 +710,7 @@ class Parser:
 
         return current
 
-    def get_pages(self, include_elements: bool = False) -> List[Page]:
+    def get_pages(self, include_elements: bool = True) -> List[Page]:
         """Get parsed pages as Page objects.
 
         Args:

@@ -320,39 +320,19 @@ class SectionExtractor:
 
     def _map_8k_content_to_pages(self, section_content: str) -> List[Any]:
         """Map extracted section content back to Page objects."""
-        from sec2md.models import Page
-
-        # Try to find which original pages contain this content
+        # Find which original pages contain this section content
         # This is heuristic-based: match by content overlap
         matched_pages = []
         section_preview = section_content[:500]  # Use first 500 chars for matching
 
         for page_dict in self.pages:
             page_num = page_dict["page"]
-            page_content = self._clean_8k_text(page_dict["content"])
+            page_content_cleaned = self._clean_8k_text(page_dict["content"])
 
-            # Check if this page contains part of the section
-            if section_preview in page_content or page_content in section_content:
-                original_page = self._original_pages.get(page_num)
-                matched_pages.append(
-                    Page(
-                        number=page_num,
-                        content=page_content,
-                        elements=original_page.elements if original_page else None,
-                        text_blocks=original_page.text_blocks if original_page else None
-                    )
-                )
-
-        # If no matches found (shouldn't happen), create a synthetic page
-        if not matched_pages:
-            matched_pages.append(
-                Page(
-                    number=1,
-                    content=section_content,
-                    elements=None,
-                    text_blocks=None
-                )
-            )
+            # Check if this page contains part of the section (using cleaned content for matching)
+            if section_preview in page_content_cleaned or page_content_cleaned in section_content:
+                # Use the original Page object directly to preserve elements/text_blocks
+                matched_pages.append(self._original_pages[page_num])
 
         return matched_pages
 
