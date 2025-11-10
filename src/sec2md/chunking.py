@@ -1,7 +1,8 @@
 """Chunking utilities for page-aware markdown splitting."""
 
 from typing import List, Optional
-from sec2md.models import Page, Section
+from collections import defaultdict
+from sec2md.models import Page, Section, TextBlock
 from sec2md.chunker.markdown_chunker import MarkdownChunker
 from sec2md.chunker.markdown_chunk import MarkdownChunk
 
@@ -64,3 +65,115 @@ def chunk_section(
         chunk_overlap=chunk_overlap,
         header=header
     )
+
+
+def merge_text_blocks(pages: List[Page]) -> List[TextBlock]:
+    """
+    Merge multi-page TextBlocks into single TextBlock objects.
+
+    When a financial note (e.g., Debt Disclosure) spans multiple pages,
+    this merges all elements and page references into one TextBlock.
+
+    Args:
+        pages: List of Page objects with text_blocks populated
+
+    Returns:
+        List of merged TextBlock objects with page metadata:
+        - page_start: First page the note appears on
+        - page_end: Last page the note appears on
+        - source_pages: All pages the note spans
+        - elements: All elements from all pages
+
+    Example:
+        >>> pages = parser.get_pages(include_elements=True)
+        >>> merged = merge_text_blocks(pages)
+        >>> for tb in merged:
+        ...     print(f"{tb.title}: pages {tb.page_start}-{tb.page_end}")
+        Debt Disclosure: pages 45-46
+        Segment Reporting: pages 49-50
+    """
+    # Group by TextBlock name
+    tb_map = defaultdict(lambda: {
+        "name": None,
+        "title": None,
+        "elements": [],
+        "page_start": float('inf'),
+        "page_end": -1,
+        "pages": set()
+    })
+
+    for page in pages:
+        if page.text_blocks:
+            for tb in page.text_blocks:
+                tb_map[tb.name]["name"] = tb.name
+                tb_map[tb.name]["title"] = tb.title
+                tb_map[tb.name]["elements"].extend(tb.elements)
+                tb_map[tb.name]["page_start"] = min(tb_map[tb.name]["page_start"], page.number)
+                tb_map[tb.name]["page_end"] = max(tb_map[tb.name]["page_end"], page.number)
+                tb_map[tb.name]["pages"].add(page.number)
+
+    # Create merged TextBlock objects
+    merged = []
+    for tb_data in tb_map.values():
+        tb = TextBlock(
+            name=tb_data["name"],
+            title=tb_data["title"],
+            elements=tb_data["elements"],
+            page_start=tb_data["page_start"],
+            page_end=tb_data["page_end"],
+            source_pages=sorted(tb_data["pages"])
+        )
+        merged.append(tb)
+
+    return merged
+
+
+def chunk_text_block(
+    text_block: TextBlock,
+    chunk_size: int = 512,
+    chunk_overlap: int = 128,
+    include_title_as_header: bool = True
+) -> List[MarkdownChunk]:
+    """
+    Chunk a single TextBlock (financial note).
+
+    Args:
+        text_block: TextBlock object (possibly spanning multiple pages)
+        chunk_size: Target chunk size in tokens (estimated as chars/4)
+        chunk_overlap: Overlap between chunks in tokens
+        include_title_as_header: Prepend note title to chunks for embedding
+
+    Returns:
+        List of MarkdownChunk objects with elements preserved
+
+    Example:
+        >>> merged = merge_text_blocks(pages)
+        >>> debt_note = [tb for tb in merged if "Debt" in tb.title][0]
+        >>> chunks = chunk_text_block(debt_note, chunk_size=512)
+        >>> print(f"Chunked {debt_note.title} into {len(chunks)} chunks")
+        >>> print(f"Note spans pages {debt_note.page_start}-{debt_note.page_end}")
+    """
+    # Group elements by page
+    elements_by_page = defaultdict(list)
+    for elem in text_block.elements:
+        # Use page_start for grouping (elements are always on single pages in practice)
+        elements_by_page[elem.page_start].append(elem)
+
+    # Create one Page per page the TextBlock spans, with only elements from that page
+    pages = []
+    for page_num in sorted(elements_by_page.keys()):
+        elems = elements_by_page[page_num]
+        # Join content from elements on this page
+        content = "\n\n".join(e.content for e in elems)
+
+        pages.append(Page(
+            number=page_num,     # Real page number
+            content=content,     # Only content from this page
+            elements=elems       # Only elements from this page
+        ))
+
+    # Chunk normally across all pages
+    header = f"Note: {text_block.title}" if include_title_as_header and text_block.title else None
+    chunker = MarkdownChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+
+    return chunker.split(pages=pages, header=header)

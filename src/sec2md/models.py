@@ -147,13 +147,19 @@ class TextBlock:
     title: Optional[str]  # Human-readable title (e.g., "Note 9 – Debt")
     elements: List['Element']  # Element objects that belong to this TextBlock
 
+    # Optional: Set by merge_text_blocks() for multi-page notes
+    page_start: Optional[int] = None  # First page this TextBlock appears on
+    page_end: Optional[int] = None    # Last page this TextBlock appears on
+    source_pages: Optional[List[int]] = None  # All pages this TextBlock spans
+
     @property
     def element_ids(self) -> List[str]:
         """Get list of element IDs."""
         return [e.id for e in self.elements]
 
     def __repr__(self) -> str:
-        return f"TextBlock(name='{self.name}', title='{self.title}', elements={len(self.elements)})"
+        pages_info = f", pages={self.page_start}-{self.page_end}" if self.page_start else ""
+        return f"TextBlock(name='{self.name}', title='{self.title}', elements={len(self.elements)}{pages_info})"
 
 
 @dataclass

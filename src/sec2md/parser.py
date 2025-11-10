@@ -50,28 +50,50 @@ class Parser:
 
     @staticmethod
     def _is_text_block_tag(el: Tag) -> bool:
-        """Check if element is an ix:nonnumeric with a TextBlock name."""
+        """Check if element is an ix:nonnumeric with a note-level TextBlock name.
+
+        Only tracks financial notes, not document metadata.
+        Tracks: us-gaap:*, cyd:* (notes and disclosures)
+        Ignores: dei:* (document metadata)
+        """
         if not isinstance(el, Tag):
             return False
         if el.name not in ('ix:nonnumeric', 'nonnumeric'):
             return False
         name = el.get('name', '')
-        return 'TextBlock' in name
+        if 'TextBlock' not in name:
+            return False
+
+        # Only track note-level TextBlocks (us-gaap, cyd)
+        # Ignore document metadata (dei)
+        return name.startswith('us-gaap:') or name.startswith('cyd:')
 
     @staticmethod
-    def _find_text_block_in_tree(el: Tag) -> Optional[TextBlockInfo]:
-        """Find first TextBlock tag in element or its descendants."""
+    def _find_text_block_tag_in_children(el: Tag) -> Optional[Tag]:
+        """Find TextBlock tag in children (search 2 levels deep).
+
+        Searches children and grandchildren to handle:
+        <div>
+          <span><ix:nonnumeric>Title</ix:nonnumeric></span>
+          <div>Content</div>
+        </div>
+        """
         if not isinstance(el, Tag):
             return None
 
-        # Check current element
+        # Check if current element is the TextBlock tag
         if Parser._is_text_block_tag(el):
-            return Parser._extract_text_block_info(el)
+            return el
 
-        # Recursively check children
-        for child in el.descendants:
-            if isinstance(child, Tag) and Parser._is_text_block_tag(child):
-                return Parser._extract_text_block_info(child)
+        # Check direct children
+        for child in el.children:
+            if isinstance(child, Tag):
+                if Parser._is_text_block_tag(child):
+                    return child
+                # Check grandchildren (one more level)
+                for grandchild in child.children:
+                    if isinstance(grandchild, Tag) and Parser._is_text_block_tag(grandchild):
+                        return grandchild
 
         return None
 
@@ -552,23 +574,13 @@ class Parser:
         if self._is_hidden(root):
             return page_num
 
-        # Track XBRL TextBlock context
+        # Track XBRL TextBlock context (will be set later after determining if block)
         text_block_started = False
+        text_block_has_continuation = False
         previous_text_block = self.current_text_block
 
-        # Check if this element or its descendants contain a TextBlock tag
-        # Only track OUTERMOST TextBlock (ignore nested ones)
-        tb_in_tree = self._find_text_block_in_tree(root)
-        if tb_in_tree and not self.current_text_block:
-            # Only set if we're NOT already inside a TextBlock (ignore nested)
-            self.current_text_block = tb_in_tree
-            text_block_started = True
-            # Check for continuedat attribute
-            continuedat = root.get('continuedat')
-            if continuedat:
-                self.continuation_map[continuedat] = tb_in_tree
-
         # Check if this is a continuation tag
+        continuation_ends_text_block = False
         if self._is_continuation_tag(root):
             cont_id = root.get('id')
             if cont_id and cont_id in self.continuation_map:
@@ -577,7 +589,12 @@ class Parser:
                 # Check if continues further
                 continuedat = root.get('continuedat')
                 if continuedat:
+                    text_block_has_continuation = True
                     self.continuation_map[continuedat] = self.current_text_block
+                else:
+                    # No continuedat: this continuation tag ENDS the TextBlock
+                    # We need to clear the context after processing this tag
+                    continuation_ends_text_block = True
 
         # Check if this is a container with absolutely positioned children
         is_absolutely_positioned = self._is_absolutely_positioned(root)
@@ -591,12 +608,42 @@ class Parser:
             current = self._process_absolutely_positioned_container(root, page_num)
             if self._has_break_after(root):
                 current += 1
+
+            # Restore TextBlock context before early return
+            if text_block_started and not text_block_has_continuation:
+                if continuation_ends_text_block:
+                    self.current_text_block = None
+                else:
+                    self.current_text_block = previous_text_block
+
             return current
 
         # Inline-display elements should not trigger blocks
         is_inline_display = self._is_inline_display(root)
         is_block = self._is_block(root) and root.name not in {"br",
                                                               "hr"} and not is_inline_display and not is_absolutely_positioned
+
+        # Check if this block element contains a TextBlock tag in its children
+        # ALWAYS check block elements for new TextBlocks (not just when current_text_block is None)
+        # This allows new notes to replace old ones across pages
+        if is_block:
+            tb_tag = self._find_text_block_tag_in_children(root)
+            if tb_tag:
+                tb_info = self._extract_text_block_info(tb_tag)
+                if tb_info:
+                    # Only set if it's a DIFFERENT TextBlock (ignore nested duplicates)
+                    is_new_text_block = (
+                        self.current_text_block is None or
+                        self.current_text_block.name != tb_info.name
+                    )
+                    if is_new_text_block:
+                        self.current_text_block = tb_info
+                        text_block_started = True
+                        # Check for continuedat attribute ON THE TAG ITSELF
+                        continuedat = tb_tag.get('continuedat')
+                        if continuedat:
+                            text_block_has_continuation = True
+                            self.continuation_map[continuedat] = tb_info
 
         if is_block:
             self._blankline_before(page_num)
@@ -609,6 +656,14 @@ class Parser:
             self._blankline_after(page_num)
             if self._has_break_after(root):
                 page_num += 1
+
+            # Restore TextBlock context before early return
+            if text_block_started and not text_block_has_continuation:
+                if continuation_ends_text_block:
+                    self.current_text_block = None
+                else:
+                    self.current_text_block = previous_text_block
+
             return page_num
 
         # For inline wrappers (bold/italic), render atomically
@@ -619,6 +674,14 @@ class Parser:
                 self._append(page_num, t + " ", source_node=root)
             if self._has_break_after(root):
                 page_num += 1
+
+            # Restore TextBlock context before early return
+            if text_block_started and not text_block_has_continuation:
+                if continuation_ends_text_block:
+                    self.current_text_block = None
+                else:
+                    self.current_text_block = previous_text_block
+
             return page_num
 
         # Stream children for block elements
@@ -633,9 +696,17 @@ class Parser:
             current += 1
 
         # Restore previous TextBlock context if we started a new one
-        # (unless this has continuedat, meaning the context continues elsewhere)
-        if text_block_started and not root.get('continuedat'):
-            self.current_text_block = previous_text_block
+        # This applies to:
+        # 1. Block elements with new TextBlock tags (restore to previous)
+        # 2. Continuation tags that END a TextBlock (clear to None)
+        # (unless the TextBlock tag has continuedat, meaning it continues elsewhere)
+        if text_block_started and not text_block_has_continuation:
+            if continuation_ends_text_block:
+                # Continuation tag with no continuedat ENDS the TextBlock
+                self.current_text_block = None
+            else:
+                # New TextBlock tag restores to previous context
+                self.current_text_block = previous_text_block
 
         return current
 

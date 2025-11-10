@@ -326,11 +326,31 @@ class SectionExtractor:
                 page_num = page_dict["page"]
                 original_page = self._original_pages.get(page_num)
 
+                # Filter text_blocks to only include ones relevant to this section's content
+                filtered_text_blocks = None
+                if original_page and original_page.text_blocks:
+                    section_content = page_dict["content"]
+                    filtered_text_blocks = []
+                    for tb in original_page.text_blocks:
+                        # Include TextBlock if:
+                        # 1. Its title appears in section content, OR
+                        # 2. Any of its element content appears in section (for short titles)
+                        title_match = tb.title and tb.title in section_content
+                        content_match = any(
+                            # Check if element content (or significant portion) is in section
+                            elem.content[:200] in section_content or section_content in elem.content
+                            for elem in tb.elements
+                        )
+                        if title_match or content_match:
+                            filtered_text_blocks.append(tb)
+                    filtered_text_blocks = filtered_text_blocks if filtered_text_blocks else None
+
                 section_pages.append(
                     Page(
                         number=page_num,
                         content=page_dict["content"],
-                        elements=original_page.elements if original_page else None
+                        elements=original_page.elements if original_page else None,
+                        text_blocks=filtered_text_blocks
                     )
                 )
 

@@ -9,7 +9,8 @@ if TYPE_CHECKING:
 class MarkdownChunk:
     """Represents a chunk of markdown content that can be embedded"""
 
-    def __init__(self, blocks: List[BaseBlock], header: Optional[str] = None, elements: Optional[List['Element']] = None):
+    def __init__(self, blocks: List[BaseBlock], header: Optional[str] = None,
+                 elements: Optional[List['Element']] = None):
         """Initialize a markdown chunk with blocks and optional header for embedding
 
         Args:
@@ -19,13 +20,38 @@ class MarkdownChunk:
         """
         self.vector: Optional[List[float]] = None
         self.blocks = blocks
-        self.page = blocks[0].page
+        self.page = blocks[0].page  # Kept for backward compatibility
         self.header = header
         self.elements = elements or []
 
     def set_vector(self, vector: List[float]):
         """Set the vector embedding for this chunk"""
         self.vector = vector
+
+    @property
+    def start_page(self) -> int:
+        """First page this chunk appears on (from elements or blocks)."""
+        # Prefer elements since they have actual page info from the document
+        if self.elements:
+            return min(e.page_start for e in self.elements)
+        elif self.blocks:
+            return min(block.page for block in self.blocks)
+        return self.page
+
+    @property
+    def end_page(self) -> int:
+        """Last page this chunk appears on (from elements or blocks)."""
+        # Prefer elements since they have actual page info from the document
+        if self.elements:
+            return max(e.page_end for e in self.elements)
+        elif self.blocks:
+            return max(block.page for block in self.blocks)
+        return self.page
+
+    @property
+    def page_range(self) -> tuple:
+        """(start_page, end_page) tuple."""
+        return (self.start_page, self.end_page)
 
     @property
     def content(self) -> str:
@@ -78,8 +104,37 @@ class MarkdownChunk:
         """Returns the total number of tokens in this chunk"""
         return sum(block.tokens for block in self.blocks)
 
+    def to_dict(self) -> dict:
+        """Convert chunk to dictionary representation.
+
+        Returns:
+            Dictionary with chunk metadata and content:
+            - content: The markdown content
+            - start_page: First page number
+            - end_page: Last page number
+            - num_tokens: Token count
+            - has_table: Whether chunk contains tables
+            - element_ids: List of element IDs (for citations)
+            - header: Optional embedding header
+        """
+        return {
+            "content": self.content,
+            "embedding_text": self.embedding_text,
+            "start_page": self.start_page,
+            "end_page": self.end_page,
+            "num_tokens": self.num_tokens,
+            "has_table": self.has_table,
+            "element_ids": [e.id for e in self.elements] if self.elements else [],
+            "header": self.header,
+        }
+
+    def dict(self) -> dict:
+        """Alias for to_dict() for Pydantic-style API."""
+        return self.to_dict()
+
     def __repr__(self):
-        return f"MarkdownChunk(page={self.page}, blocks={len(self.blocks)})"
+        pages_str = f"{self.start_page}-{self.end_page}" if self.start_page != self.end_page else str(self.start_page)
+        return f"MarkdownChunk(pages={pages_str}, blocks={len(self.blocks)}, tokens={self.num_tokens})"
 
     def _repr_markdown_(self):
         """This method is called by IPython to display as Markdown"""
