@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple, TYPE_CHECKING
 from pydantic import BaseModel, Field, computed_field
 
-from sec2md.chunker.markdown_blocks import BaseBlock
+from sec2md.chunker.blocks import BaseBlock
 
 if TYPE_CHECKING:
     from sec2md.models import Element
@@ -9,8 +9,8 @@ else:
     Element = 'Element'  # Forward reference for Pydantic
 
 
-class MarkdownChunk(BaseModel):
-    """Represents a chunk of markdown content that can be embedded"""
+class Chunk(BaseModel):
+    """Represents a chunk of content that can be embedded"""
 
     blocks: List[BaseBlock] = Field(..., description="List of markdown blocks in this chunk")
     header: Optional[str] = Field(None, description="Optional header for embedding context")
@@ -126,7 +126,7 @@ class MarkdownChunk(BaseModel):
 
     def __repr__(self):
         pages_str = f"{self.start_page}-{self.end_page}" if self.start_page != self.end_page else str(self.start_page)
-        return f"MarkdownChunk(pages={pages_str}, blocks={len(self.blocks)}, tokens={self.num_tokens})"
+        return f"Chunk(pages={pages_str}, blocks={len(self.blocks)}, tokens={self.num_tokens})"
 
     def _repr_markdown_(self):
         """This method is called by IPython to display as Markdown"""

@@ -1,10 +1,10 @@
-"""Chunking utilities for page-aware markdown splitting."""
+"""Chunking utilities for page-aware splitting."""
 
 from typing import List, Optional
 from collections import defaultdict
 from sec2md.models import Page, Section, TextBlock
-from sec2md.chunker.markdown_chunker import MarkdownChunker
-from sec2md.chunker.markdown_chunk import MarkdownChunk
+from sec2md.chunker.chunker import Chunker
+from sec2md.chunker.chunk import Chunk
 
 
 def chunk_pages(
@@ -12,9 +12,9 @@ def chunk_pages(
     chunk_size: int = 512,
     chunk_overlap: int = 128,
     header: Optional[str] = None
-) -> List[MarkdownChunk]:
+) -> List[Chunk]:
     """
-    Chunk pages into overlapping markdown chunks.
+    Chunk pages into overlapping chunks.
 
     Args:
         pages: List of Page objects (with optional elements)
@@ -23,7 +23,7 @@ def chunk_pages(
         header: Optional header to prepend to each chunk's embedding_text
 
     Returns:
-        List of MarkdownChunk objects with page tracking and elements
+        List of Chunk objects with page tracking and elements
 
     Example:
         >>> pages = sec2md.convert_to_markdown(html, return_pages=True, include_elements=True)
@@ -32,7 +32,7 @@ def chunk_pages(
         ...     print(f"Page {chunk.page}: {chunk.content[:100]}...")
         ...     print(f"Elements: {chunk.elements}")
     """
-    chunker = MarkdownChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    chunker = Chunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     return chunker.split(pages=pages, header=header)
 
 
@@ -41,9 +41,9 @@ def chunk_section(
     chunk_size: int = 512,
     chunk_overlap: int = 128,
     header: Optional[str] = None
-) -> List[MarkdownChunk]:
+) -> List[Chunk]:
     """
-    Chunk a filing section into overlapping markdown chunks.
+    Chunk a filing section into overlapping chunks.
 
     Args:
         section: Section object from extract_sections()
@@ -52,7 +52,7 @@ def chunk_section(
         header: Optional header to prepend to each chunk's embedding_text
 
     Returns:
-        List of MarkdownChunk objects
+        List of Chunk objects
 
     Example:
         >>> sections = sec2md.extract_sections(pages, filing_type="10-K")
@@ -133,7 +133,7 @@ def chunk_text_block(
     chunk_size: int = 512,
     chunk_overlap: int = 128,
     include_title_as_header: bool = True
-) -> List[MarkdownChunk]:
+) -> List[Chunk]:
     """
     Chunk a single TextBlock (financial note).
 
@@ -144,7 +144,7 @@ def chunk_text_block(
         include_title_as_header: Prepend note title to chunks for embedding
 
     Returns:
-        List of MarkdownChunk objects with elements preserved
+        List of Chunk objects with elements preserved
 
     Example:
         >>> merged = merge_text_blocks(pages)
@@ -174,6 +174,6 @@ def chunk_text_block(
 
     # Chunk normally across all pages
     header = f"Note: {text_block.title}" if include_title_as_header and text_block.title else None
-    chunker = MarkdownChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    chunker = Chunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     return chunker.split(pages=pages, header=header)

@@ -73,39 +73,13 @@ class TextBlock(BaseBlock):
         return cls(content=content, page=page, block_type='Text')
 
 
-class AudioParagraphBlock(BaseBlock):
-    block_type: str = Field(default="Text", description="Audio paragraph block type")
-    paragraph_id: int = Field(..., description="Paragraph ID")
-    audio_start: float = Field(..., description="Audio start time")
-    audio_end: float = Field(..., description="Audio end time")
-
-    @computed_field
-    @property
-    def sentences(self) -> List[Sentence]:
-        """Returns the text block sentences"""
-        return [Sentence(content=content) for content in split_sentences(self.content)]
-
-    def format(self) -> dict:
-        """Formats the audio paragraphs"""
-        return {"id": self.paragraph_id, "content": self.content, "start": self.audio_start, "end": self.audio_end}
-
-
-class TableBlock(BaseModel):
+class TableBlock(BaseBlock):
     block_type: str = Field(default='Table', description="Table block type")
-    content: str = Field(..., description="Table content")
-    page: int = Field(..., description="Page number")
-
-    model_config = {"frozen": False}
 
     def __init__(self, **data):
         if 'content' in data:
             data['content'] = self._to_minified_markdown_static(data['content'])
         super().__init__(**data)
-
-    @computed_field
-    @property
-    def tokens(self) -> int:
-        return estimate_tokens(self.content)
 
     @staticmethod
     def _to_minified_markdown_static(content: str) -> str:

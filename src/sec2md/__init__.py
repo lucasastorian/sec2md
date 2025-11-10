@@ -5,8 +5,8 @@ from sec2md.utils import flatten_note
 from sec2md.sections import extract_sections, get_section
 from sec2md.chunking import chunk_pages, chunk_section, merge_text_blocks, chunk_text_block
 from sec2md.models import Page, Section, Item10K, Item10Q, Item8K, FilingType, Element, TextBlock, Exhibit
-from sec2md.chunker.markdown_chunk import MarkdownChunk
-from sec2md.chunker.markdown_chunker import MarkdownChunker
+from sec2md.chunker.chunk import Chunk
+from sec2md.chunker.chunker import Chunker
 from sec2md.parser import Parser
 from sec2md.section_extractor import SectionExtractor
 
@@ -29,8 +29,8 @@ __all__ = [
     "Item10Q",
     "Item8K",
     "FilingType",
-    "MarkdownChunk",
-    "MarkdownChunker",
+    "Chunk",
+    "Chunker",
     "Parser",
     "SectionExtractor",
 ]
