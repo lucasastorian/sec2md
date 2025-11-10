@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Literal, Tuple
+from pydantic import BaseModel, Field, field_validator, computed_field
 
 try:
     import tiktoken
@@ -86,6 +86,61 @@ class Item10Q(str, Enum):
     EXHIBITS_P2 = "6.P2"
 
 
+class Item8K(str, Enum):
+    """8-K Filing Items - event-driven disclosure items."""
+
+    # Section 1 – Registrant's Business and Operations
+    MATERIAL_AGREEMENT = "1.01"
+    TERMINATION_OF_AGREEMENT = "1.02"
+    BANKRUPTCY = "1.03"
+    MINE_SAFETY = "1.04"
+    CYBERSECURITY_INCIDENT = "1.05"
+
+    # Section 2 – Financial Information
+    ACQUISITION_DISPOSITION = "2.01"
+    RESULTS_OF_OPERATIONS = "2.02"
+    DIRECT_FINANCIAL_OBLIGATION = "2.03"
+    TRIGGERING_EVENTS = "2.04"
+    EXIT_DISPOSAL_COSTS = "2.05"
+    MATERIAL_IMPAIRMENTS = "2.06"
+
+    # Section 3 – Securities and Trading Markets
+    DELISTING_NOTICE = "3.01"
+    UNREGISTERED_SALES = "3.02"
+    SECURITY_RIGHTS_MODIFICATION = "3.03"
+
+    # Section 4 – Matters Related to Accountants and Financial Statements
+    ACCOUNTANT_CHANGE = "4.01"
+    NON_RELIANCE = "4.02"
+
+    # Section 5 – Corporate Governance and Management
+    CONTROL_CHANGE = "5.01"
+    DIRECTOR_OFFICER_CHANGE = "5.02"
+    AMENDMENTS_TO_ARTICLES = "5.03"
+    TRADING_SUSPENSION = "5.04"
+    CODE_OF_ETHICS = "5.05"
+    SHELL_COMPANY_STATUS = "5.06"
+    SHAREHOLDER_VOTE = "5.07"
+    SHAREHOLDER_NOMINATIONS = "5.08"
+
+    # Section 6 – Asset-Backed Securities
+    ABS_INFORMATIONAL = "6.01"
+    SERVICER_TRUSTEE_CHANGE = "6.02"
+    CREDIT_ENHANCEMENT_CHANGE = "6.03"
+    DISTRIBUTION_FAILURE = "6.04"
+    SECURITIES_ACT_UPDATING = "6.05"
+    STATIC_POOL = "6.06"
+
+    # Section 7 – Regulation FD
+    REGULATION_FD = "7.01"
+
+    # Section 8 – Other Events
+    OTHER_EVENTS = "8.01"
+
+    # Section 9 – Financial Statements and Exhibits
+    FINANCIAL_STATEMENTS_EXHIBITS = "9.01"
+
+
 # Internal mappings from enum to (part, item) tuples
 ITEM_10K_MAPPING: dict[Item10K, Tuple[str, str]] = {
     # Part I
@@ -139,19 +194,67 @@ ITEM_10Q_MAPPING: dict[Item10Q, Tuple[str, str]] = {
 }
 
 
-@dataclass
-class TextBlock:
+# 8-K items don't have PART divisions
+ITEM_8K_TITLES: dict[str, str] = {
+    "1.01": "Entry into a Material Definitive Agreement",
+    "1.02": "Termination of a Material Definitive Agreement",
+    "1.03": "Bankruptcy or Receivership",
+    "1.04": "Mine Safety – Reporting of Shutdowns and Patterns of Violations",
+    "1.05": "Material Cybersecurity Incidents",
+    "2.01": "Completion of Acquisition or Disposition of Assets",
+    "2.02": "Results of Operations and Financial Condition",
+    "2.03": "Creation of a Direct Financial Obligation or an Obligation under an Off-Balance Sheet Arrangement of a Registrant",
+    "2.04": "Triggering Events That Accelerate or Increase a Direct Financial Obligation or an Obligation under an Off-Balance Sheet Arrangement",
+    "2.05": "Costs Associated with Exit or Disposal Activities",
+    "2.06": "Material Impairments",
+    "3.01": "Notice of Delisting or Failure to Satisfy a Continued Listing Rule or Standard; Transfer of Listing",
+    "3.02": "Unregistered Sales of Equity Securities",
+    "3.03": "Material Modification to Rights of Security Holders",
+    "4.01": "Changes in Registrant's Certifying Accountant",
+    "4.02": "Non-Reliance on Previously Issued Financial Statements or a Related Audit Report or Completed Interim Review",
+    "5.01": "Changes in Control of Registrant",
+    "5.02": "Departure of Directors or Certain Officers; Election of Directors; Appointment of Certain Officers; Compensatory Arrangements of Certain Officers",
+    "5.03": "Amendments to Articles of Incorporation or Bylaws; Change in Fiscal Year",
+    "5.04": "Temporary Suspension of Trading Under Registrant's Employee Benefit Plans",
+    "5.05": "Amendments to the Registrant's Code of Ethics, or Waiver of a Provision of the Code of Ethics",
+    "5.06": "Change in Shell Company Status",
+    "5.07": "Submission of Matters to a Vote of Security Holders",
+    "5.08": "Shareholder Director Nominations",
+    "6.01": "ABS Informational and Computational Material",
+    "6.02": "Change of Servicer or Trustee",
+    "6.03": "Change in Credit Enhancement or Other External Support",
+    "6.04": "Failure to Make a Required Distribution",
+    "6.05": "Securities Act Updating Disclosure",
+    "6.06": "Static Pool",
+    "7.01": "Regulation FD Disclosure",
+    "8.01": "Other Events",
+    "9.01": "Financial Statements and Exhibits",
+}
+
+
+class Exhibit(BaseModel):
+    """8-K exhibit entry."""
+    exhibit_no: str = Field(..., description="Exhibit number (e.g., '99.1', '104')")
+    description: str = Field(..., description="Exhibit description")
+
+    model_config = {"frozen": False}
+
+
+class TextBlock(BaseModel):
     """XBRL TextBlock (e.g., financial statement note)."""
 
-    name: str  # XBRL tag name (e.g., "us-gaap:DebtDisclosureTextBlock")
-    title: Optional[str]  # Human-readable title (e.g., "Note 9 – Debt")
-    elements: List['Element']  # Element objects that belong to this TextBlock
+    name: str = Field(..., description="XBRL tag name (e.g., 'us-gaap:DebtDisclosureTextBlock')")
+    title: Optional[str] = Field(None, description="Human-readable title (e.g., 'Note 9 – Debt')")
+    elements: List['Element'] = Field(default_factory=list, description="Element objects in this TextBlock")
 
     # Optional: Set by merge_text_blocks() for multi-page notes
-    page_start: Optional[int] = None  # First page this TextBlock appears on
-    page_end: Optional[int] = None    # Last page this TextBlock appears on
-    source_pages: Optional[List[int]] = None  # All pages this TextBlock spans
+    page_start: Optional[int] = Field(None, description="First page this TextBlock appears on")
+    page_end: Optional[int] = Field(None, description="Last page this TextBlock appears on")
+    source_pages: Optional[List[int]] = Field(None, description="All pages this TextBlock spans")
 
+    model_config = {"frozen": False, "arbitrary_types_allowed": True}
+
+    @computed_field
     @property
     def element_ids(self) -> List[str]:
         """Get list of element IDs."""
@@ -162,50 +265,46 @@ class TextBlock:
         return f"TextBlock(name='{self.name}', title='{self.title}', elements={len(self.elements)}{pages_info})"
 
 
-@dataclass
-class Element:
+class Element(BaseModel):
     """Citable semantic block of content."""
 
-    id: str
-    content: str
-    kind: str
-    page_start: int
-    page_end: int
+    id: str = Field(..., description="Unique element ID for citation")
+    content: str = Field(..., description="Element text content")
+    kind: str = Field(..., description="Element type (e.g., 'paragraph', 'table', 'heading')")
+    page_start: int = Field(..., description="First page this element appears on")
+    page_end: int = Field(..., description="Last page this element appears on")
+
+    model_config = {"frozen": False}
+
+    @computed_field
+    @property
+    def char_count(self) -> int:
+        """Character count of this element."""
+        return len(self.content)
+
+    @computed_field
+    @property
+    def tokens(self) -> int:
+        """Token count of this element."""
+        return _count_tokens(self.content)
 
     def __repr__(self) -> str:
         preview = self.content[:80].replace('\n', ' ')
         pages = f"p{self.page_start}" if self.page_start == self.page_end else f"p{self.page_start}-{self.page_end}"
         return f"Element(id='{self.id}', kind='{self.kind}', {pages}, chars={len(self.content)}, preview='{preview}...')"
 
-    @property
-    def char_count(self) -> int:
-        """Character count of this element."""
-        return len(self.content)
 
-    @property
-    def tokens(self) -> int:
-        """Token count of this element."""
-        return _count_tokens(self.content)
-
-
-@dataclass
-class Page:
+class Page(BaseModel):
     """Represents a single page of markdown content."""
 
-    number: int
-    content: str
-    elements: Optional[List[Element]] = None
-    text_blocks: Optional[List[TextBlock]] = None
+    number: int = Field(..., description="Page number in the filing")
+    content: str = Field(..., description="Markdown content of the page")
+    elements: Optional[List[Element]] = Field(None, description="Citable elements on this page")
+    text_blocks: Optional[List[TextBlock]] = Field(None, description="XBRL TextBlocks on this page")
 
-    def __str__(self) -> str:
-        return self.content
+    model_config = {"frozen": False, "arbitrary_types_allowed": True}
 
-    def __repr__(self) -> str:
-        preview = self.content[:100].replace('\n', ' ')
-        elem_info = f", elements={len(self.elements)}" if self.elements else ""
-        tb_info = f", text_blocks={len(self.text_blocks)}" if self.text_blocks else ""
-        return f"Page(number={self.number}, tokens={self.tokens}{elem_info}{tb_info}, preview='{preview}...')"
-
+    @computed_field
     @property
     def tokens(self) -> int:
         """Total number of tokens on this page."""
@@ -223,35 +322,36 @@ class Page:
             print(f"=== Page {self.number} ({self.tokens} tokens) ===")
             print(self.content)
 
-
-@dataclass
-class Section:
-    """Represents a filing section (e.g., ITEM 1A - Risk Factors)."""
-
-    part: Optional[str]
-    item: Optional[str]
-    item_title: Optional[str]
-    pages: List[Page]
-
-    def markdown(self) -> str:
-        """Get section content as single markdown string."""
-        return "\n\n".join(p.content for p in self.pages)
-
     def __str__(self) -> str:
-        return self.markdown()
+        return self.content
 
     def __repr__(self) -> str:
-        page_range = self.page_range
-        return (
-            f"Section(item='{self.item}', title='{self.item_title}', "
-            f"pages={page_range[0]}-{page_range[1]}, tokens={self.tokens})"
-        )
+        preview = self.content[:100].replace('\n', ' ')
+        elem_info = f", elements={len(self.elements)}" if self.elements else ""
+        tb_info = f", text_blocks={len(self.text_blocks)}" if self.text_blocks else ""
+        return f"Page(number={self.number}, tokens={self.tokens}{elem_info}{tb_info}, preview='{preview}...')"
 
-    @property
-    def content(self) -> str:
-        """Get section content with page delimiters."""
-        return "\n\n---\n\n".join(p.content for p in self.pages)
 
+class Section(BaseModel):
+    """Represents a filing section (e.g., ITEM 1A - Risk Factors)."""
+
+    part: Optional[str] = Field(None, description="Part name (e.g., 'PART I', None for 8-K)")
+    item: Optional[str] = Field(None, description="Item identifier (e.g., 'ITEM 1A', 'ITEM 2.02')")
+    item_title: Optional[str] = Field(None, description="Item title")
+    pages: List[Page] = Field(default_factory=list, description="Pages in this section")
+    exhibits: Optional[List[Exhibit]] = Field(None, description="8-K exhibits (Item 9.01 only)")
+
+    model_config = {"frozen": False, "arbitrary_types_allowed": True}
+
+    @field_validator('pages')
+    @classmethod
+    def validate_pages_not_empty(cls, v: List[Page]) -> List[Page]:
+        """Ensure section has at least one page."""
+        if not v:
+            raise ValueError("Section must contain at least one page")
+        return v
+
+    @computed_field
     @property
     def page_range(self) -> Tuple[int, int]:
         """Get the start and end page numbers for this section."""
@@ -259,10 +359,20 @@ class Section:
             return 0, 0
         return self.pages[0].number, self.pages[-1].number
 
+    @computed_field
     @property
     def tokens(self) -> int:
         """Total number of tokens in this section."""
         return sum(p.tokens for p in self.pages)
+
+    @property
+    def content(self) -> str:
+        """Get section content with page delimiters."""
+        return "\n\n---\n\n".join(p.content for p in self.pages)
+
+    def markdown(self) -> str:
+        """Get section content as single markdown string."""
+        return "\n\n".join(p.content for p in self.pages)
 
     def preview(self) -> None:
         """
@@ -278,3 +388,13 @@ class Section:
             header = f"{self.item}: {self.item_title}"
             print(f"=== {header} ({self.tokens} tokens, pages {self.page_range[0]}-{self.page_range[1]}) ===")
             print(content)
+
+    def __str__(self) -> str:
+        return self.markdown()
+
+    def __repr__(self) -> str:
+        page_range = self.page_range
+        return (
+            f"Section(item='{self.item}', title='{self.item_title}', "
+            f"pages={page_range[0]}-{page_range[1]}, tokens={self.tokens})"
+        )

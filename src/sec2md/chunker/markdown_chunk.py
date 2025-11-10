@@ -1,33 +1,35 @@
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, Tuple, TYPE_CHECKING
+from pydantic import BaseModel, Field, computed_field
 
 from sec2md.chunker.markdown_blocks import BaseBlock
 
 if TYPE_CHECKING:
     from sec2md.models import Element
+else:
+    Element = 'Element'  # Forward reference for Pydantic
 
 
-class MarkdownChunk:
+class MarkdownChunk(BaseModel):
     """Represents a chunk of markdown content that can be embedded"""
 
-    def __init__(self, blocks: List[BaseBlock], header: Optional[str] = None,
-                 elements: Optional[List['Element']] = None):
-        """Initialize a markdown chunk with blocks and optional header for embedding
+    blocks: List[BaseBlock] = Field(..., description="List of markdown blocks in this chunk")
+    header: Optional[str] = Field(None, description="Optional header for embedding context")
+    elements: List['Element'] = Field(default_factory=list, description="Element objects for citation")
+    vector: Optional[List[float]] = Field(None, description="Vector embedding for this chunk")
 
-        Args:
-            blocks: List of markdown blocks in this chunk
-            header: Optional header for embedding context
-            elements: List of Element objects this chunk overlaps with (for citation)
-        """
-        self.vector: Optional[List[float]] = None
-        self.blocks = blocks
-        self.page = blocks[0].page  # Kept for backward compatibility
-        self.header = header
-        self.elements = elements or []
+    model_config = {"frozen": False, "arbitrary_types_allowed": True}
+
+    @computed_field
+    @property
+    def page(self) -> int:
+        """First page (for backward compatibility)."""
+        return self.blocks[0].page if self.blocks else 1
 
     def set_vector(self, vector: List[float]):
         """Set the vector embedding for this chunk"""
         self.vector = vector
 
+    @computed_field
     @property
     def start_page(self) -> int:
         """First page this chunk appears on (from elements or blocks)."""
@@ -38,6 +40,7 @@ class MarkdownChunk:
             return min(block.page for block in self.blocks)
         return self.page
 
+    @computed_field
     @property
     def end_page(self) -> int:
         """Last page this chunk appears on (from elements or blocks)."""
@@ -48,16 +51,19 @@ class MarkdownChunk:
             return max(block.page for block in self.blocks)
         return self.page
 
+    @computed_field
     @property
-    def page_range(self) -> tuple:
+    def page_range(self) -> Tuple[int, int]:
         """(start_page, end_page) tuple."""
         return (self.start_page, self.end_page)
 
+    @computed_field
     @property
     def content(self) -> str:
         """Get the text content of this chunk"""
         return "\n".join([block.content for block in self.blocks])
 
+    @computed_field
     @property
     def data(self) -> List[dict]:
         """Returns a list of block data grouped by page with ONLY the chunk's content"""
@@ -82,11 +88,13 @@ class MarkdownChunk:
 
         return sorted(page_content_data, key=lambda x: x["page"])
 
+    @computed_field
     @property
     def pages(self) -> List[dict]:
         """Returns a list of pages with ONLY this chunk's content (not full page content)"""
         return self.data
 
+    @computed_field
     @property
     def embedding_text(self) -> str:
         """Get the text to use for embedding, with optional header prepended"""
@@ -94,43 +102,27 @@ class MarkdownChunk:
             return f"{self.header}\n\n...\n\n{self.content}"
         return self.content
 
+    @computed_field
     @property
     def has_table(self) -> bool:
         """Returns True if this chunk contains one or more table blocks"""
         return any(block.block_type == 'Table' for block in self.blocks)
 
+    @computed_field
     @property
     def num_tokens(self) -> int:
         """Returns the total number of tokens in this chunk"""
         return sum(block.tokens for block in self.blocks)
 
+    @computed_field
+    @property
+    def element_ids(self) -> List[str]:
+        """List of element IDs for citations."""
+        return [e.id for e in self.elements] if self.elements else []
+
     def to_dict(self) -> dict:
-        """Convert chunk to dictionary representation.
-
-        Returns:
-            Dictionary with chunk metadata and content:
-            - content: The markdown content
-            - start_page: First page number
-            - end_page: Last page number
-            - num_tokens: Token count
-            - has_table: Whether chunk contains tables
-            - element_ids: List of element IDs (for citations)
-            - header: Optional embedding header
-        """
-        return {
-            "content": self.content,
-            "embedding_text": self.embedding_text,
-            "start_page": self.start_page,
-            "end_page": self.end_page,
-            "num_tokens": self.num_tokens,
-            "has_table": self.has_table,
-            "element_ids": [e.id for e in self.elements] if self.elements else [],
-            "header": self.header,
-        }
-
-    def dict(self) -> dict:
-        """Alias for to_dict() for Pydantic-style API."""
-        return self.to_dict()
+        """Alias for model_dump() - kept for backward compat during alpha."""
+        return self.model_dump()
 
     def __repr__(self):
         pages_str = f"{self.start_page}-{self.end_page}" if self.start_page != self.end_page else str(self.start_page)

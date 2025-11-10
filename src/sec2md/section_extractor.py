@@ -53,12 +53,14 @@ FILING_STRUCTURES = {
 
 
 class SectionExtractor:
-    def __init__(self, pages: List[Any], filing_type: Optional[Literal["10-K", "10-Q", "20-F"]] = None, debug: bool = False):
+    def __init__(self, pages: List[Any], filing_type: Optional[Literal["10-K", "10-Q", "20-F", "8-K"]] = None,
+                 desired_items: Optional[set] = None, debug: bool = False):
         """Initialize SectionExtractor.
 
         Args:
             pages: List of Page objects
-            filing_type: Type of filing ("10-K", "10-Q", or "20-F")
+            filing_type: Type of filing ("10-K", "10-Q", "20-F", or "8-K")
+            desired_items: For 8-K only: set of item numbers to extract (e.g., {"2.02", "9.01"})
             debug: Enable debug logging
         """
         from sec2md.models import Page
@@ -70,6 +72,7 @@ class SectionExtractor:
         self.pages = [{"page": p.number, "content": p.content} for p in pages]
         self.filing_type = filing_type
         self.structure = FILING_STRUCTURES.get(filing_type) if filing_type else None
+        self.desired_items = desired_items
         self.debug = debug
 
         self._toc_locked = False
@@ -136,7 +139,239 @@ class SectionExtractor:
         leader_hits = len(DOT_LEAD_RE.findall(content))
 
         return (item_hits >= 3) or (leader_hits >= 3)
-    def get_sections(self) -> List[Dict]:
+
+    # ========== 8-K Specific Methods ==========
+
+    # 8-K item header regex: ITEM 1.01 / 7.01 / 9.01
+    _ITEM_8K_RE = re.compile(
+        rf'^\s*{LEAD_WRAP}(ITEM)\s+([1-9]\.\d{{2}}[A-Z]?)\.?\s*(?:[:.\-–—]\s*)?(.*)',
+        re.IGNORECASE | re.MULTILINE
+    )
+
+    # 8-K hard stops (SIGNATURES, EXHIBIT INDEX)
+    _HARD_STOP_8K_RE = re.compile(r'^\s*(SIGNATURES|EXHIBIT\s+INDEX)\b', re.IGNORECASE | re.MULTILINE)
+
+    # Promote inline "Item x.xx" to its own line
+    _PROMOTE_ITEM_8K_RE = re.compile(r'(?<!\n)(\s)(ITEM\s+[1-9]\.\d{2}[A-Z]?\s*[.:–—-])', re.IGNORECASE)
+
+    # Exhibits table parsing
+    _PIPE_ROW_RE = re.compile(r'^\s*\|?\s*([0-9]{1,4}(?:\.[0-9A-Za-z]+)?)\s*\|\s*(.+?)\s*\|?\s*$', re.MULTILINE)
+    _SPACE_ROW_RE = re.compile(r'^\s*([0-9]{1,4}(?:\.[0-9A-Za-z]+)?)\s{2,}(.+?)\s*$', re.MULTILINE)
+    _HTML_ROW_RE = re.compile(
+        r'<tr[^>]*>\s*<t[dh][^>]*>\s*([^<]+?)\s*</t[dh]>\s*<t[dh][^>]*>\s*([^<]+?)\s*</t[dh]>\s*</tr>',
+        re.IGNORECASE | re.DOTALL
+    )
+
+    @staticmethod
+    def _normalize_8k_item_code(code: str) -> str:
+        """Normalize '5.2' -> '5.02', keep suffix 'A' if present."""
+        code = code.upper().strip()
+        m = re.match(r'^([1-9])\.(\d{1,2})([A-Z]?)$', code)
+        if not m:
+            return code
+        major, minor, suffix = m.groups()
+        minor = f"{int(minor):02d}"
+        return f"{major}.{minor}{suffix}"
+
+    def _clean_8k_text(self, text: str) -> str:
+        """Clean 8-K text: remove headers/footers, normalize whitespace, promote inline items."""
+        text = text.replace(NBSP, " ").replace(NARROW_NBSP, " ").replace(ZWSP, "")
+
+        # Promote inline item headings to their own line
+        text = self._PROMOTE_ITEM_8K_RE.sub(r'\n\2', text)
+
+        # Remove Form 8-K headers/footers
+        header_footer_8k = re.compile(
+            r'^\s*(Form\s+8\-K|Page\s+\d+(?:\s+of\s+\d+)?|UNITED\s+STATES\s+SECURITIES\s+AND\s+EXCHANGE\s+COMMISSION)\b',
+            re.IGNORECASE
+        )
+
+        lines: List[str] = []
+        for ln in text.splitlines():
+            t = ln.strip()
+            if header_footer_8k.match(t):
+                continue
+            t = MD_EDGE.sub("", t)  # strip leading/trailing **/__ wrappers
+            # Drop trivial table header separators like | --- | --- |
+            if re.fullmatch(r'\|\s*-{3,}\s*\|\s*-{3,}\s*\|?', t):
+                continue
+            lines.append(t)
+
+        # Collapse multiple blank lines into one
+        out: List[str] = []
+        prev_blank = False
+        for ln in lines:
+            blank = (ln == "")
+            if blank and prev_blank:
+                continue
+            out.append(ln)
+            prev_blank = blank
+
+        return "\n".join(out).strip()
+
+    def _parse_exhibits(self, block: str) -> List[Any]:
+        """Parse exhibit table from 9.01 section."""
+        from sec2md.models import Exhibit
+
+        rows: List[Exhibit] = []
+
+        # Try pipe table rows first
+        for m in self._PIPE_ROW_RE.finditer(block):
+            left, right = m.group(1).strip(), m.group(2).strip()
+            if not re.match(r'^\d', left):
+                continue  # skip headers like "EXHIBIT NO."
+            if left.startswith('---') or right.startswith('---'):
+                continue  # skip separators
+            rows.append(Exhibit(exhibit_no=left, description=right))
+        if rows:
+            return rows
+
+        # Fallback: space-aligned two columns
+        for m in self._SPACE_ROW_RE.finditer(block):
+            left, right = m.group(1).strip(), m.group(2).strip()
+            if not re.match(r'^\d', left):
+                continue
+            rows.append(Exhibit(exhibit_no=left, description=right))
+        if rows:
+            return rows
+
+        # Fallback: basic HTML table
+        for m in self._HTML_ROW_RE.finditer(block):
+            left, right = m.group(1).strip(), m.group(2).strip()
+            if not re.match(r'^\d', left):
+                continue
+            rows.append(Exhibit(exhibit_no=left, description=right))
+
+        return rows
+
+    def _slice_8k_body(self, doc: str, start_after: int, next_item_start: int) -> str:
+        """Slice body text from start_after up to earliest hard stop or next_item_start."""
+        mstop = self._HARD_STOP_8K_RE.search(doc, pos=start_after, endpos=next_item_start)
+        end = mstop.start() if mstop else next_item_start
+        return doc[start_after:end].strip()
+
+    def _get_8k_sections(self) -> List[Any]:
+        """Extract 8-K sections (items only, no PART divisions)."""
+        from sec2md.models import Section, Page, ITEM_8K_TITLES
+
+        # Concatenate all pages into one doc
+        full_content = "\n\n".join(p["content"] for p in self.pages)
+        doc = self._clean_8k_text(full_content)
+
+        if not doc:
+            self._log("DEBUG: No content after cleaning")
+            return []
+
+        # Find all item headers
+        headers: List[Dict] = []
+        for m in self._ITEM_8K_RE.finditer(doc):
+            code = self._normalize_8k_item_code(m.group(2))
+            title_inline = (m.group(3) or "").strip()
+            # Clean markdown artifacts from title
+            title_inline = MD_EDGE.sub("", title_inline)
+            title = title_inline if title_inline else ITEM_8K_TITLES.get(code)
+            headers.append({"start": m.start(), "end": m.end(), "no": code, "title": title})
+            self._log(f"DEBUG: Found ITEM {code} at position {m.start()}")
+
+        if not headers:
+            self._log("DEBUG: No item headers found")
+            return []
+
+        self._log(f"DEBUG: Total headers found: {len(headers)}")
+
+        # Extract sections
+        results: List[Section] = []
+        for i, h in enumerate(headers):
+            code = h["no"]
+            next_start = headers[i + 1]["start"] if i + 1 < len(headers) else len(doc)
+            body = self._slice_8k_body(doc, h["end"], next_start)
+
+            # Filter by desired_items if provided
+            if self.desired_items and code not in self.desired_items:
+                self._log(f"DEBUG: Skipping ITEM {code} (not in desired_items)")
+                continue
+
+            # For 9.01, parse exhibits
+            exhibits = []
+            if code.startswith("9.01"):
+                md = re.search(r'^\s*\(?d\)?\s*Exhibits\b.*$', body, re.IGNORECASE | re.MULTILINE)
+                ex_block = body[md.end():].strip() if md else body
+                exhibits = self._parse_exhibits(ex_block)
+                self._log(f"DEBUG: Found {len(exhibits)} exhibits in 9.01")
+
+            # Map back to Page objects (approximate page boundaries from original content)
+            # Since 8-K sections can span pages, we need to find which pages contain this content
+            section_pages = self._map_8k_content_to_pages(body)
+
+            # Create Section with exhibits (now part of the model)
+            section = Section(
+                part=None,  # 8-K has no PART divisions
+                item=f"ITEM {code}",
+                item_title=h["title"],
+                pages=section_pages,
+                exhibits=exhibits if exhibits else None
+            )
+
+            results.append(section)
+            self._log(f"DEBUG: Extracted ITEM {code} with {len(section_pages)} pages")
+
+        self._log(f"DEBUG: Total sections extracted: {len(results)}")
+        return results
+
+    def _map_8k_content_to_pages(self, section_content: str) -> List[Any]:
+        """Map extracted section content back to Page objects."""
+        from sec2md.models import Page
+
+        # Try to find which original pages contain this content
+        # This is heuristic-based: match by content overlap
+        matched_pages = []
+        section_preview = section_content[:500]  # Use first 500 chars for matching
+
+        for page_dict in self.pages:
+            page_num = page_dict["page"]
+            page_content = self._clean_8k_text(page_dict["content"])
+
+            # Check if this page contains part of the section
+            if section_preview in page_content or page_content in section_content:
+                original_page = self._original_pages.get(page_num)
+                matched_pages.append(
+                    Page(
+                        number=page_num,
+                        content=page_content,
+                        elements=original_page.elements if original_page else None,
+                        text_blocks=original_page.text_blocks if original_page else None
+                    )
+                )
+
+        # If no matches found (shouldn't happen), create a synthetic page
+        if not matched_pages:
+            matched_pages.append(
+                Page(
+                    number=1,
+                    content=section_content,
+                    elements=None,
+                    text_blocks=None
+                )
+            )
+
+        return matched_pages
+
+    # ========== End 8-K Methods ==========
+
+    def get_sections(self) -> List[Any]:
+        """Get sections from the filing.
+
+        Routes to appropriate handler based on filing_type:
+        - 8-K: Uses _get_8k_sections() (flat item structure)
+        - 10-K/10-Q/20-F: Uses _get_standard_sections() (PART + ITEM structure)
+        """
+        if self.filing_type == "8-K":
+            return self._get_8k_sections()
+        else:
+            return self._get_standard_sections()
+
+    def _get_standard_sections(self) -> List[Any]:
+        """Extract 10-K/10-Q/20-F sections (PART + ITEM structure)."""
         sections = []
         current_part = None
         current_item = None

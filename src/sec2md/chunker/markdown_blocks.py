@@ -1,6 +1,6 @@
 import re
-from abc import ABC
 from typing import List
+from pydantic import BaseModel, Field, computed_field
 
 try:
     import tiktoken
@@ -32,34 +32,36 @@ def split_sentences(text: str) -> List[str]:
     return [s.strip() for s in sentences if s.strip()]
 
 
-class BaseBlock(ABC):
-    block_type: str
+class BaseBlock(BaseModel):
+    """Base class for markdown blocks."""
+    block_type: str = Field(..., description="Type of markdown block")
+    content: str = Field(..., description="Block content")
+    page: int = Field(..., description="Page number")
 
-    def __init__(self, content: str, page: int):
-        self.content = content
-        self.page = page
+    model_config = {"frozen": False}
 
+    @computed_field
     @property
     def tokens(self) -> int:
         return estimate_tokens(self.content)
 
 
-class Sentence:
+class Sentence(BaseModel):
+    """Sentence within a text block."""
+    content: str = Field(..., description="Sentence content")
 
-    def __init__(self, content: str):
-        self.content = content
+    model_config = {"frozen": False}
 
+    @computed_field
     @property
     def tokens(self) -> int:
         return estimate_tokens(self.content)
 
 
 class TextBlock(BaseBlock):
-    block_type: str = 'Text'
+    block_type: str = Field(default='Text', description="Text block type")
 
-    def __init__(self, content: str, page: int):
-        super().__init__(content=content, page=page)
-
+    @computed_field
     @property
     def sentences(self) -> List[Sentence]:
         """Returns the text block sentences"""
@@ -68,18 +70,16 @@ class TextBlock(BaseBlock):
     @classmethod
     def from_sentences(cls, sentences: List[Sentence], page: int):
         content = " ".join([sentence.content for sentence in sentences])
-        return cls(content=content, page=page)
+        return cls(content=content, page=page, block_type='Text')
 
 
 class AudioParagraphBlock(BaseBlock):
-    block_type: str = "Text"
+    block_type: str = Field(default="Text", description="Audio paragraph block type")
+    paragraph_id: int = Field(..., description="Paragraph ID")
+    audio_start: float = Field(..., description="Audio start time")
+    audio_end: float = Field(..., description="Audio end time")
 
-    def __init__(self, content: str, page: int, paragraph_id: int, audio_start: float, audio_end: float):
-        super().__init__(content=content, page=page)
-        self.paragraph_id = paragraph_id
-        self.audio_start = audio_start
-        self.audio_end = audio_end
-
+    @computed_field
     @property
     def sentences(self) -> List[Sentence]:
         """Returns the text block sentences"""
@@ -90,16 +90,27 @@ class AudioParagraphBlock(BaseBlock):
         return {"id": self.paragraph_id, "content": self.content, "start": self.audio_start, "end": self.audio_end}
 
 
-class TableBlock(BaseBlock):
-    block_type: str = 'Table'
+class TableBlock(BaseModel):
+    block_type: str = Field(default='Table', description="Table block type")
+    content: str = Field(..., description="Table content")
+    page: int = Field(..., description="Page number")
 
-    def __init__(self, content: str, page: int):
-        super().__init__(content=content, page=page)
-        self.content = self._to_minified_markdown()
+    model_config = {"frozen": False}
 
-    def _to_minified_markdown(self) -> str:
+    def __init__(self, **data):
+        if 'content' in data:
+            data['content'] = self._to_minified_markdown_static(data['content'])
+        super().__init__(**data)
+
+    @computed_field
+    @property
+    def tokens(self) -> int:
+        return estimate_tokens(self.content)
+
+    @staticmethod
+    def _to_minified_markdown_static(content: str) -> str:
         """Returns the table in a Minified Markdown format"""
-        lines = self.content.split('\n')
+        lines = content.split('\n')
         cleaned_lines = []
 
         for i, line in enumerate(lines):
@@ -121,7 +132,4 @@ class TableBlock(BaseBlock):
 
 
 class HeaderBlock(BaseBlock):
-    block_type = 'Header'
-
-    def __init__(self, content: str, page: int):
-        super().__init__(content=content, page=page)
+    block_type: str = Field(default='Header', description="Header block type")

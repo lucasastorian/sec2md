@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sec2md"
-version = "0.1.4"
+version = "0.1.5"
 description = "Convert SEC EDGAR filings to LLM-ready Markdown for AI agents and agentic RAG"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -32,6 +32,7 @@ dependencies = [
     "lxml>=4.9.0",
     "requests>=2.31.0",
     "tiktoken>=0.5.0",  # Default: exact token counting (use --no-deps to exclude)
+    "pydantic>=2.0.0",
 ]
 
 [project.optional-dependencies]

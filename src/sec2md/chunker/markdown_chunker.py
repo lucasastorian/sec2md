@@ -4,6 +4,10 @@ from typing import Union, Tuple, List, Dict, Any
 from sec2md.chunker.markdown_chunk import MarkdownChunk
 from sec2md.chunker.markdown_blocks import BaseBlock, TextBlock, TableBlock, HeaderBlock
 
+# Rebuild MarkdownChunk after Element is defined
+from sec2md.models import Element
+MarkdownChunk.model_rebuild()
+
 logger = logging.getLogger(__name__)
 
 
