@@ -132,7 +132,7 @@ def chunk_text_block(
     text_block: TextBlock,
     chunk_size: int = 512,
     chunk_overlap: int = 128,
-    include_title_as_header: bool = True
+    header: Optional[str] = None
 ) -> List[Chunk]:
     """
     Chunk a single TextBlock (financial note).
@@ -141,7 +141,7 @@ def chunk_text_block(
         text_block: TextBlock object (possibly spanning multiple pages)
         chunk_size: Target chunk size in tokens (estimated as chars/4)
         chunk_overlap: Overlap between chunks in tokens
-        include_title_as_header: Prepend note title to chunks for embedding
+        header: Optional header to prepend to each chunk's embedding_text
 
     Returns:
         List of Chunk objects with elements preserved
@@ -149,7 +149,7 @@ def chunk_text_block(
     Example:
         >>> merged = merge_text_blocks(pages)
         >>> debt_note = [tb for tb in merged if "Debt" in tb.title][0]
-        >>> chunks = chunk_text_block(debt_note, chunk_size=512)
+        >>> chunks = chunk_text_block(debt_note, chunk_size=512, header="Company: AAPL | Note: Debt")
         >>> print(f"Chunked {debt_note.title} into {len(chunks)} chunks")
         >>> print(f"Note spans pages {debt_note.page_start}-{debt_note.page_end}")
     """
@@ -172,8 +172,6 @@ def chunk_text_block(
             elements=elems       # Only elements from this page
         ))
 
-    # Chunk normally across all pages
-    header = f"Note: {text_block.title}" if include_title_as_header and text_block.title else None
     chunker = Chunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
 
     return chunker.split(pages=pages, header=header)
