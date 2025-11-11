@@ -143,8 +143,9 @@ class SectionExtractor:
     # ========== 8-K Specific Methods ==========
 
     # 8-K item header regex: ITEM 1.01 / 7.01 / 9.01
+    # Simplified pattern: match ONLY at line start, with strict formatting
     _ITEM_8K_RE = re.compile(
-        rf'^\s*{LEAD_WRAP}(ITEM)\s+([1-9]\.\d{{2}}[A-Z]?)\.?\s*(?:[:.\-–—]\s*)?(.*)',
+        rf'^\s*{LEAD_WRAP}(ITEM)\s+([1-9]\.\d{{2}}[A-Z]?)\.?\s*(?:[:.\-–—]\s*)?(.*)$',
         re.IGNORECASE | re.MULTILINE
     )
 
@@ -256,8 +257,14 @@ class SectionExtractor:
         if page_num == 1:
             return True
 
-        # TOC page: has "TABLE OF CONTENTS" header (bold, all caps)
-        if re.search(r'\*\*TABLE OF CONTENTS\*\*', page_content):
+        # TOC page: has "TABLE OF CONTENTS" header (with or without bold markdown)
+        # Also detect if page has multiple ITEM entries with page numbers (TOC table pattern)
+        if re.search(r'TABLE OF CONTENTS', page_content, re.IGNORECASE):
+            return True
+
+        # Alternative TOC detection: page has multiple items with "| digit |" pattern (page numbers in table)
+        item_with_page_count = len(re.findall(r'ITEM\s+[1-9]\.\d{2}.*?\|\s*\d+\s*\|', page_content, re.IGNORECASE))
+        if item_with_page_count >= 2:  # If 2+ items have page numbers, it's a TOC
             return True
 
         # Signatures page: has "SIGNATURES" header and filing signature text
@@ -268,95 +275,116 @@ class SectionExtractor:
         return False
 
     def _get_8k_sections(self) -> List[Any]:
-        """Extract 8-K sections (items only, no PART divisions)."""
+        """Extract 8-K sections using page-by-page approach like standard extractor."""
         from sec2md.models import Section, Page, ITEM_8K_TITLES
 
-        # Filter out boilerplate pages (cover, TOC, signatures)
-        filtered_pages = []
-        for p in self.pages:
-            if not self._is_8k_boilerplate_page(p["content"], p["page"]):
-                filtered_pages.append(p)
-            else:
-                self._log(f"DEBUG: Skipping boilerplate page {p['page']}")
+        sections = []
+        current_item = None
+        current_item_title = None
+        current_pages: List[Dict] = []
 
-        # Store filtered pages for use in _map_8k_content_to_pages
-        self._filtered_8k_pages = filtered_pages
+        def flush_section():
+            nonlocal sections, current_item, current_item_title, current_pages
+            if current_pages and current_item:
+                # Parse exhibits if this is ITEM 9.01
+                exhibits = None
+                if current_item.startswith("ITEM 9.01"):
+                    content = "\n".join(p["content"] for p in current_pages)
+                    md = re.search(r'^\s*\(?d\)?\s*Exhibits\b.*$', content, re.IGNORECASE | re.MULTILINE)
+                    ex_block = content[md.end():].strip() if md else content
+                    parsed_exhibits = self._parse_exhibits(ex_block)
+                    exhibits = parsed_exhibits if parsed_exhibits else None
 
-        # Concatenate filtered pages into one doc
-        full_content = "\n\n".join(p["content"] for p in filtered_pages)
-        doc = self._clean_8k_text(full_content)
+                # Convert page dicts to Page objects
+                page_objects = [Page(number=p["page"], content=p["content"], elements=None, text_blocks=None)
+                                for p in current_pages]
 
-        if not doc:
-            self._log("DEBUG: No content after cleaning")
-            return []
+                sections.append(Section(
+                    part=None,
+                    item=current_item,
+                    item_title=current_item_title,
+                    pages=page_objects,
+                    exhibits=exhibits
+                ))
+                current_pages = []
 
-        # Find all item headers
-        headers: List[Dict] = []
-        for m in self._ITEM_8K_RE.finditer(doc):
-            code = self._normalize_8k_item_code(m.group(2))
-            title_inline = (m.group(3) or "").strip()
-            # Clean markdown artifacts from title
-            title_inline = MD_EDGE.sub("", title_inline)
+        for page_dict in self.pages:
+            page_num = page_dict["page"]
+            content = page_dict["content"]
 
-            # Skip TOC entries (they have page numbers like "| 3 |" in the title)
-            if re.search(r'\|\s*\d+\s*\|', title_inline):
-                self._log(f"DEBUG: Skipping TOC entry for ITEM {code}")
+            # Skip boilerplate pages
+            if self._is_8k_boilerplate_page(content, page_num):
+                self._log(f"DEBUG: Page {page_num} is boilerplate, skipping")
                 continue
 
-            title = title_inline if title_inline else ITEM_8K_TITLES.get(code)
-            headers.append({"start": m.start(), "end": m.end(), "no": code, "title": title})
-            self._log(f"DEBUG: Found ITEM {code} at position {m.start()}")
+            # Find first valid ITEM header on this page (if any)
+            item_m = None
+            first_idx = None
 
-        if not headers:
-            self._log("DEBUG: No item headers found")
-            return []
+            for m in self._ITEM_8K_RE.finditer(content):
+                # Get the full line for this match
+                line_start = content.rfind('\n', 0, m.start()) + 1
+                line_end = content.find('\n', m.end())
+                if line_end == -1:
+                    line_end = len(content)
+                full_line = content[line_start:line_end].strip()
 
-        self._log(f"DEBUG: Total headers found: {len(headers)}")
+                # Skip if this is a table row (contains pipe characters)
+                if '|' in full_line:
+                    self._log(f"DEBUG: Page {page_num} skipping table row: {full_line[:60]}")
+                    continue
 
-        # Extract sections
-        results: List[Section] = []
-        for i, h in enumerate(headers):
-            code = h["no"]
-            next_start = headers[i + 1]["start"] if i + 1 < len(headers) else len(doc)
-            # Include the header in the body by slicing from h["start"] instead of h["end"]
-            body = self._slice_8k_body(doc, h["start"], next_start)
+                # Get item code and title
+                code = self._normalize_8k_item_code(m.group(2))
+                title_inline = (m.group(3) or "").strip()
+                title_inline = MD_EDGE.sub("", title_inline)
+
+                # This is a valid ITEM header
+                item_m = m
+                first_idx = m.start()
+                self._log(f"DEBUG: Page {page_num} found ITEM {code} at position {first_idx}")
+                break
+
+            # No item header found - add to current section
+            if first_idx is None:
+                if current_item:
+                    current_pages.append({"page": page_num, "content": content.strip()})
+                continue
+
+            # Found item header - split page
+            before = content[:first_idx].strip()
+            after = content[first_idx:].strip()
+
+            # Add "before" content to current section
+            if current_item and before:
+                current_pages.append({"page": page_num, "content": before})
+
+            # Flush current section
+            flush_section()
+
+            # Start new section
+            code = self._normalize_8k_item_code(item_m.group(2))
+            title_inline = (item_m.group(3) or "").strip()
+            title_inline = MD_EDGE.sub("", title_inline)
+            current_item = f"ITEM {code}"
+            current_item_title = title_inline if title_inline else ITEM_8K_TITLES.get(code)
 
             # Filter by desired_items if provided
             if self.desired_items and code not in self.desired_items:
                 self._log(f"DEBUG: Skipping ITEM {code} (not in desired_items)")
+                current_item = None
+                current_item_title = None
                 continue
 
-            # For 9.01, parse exhibits
-            exhibits = []
-            if code.startswith("9.01"):
-                md = re.search(r'^\s*\(?d\)?\s*Exhibits\b.*$', body, re.IGNORECASE | re.MULTILINE)
-                ex_block = body[md.end():].strip() if md else body
-                exhibits = self._parse_exhibits(ex_block)
-                self._log(f"DEBUG: Found {len(exhibits)} exhibits in 9.01")
+            # Add "after" content to new section
+            if after:
+                current_pages.append({"page": page_num, "content": after})
 
-            # Map back to Page objects (approximate page boundaries from original content)
-            # Since 8-K sections can span pages, we need to find which pages contain this content
-            section_pages = self._map_8k_content_to_pages(body)
+        # Flush final section
+        flush_section()
 
-            # Skip sections with no matching pages
-            if not section_pages:
-                self._log(f"DEBUG: Skipping ITEM {code} (no pages found)")
-                continue
-
-            # Create Section with exhibits (now part of the model)
-            section = Section(
-                part=None,  # 8-K has no PART divisions
-                item=f"ITEM {code}",
-                item_title=h["title"],
-                pages=section_pages,
-                exhibits=exhibits if exhibits else None
-            )
-
-            results.append(section)
-            self._log(f"DEBUG: Extracted ITEM {code} with {len(section_pages)} pages")
-
-        self._log(f"DEBUG: Total sections extracted: {len(results)}")
-        return results
+        self._log(f"DEBUG: Total sections extracted: {len(sections)}")
+        return sections
 
     def _map_8k_content_to_pages(self, section_content: str) -> List[Any]:
         """Map extracted section content back to Page objects, splitting at section boundaries."""
