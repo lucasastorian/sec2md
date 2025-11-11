@@ -248,8 +248,8 @@ class TextBlock(BaseModel):
     elements: List['Element'] = Field(default_factory=list, description="Element objects in this TextBlock")
 
     # Optional: Set by merge_text_blocks() for multi-page notes
-    page_start: Optional[int] = Field(None, description="First page this TextBlock appears on")
-    page_end: Optional[int] = Field(None, description="Last page this TextBlock appears on")
+    start_page: Optional[int] = Field(None, description="First page this TextBlock appears on")
+    end_page: Optional[int] = Field(None, description="Last page this TextBlock appears on")
     source_pages: Optional[List[int]] = Field(None, description="All pages this TextBlock spans")
 
     model_config = {"frozen": False, "arbitrary_types_allowed": True}
@@ -261,7 +261,7 @@ class TextBlock(BaseModel):
         return [e.id for e in self.elements]
 
     def __repr__(self) -> str:
-        pages_info = f", pages={self.page_start}-{self.page_end}" if self.page_start else ""
+        pages_info = f", pages={self.start_page}-{self.end_page}" if self.start_page else ""
         return f"TextBlock(name='{self.name}', title='{self.title}', elements={len(self.elements)}{pages_info})"
 
 

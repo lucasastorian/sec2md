@@ -79,8 +79,8 @@ def merge_text_blocks(pages: List[Page]) -> List[TextBlock]:
 
     Returns:
         List of merged TextBlock objects with page metadata:
-        - page_start: First page the note appears on
-        - page_end: Last page the note appears on
+        - start_page: First page the note appears on
+        - end_page: Last page the note appears on
         - source_pages: All pages the note spans
         - elements: All elements from all pages
 
@@ -88,7 +88,7 @@ def merge_text_blocks(pages: List[Page]) -> List[TextBlock]:
         >>> pages = parser.get_pages(include_elements=True)
         >>> merged = merge_text_blocks(pages)
         >>> for tb in merged:
-        ...     print(f"{tb.title}: pages {tb.page_start}-{tb.page_end}")
+        ...     print(f"{tb.title}: pages {tb.start_page}-{tb.end_page}")
         Debt Disclosure: pages 45-46
         Segment Reporting: pages 49-50
     """
@@ -97,8 +97,8 @@ def merge_text_blocks(pages: List[Page]) -> List[TextBlock]:
         "name": None,
         "title": None,
         "elements": [],
-        "page_start": float('inf'),
-        "page_end": -1,
+        "start_page": float('inf'),
+        "end_page": -1,
         "pages": set()
     })
 
@@ -108,8 +108,8 @@ def merge_text_blocks(pages: List[Page]) -> List[TextBlock]:
                 tb_map[tb.name]["name"] = tb.name
                 tb_map[tb.name]["title"] = tb.title
                 tb_map[tb.name]["elements"].extend(tb.elements)
-                tb_map[tb.name]["page_start"] = min(tb_map[tb.name]["page_start"], page.number)
-                tb_map[tb.name]["page_end"] = max(tb_map[tb.name]["page_end"], page.number)
+                tb_map[tb.name]["start_page"] = min(tb_map[tb.name]["start_page"], page.number)
+                tb_map[tb.name]["end_page"] = max(tb_map[tb.name]["end_page"], page.number)
                 tb_map[tb.name]["pages"].add(page.number)
 
     # Create merged TextBlock objects
@@ -119,8 +119,8 @@ def merge_text_blocks(pages: List[Page]) -> List[TextBlock]:
             name=tb_data["name"],
             title=tb_data["title"],
             elements=tb_data["elements"],
-            page_start=tb_data["page_start"],
-            page_end=tb_data["page_end"],
+            start_page=tb_data["start_page"],
+            end_page=tb_data["end_page"],
             source_pages=sorted(tb_data["pages"])
         )
         merged.append(tb)
@@ -151,7 +151,7 @@ def chunk_text_block(
         >>> debt_note = [tb for tb in merged if "Debt" in tb.title][0]
         >>> chunks = chunk_text_block(debt_note, chunk_size=512, header="Company: AAPL | Note: Debt")
         >>> print(f"Chunked {debt_note.title} into {len(chunks)} chunks")
-        >>> print(f"Note spans pages {debt_note.page_start}-{debt_note.page_end}")
+        >>> print(f"Note spans pages {debt_note.start_page}-{debt_note.end_page}")
     """
     # Group elements by page
     elements_by_page = defaultdict(list)
