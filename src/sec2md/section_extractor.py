@@ -269,6 +269,12 @@ class SectionExtractor:
             title_inline = (m.group(3) or "").strip()
             # Clean markdown artifacts from title
             title_inline = MD_EDGE.sub("", title_inline)
+
+            # Skip TOC entries (they have page numbers like "| 3 |" in the title)
+            if re.search(r'\|\s*\d+\s*\|', title_inline):
+                self._log(f"DEBUG: Skipping TOC entry for ITEM {code}")
+                continue
+
             title = title_inline if title_inline else ITEM_8K_TITLES.get(code)
             headers.append({"start": m.start(), "end": m.end(), "no": code, "title": title})
             self._log(f"DEBUG: Found ITEM {code} at position {m.start()}")
@@ -303,6 +309,11 @@ class SectionExtractor:
             # Since 8-K sections can span pages, we need to find which pages contain this content
             section_pages = self._map_8k_content_to_pages(body)
 
+            # Skip sections with no matching pages
+            if not section_pages:
+                self._log(f"DEBUG: Skipping ITEM {code} (no pages found)")
+                continue
+
             # Create Section with exhibits (now part of the model)
             section = Section(
                 part=None,  # 8-K has no PART divisions
@@ -319,20 +330,67 @@ class SectionExtractor:
         return results
 
     def _map_8k_content_to_pages(self, section_content: str) -> List[Any]:
-        """Map extracted section content back to Page objects."""
-        # Find which original pages contain this section content
-        # This is heuristic-based: match by content overlap
+        """Map extracted section content back to Page objects, splitting at section boundaries."""
+        from sec2md.models import Page
+
         matched_pages = []
-        section_preview = section_content[:500]  # Use first 500 chars for matching
+        section_content_cleaned = self._clean_8k_text(section_content)
+        remaining_section = section_content_cleaned
 
         for page_dict in self.pages:
             page_num = page_dict["page"]
-            page_content_cleaned = self._clean_8k_text(page_dict["content"])
+            page_content = page_dict["content"]
+            page_content_cleaned = self._clean_8k_text(page_content)
 
-            # Check if this page contains part of the section (using cleaned content for matching)
-            if section_preview in page_content_cleaned or page_content_cleaned in section_content:
-                # Use the original Page object directly to preserve elements/text_blocks
-                matched_pages.append(self._original_pages[page_num])
+            # Skip pages that don't contain any of the remaining section content
+            if not any(chunk in page_content_cleaned for chunk in remaining_section[:200].split()[:10]):
+                continue
+
+            # Find where the section content appears on this page
+            # Use the original page to preserve formatting/elements
+            original_page = self._original_pages[page_num]
+
+            # For 8-K, we need to split the page content at ITEM boundaries
+            # Find all ITEM headers on this page
+            item_positions = []
+            for m in self._ITEM_8K_RE.finditer(page_content_cleaned):
+                code = self._normalize_8k_item_code(m.group(2))
+                title = (m.group(3) or "").strip()
+                # Skip TOC entries
+                if not re.search(r'\|\s*\d+\s*\|', title):
+                    item_positions.append((m.start(), f"ITEM {code}"))
+
+            # Find which portion of the page belongs to this section
+            section_start_in_page = page_content_cleaned.find(section_content_cleaned[:100])
+
+            if section_start_in_page >= 0:
+                # Find the end: either next ITEM on this page, or end of page
+                section_end_in_page = len(page_content_cleaned)
+                for pos, item_code in item_positions:
+                    # Find the next ITEM after our section starts
+                    if pos > section_start_in_page + 50:  # Give 50 chars buffer
+                        section_end_in_page = pos
+                        break
+
+                # Extract just this section's content from the page
+                page_section_content = page_content_cleaned[section_start_in_page:section_end_in_page].strip()
+
+                # Create a new Page with only this section's content
+                # Note: This loses elements, but keeps the section boundary clean
+                matched_pages.append(Page(
+                    number=page_num,
+                    content=page_section_content,
+                    elements=None,  # TODO: Could filter elements by content matching
+                    text_blocks=None
+                ))
+
+                # Update remaining section content to find on next pages
+                # Remove what we've matched from the section
+                matched_len = len(page_section_content)
+                remaining_section = remaining_section[matched_len:] if matched_len < len(remaining_section) else ""
+
+                if not remaining_section.strip():
+                    break  # Found all content for this section
 
         return matched_pages
 
