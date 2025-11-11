@@ -92,8 +92,33 @@ class SectionExtractor:
         return re.sub(r'\s+', ' ', text.upper().strip())
 
     def _clean_lines(self, content: str) -> List[str]:
+        """Clean content by removing headers, footers, and page navigation."""
         content = content.replace(NBSP, ' ').replace(NARROW_NBSP, ' ').replace(ZWSP, '')
         lines = [ln.rstrip() for ln in content.split('\n')]
+
+        # Remove repeating PART/ITEM page headers (e.g., "PART I\n\nItem 1\n\n")
+        # These appear at the top of every page for navigation
+        content_str = '\n'.join(lines)
+
+        # Pattern: PART (optional) followed by blank lines, then ITEM on its own line
+        # This removes standalone "PART X" and "Item Y" that appear as page headers
+        content_str = re.sub(
+            r'^\s*PART\s+[IVXLC]+\s*$\n+^\s*Item\s+\d{1,2}[A-Z]?\s*$\n+',
+            '',
+            content_str,
+            flags=re.MULTILINE
+        )
+
+        # Also remove standalone "Item X" headers at start of content
+        content_str = re.sub(
+            r'^\s*Item\s+\d{1,2}[A-Z]?\s*$\n+',
+            '',
+            content_str,
+            flags=re.MULTILINE
+        )
+
+        lines = content_str.split('\n')
+
         out = []
         for ln in lines:
             if HEADER_FOOTER_RE.match(ln) or PAGE_NUM_RE.match(ln):
