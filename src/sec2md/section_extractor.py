@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import re
-from typing import List, Dict, Optional, Literal, Union, Any
+from typing import List, Optional, Literal, Any
 
 LEAD_WRAP = r'(?:\*\*|__)?\s*(?:</?[^>]+>\s*)*'
 
 PART_PATTERN = re.compile(
-    rf'^\s*{LEAD_WRAP}(PART\s+[IVXLC]+)\b(?:\s*$|\s+)',
+    rf'^\s*{LEAD_WRAP}(PART\s+[IVXLC]+)\b(?:\*\*|__)?(?:\s*$|\s+)',
     re.IGNORECASE | re.MULTILINE
 )
 ITEM_PATTERN = re.compile(
@@ -55,26 +55,12 @@ FILING_STRUCTURES = {
 class SectionExtractor:
     def __init__(self, pages: List[Any], filing_type: Optional[Literal["10-K", "10-Q", "20-F", "8-K"]] = None,
                  desired_items: Optional[set] = None, debug: bool = False):
-        """Initialize SectionExtractor.
-
-        Args:
-            pages: List of Page objects
-            filing_type: Type of filing ("10-K", "10-Q", "20-F", or "8-K")
-            desired_items: For 8-K only: set of item numbers to extract (e.g., {"2.02", "9.01"})
-            debug: Enable debug logging
-        """
-        from sec2md.models import Page
-
-        # Store original Page objects to preserve elements
-        self._original_pages = {p.number: p for p in pages}
-
-        # Convert to dict format for internal processing
-        self.pages = [{"page": p.number, "content": p.content} for p in pages]
+        """Extract sections from SEC filings."""
+        self.pages = pages
         self.filing_type = filing_type
         self.structure = FILING_STRUCTURES.get(filing_type) if filing_type else None
         self.desired_items = desired_items
         self.debug = debug
-
         self._toc_locked = False
 
     def _log(self, msg: str):
@@ -92,16 +78,11 @@ class SectionExtractor:
         return re.sub(r'\s+', ' ', text.upper().strip())
 
     def _clean_lines(self, content: str) -> List[str]:
-        """Clean content by removing headers, footers, and page navigation."""
+        """Remove headers, footers, and page navigation."""
         content = content.replace(NBSP, ' ').replace(NARROW_NBSP, ' ').replace(ZWSP, '')
         lines = [ln.rstrip() for ln in content.split('\n')]
-
-        # Remove repeating PART/ITEM page headers (e.g., "PART I\n\nItem 1\n\n")
-        # These appear at the top of every page for navigation
         content_str = '\n'.join(lines)
 
-        # Pattern: PART (optional) followed by blank lines, then ITEM on its own line
-        # This removes standalone "PART X" and "Item Y" that appear as page headers
         content_str = re.sub(
             r'^\s*PART\s+[IVXLC]+\s*$\n+^\s*Item\s+\d{1,2}[A-Z]?\s*$\n+',
             '',
@@ -109,13 +90,13 @@ class SectionExtractor:
             flags=re.MULTILINE
         )
 
-        # Also remove standalone "Item X" headers at start of content
-        content_str = re.sub(
-            r'^\s*Item\s+\d{1,2}[A-Z]?\s*$\n+',
-            '',
-            content_str,
-            flags=re.MULTILINE
-        )
+        lines_list = content_str.split('\n')
+        filtered_lines = []
+        for line in lines_list:
+            if re.match(r'^\s*Item\s+\d{1,2}[A-Z]?(?:\s*,\s*\d{1,2}[A-Z]?)*\s*$', line, re.IGNORECASE):
+                continue
+            filtered_lines.append(line)
+        content_str = '\n'.join(filtered_lines)
 
         lines = content_str.split('\n')
 
@@ -128,6 +109,7 @@ class SectionExtractor:
         return out
 
     def _infer_part_for_item(self, filing_type: str, item_key: str) -> Optional[str]:
+        """Infer PART from ITEM number (10-K only)."""
         m = re.match(r'ITEM\s+(\d{1,2})', item_key)
         if not m:
             return None
@@ -141,11 +123,6 @@ class SectionExtractor:
                 return "PART III"
             elif 15 <= num <= 16:
                 return "PART IV"
-        elif filing_type == "10-Q":
-            if 1 <= num <= 4:
-                return "PART I"
-            else:
-                return "PART II"
         return None
 
     @staticmethod
@@ -155,32 +132,18 @@ class SectionExtractor:
         return title
 
     def _is_toc(self, content: str, page_num: int = 1) -> bool:
-        # Simple rule: within first 5 pages, if we see multiple matches, treat as TOC.
-        # “Multiple” = ≥3 ITEM rows OR ≥3 dotted-leader lines.
+        """Detect table of contents pages."""
         if self._toc_locked or page_num > 5:
             return False
-
         item_hits = len(ITEM_ROWS_RE.findall(content))
         leader_hits = len(DOT_LEAD_RE.findall(content))
-
         return (item_hits >= 3) or (leader_hits >= 3)
-
-    # ========== 8-K Specific Methods ==========
-
-    # 8-K item header regex: ITEM 1.01 / 7.01 / 9.01
-    # Simplified pattern: match ONLY at line start, with strict formatting
     _ITEM_8K_RE = re.compile(
         rf'^\s*{LEAD_WRAP}(ITEM)\s+([1-9]\.\d{{2}}[A-Z]?)\.?\s*(?:[:.\-–—]\s*)?(.*)$',
         re.IGNORECASE | re.MULTILINE
     )
-
-    # 8-K hard stops (SIGNATURES, EXHIBIT INDEX)
     _HARD_STOP_8K_RE = re.compile(r'^\s*(SIGNATURES|EXHIBIT\s+INDEX)\b', re.IGNORECASE | re.MULTILINE)
-
-    # Promote inline "Item x.xx" to its own line
     _PROMOTE_ITEM_8K_RE = re.compile(r'(?<!\n)(\s)(ITEM\s+[1-9]\.\d{2}[A-Z]?\s*[.:–—-])', re.IGNORECASE)
-
-    # Exhibits table parsing
     _PIPE_ROW_RE = re.compile(r'^\s*\|?\s*([0-9]{1,4}(?:\.[0-9A-Za-z]+)?)\s*\|\s*(.+?)\s*\|?\s*$', re.MULTILINE)
     _SPACE_ROW_RE = re.compile(r'^\s*([0-9]{1,4}(?:\.[0-9A-Za-z]+)?)\s{2,}(.+?)\s*$', re.MULTILINE)
     _HTML_ROW_RE = re.compile(
@@ -200,13 +163,10 @@ class SectionExtractor:
         return f"{major}.{minor}{suffix}"
 
     def _clean_8k_text(self, text: str) -> str:
-        """Clean 8-K text: remove headers/footers, normalize whitespace, promote inline items."""
+        """Clean 8-K text and normalize whitespace."""
         text = text.replace(NBSP, " ").replace(NARROW_NBSP, " ").replace(ZWSP, "")
-
-        # Promote inline item headings to their own line
         text = self._PROMOTE_ITEM_8K_RE.sub(r'\n\2', text)
 
-        # Remove Form 8-K headers/footers
         header_footer_8k = re.compile(
             r'^\s*(Form\s+8\-K|Page\s+\d+(?:\s+of\s+\d+)?|UNITED\s+STATES\s+SECURITIES\s+AND\s+EXCHANGE\s+COMMISSION)\b',
             re.IGNORECASE
@@ -217,13 +177,11 @@ class SectionExtractor:
             t = ln.strip()
             if header_footer_8k.match(t):
                 continue
-            t = MD_EDGE.sub("", t)  # strip leading/trailing **/__ wrappers
-            # Drop trivial table header separators like | --- | --- |
+            t = MD_EDGE.sub("", t)
             if re.fullmatch(r'\|\s*-{3,}\s*\|\s*-{3,}\s*\|?', t):
                 continue
             lines.append(t)
 
-        # Collapse multiple blank lines into one
         out: List[str] = []
         prev_blank = False
         for ln in lines:
@@ -238,21 +196,18 @@ class SectionExtractor:
     def _parse_exhibits(self, block: str) -> List[Any]:
         """Parse exhibit table from 9.01 section."""
         from sec2md.models import Exhibit
-
         rows: List[Exhibit] = []
 
-        # Try pipe table rows first
         for m in self._PIPE_ROW_RE.finditer(block):
             left, right = m.group(1).strip(), m.group(2).strip()
             if not re.match(r'^\d', left):
-                continue  # skip headers like "EXHIBIT NO."
+                continue
             if left.startswith('---') or right.startswith('---'):
-                continue  # skip separators
+                continue
             rows.append(Exhibit(exhibit_no=left, description=right))
         if rows:
             return rows
 
-        # Fallback: space-aligned two columns
         for m in self._SPACE_ROW_RE.finditer(block):
             left, right = m.group(1).strip(), m.group(2).strip()
             if not re.match(r'^\d', left):
@@ -261,7 +216,6 @@ class SectionExtractor:
         if rows:
             return rows
 
-        # Fallback: basic HTML table
         for m in self._HTML_ROW_RE.finditer(block):
             left, right = m.group(1).strip(), m.group(2).strip()
             if not re.match(r'^\d', left):
@@ -271,28 +225,23 @@ class SectionExtractor:
         return rows
 
     def _slice_8k_body(self, doc: str, start_after: int, next_item_start: int) -> str:
-        """Slice body text from start_after up to earliest hard stop or next_item_start."""
+        """Slice body text up to earliest hard stop."""
         mstop = self._HARD_STOP_8K_RE.search(doc, pos=start_after, endpos=next_item_start)
         end = mstop.start() if mstop else next_item_start
         return doc[start_after:end].strip()
 
     def _is_8k_boilerplate_page(self, page_content: str, page_num: int) -> bool:
-        """Detect cover, TOC, and signature pages in 8-Ks."""
-        # Cover page is always page 1
+        """Detect cover, TOC, and signature pages."""
         if page_num == 1:
             return True
 
-        # TOC page: has "TABLE OF CONTENTS" header (with or without bold markdown)
-        # Also detect if page has multiple ITEM entries with page numbers (TOC table pattern)
         if re.search(r'TABLE OF CONTENTS', page_content, re.IGNORECASE):
             return True
 
-        # Alternative TOC detection: page has multiple items with "| digit |" pattern (page numbers in table)
         item_with_page_count = len(re.findall(r'ITEM\s+[1-9]\.\d{2}.*?\|\s*\d+\s*\|', page_content, re.IGNORECASE))
-        if item_with_page_count >= 2:  # If 2+ items have page numbers, it's a TOC
+        if item_with_page_count >= 2:
             return True
 
-        # Signatures page: has "SIGNATURES" header and filing signature text
         if re.search(r'\*\*SIGNATURES\*\*', page_content) and \
            re.search(r'Pursuant to the requirements', page_content, re.IGNORECASE):
             return True
@@ -300,222 +249,144 @@ class SectionExtractor:
         return False
 
     def _get_8k_sections(self) -> List[Any]:
-        """Extract 8-K sections using page-by-page approach like standard extractor."""
+        """Extract 8-K sections."""
         from sec2md.models import Section, Page, ITEM_8K_TITLES
 
         sections = []
         current_item = None
         current_item_title = None
-        current_pages: List[Dict] = []
+        current_pages: List[Page] = []
 
         def flush_section():
             nonlocal sections, current_item, current_item_title, current_pages
             if current_pages and current_item:
-                # Parse exhibits if this is ITEM 9.01
                 exhibits = None
                 if current_item.startswith("ITEM 9.01"):
-                    content = "\n".join(p["content"] for p in current_pages)
+                    content = "\n".join(p.content for p in current_pages)
                     md = re.search(r'^\s*\(?d\)?\s*Exhibits\b.*$', content, re.IGNORECASE | re.MULTILINE)
                     ex_block = content[md.end():].strip() if md else content
                     parsed_exhibits = self._parse_exhibits(ex_block)
                     exhibits = parsed_exhibits if parsed_exhibits else None
 
-                # Convert page dicts to Page objects
-                page_objects = [Page(number=p["page"], content=p["content"], elements=None, text_blocks=None)
-                                for p in current_pages]
-
                 sections.append(Section(
                     part=None,
                     item=current_item,
                     item_title=current_item_title,
-                    pages=page_objects,
+                    pages=current_pages,
                     exhibits=exhibits
                 ))
                 current_pages = []
 
-        for page_dict in self.pages:
-            page_num = page_dict["page"]
-            content = page_dict["content"]
+        for page in self.pages:
+            page_num = page.number
+            remaining_content = page.content
 
-            # Skip boilerplate pages
-            if self._is_8k_boilerplate_page(content, page_num):
+            if self._is_8k_boilerplate_page(remaining_content, page_num):
                 self._log(f"DEBUG: Page {page_num} is boilerplate, skipping")
                 continue
 
-            # Find first valid ITEM header on this page (if any)
-            item_m = None
-            first_idx = None
+            while remaining_content:
+                item_m = None
+                first_idx = None
 
-            for m in self._ITEM_8K_RE.finditer(content):
-                # Get the full line for this match
-                line_start = content.rfind('\n', 0, m.start()) + 1
-                line_end = content.find('\n', m.end())
-                if line_end == -1:
-                    line_end = len(content)
-                full_line = content[line_start:line_end].strip()
+                for m in self._ITEM_8K_RE.finditer(remaining_content):
+                    line_start = remaining_content.rfind('\n', 0, m.start()) + 1
+                    line_end = remaining_content.find('\n', m.end())
+                    if line_end == -1:
+                        line_end = len(remaining_content)
+                    full_line = remaining_content[line_start:line_end].strip()
 
-                # Skip if this is a table row (contains pipe characters)
-                if '|' in full_line:
-                    self._log(f"DEBUG: Page {page_num} skipping table row: {full_line[:60]}")
+                    if '|' in full_line:
+                        self._log(f"DEBUG: Page {page_num} skipping table row: {full_line[:60]}")
+                        continue
+
+                    code = self._normalize_8k_item_code(m.group(2))
+                    title_inline = (m.group(3) or "").strip()
+                    title_inline = MD_EDGE.sub("", title_inline)
+
+                    item_m = m
+                    first_idx = m.start()
+                    self._log(f"DEBUG: Page {page_num} found ITEM {code} at position {first_idx}")
+                    break
+
+                if first_idx is None:
+                    if current_item and remaining_content.strip():
+                        current_pages.append(Page(
+                            number=page_num,
+                            content=remaining_content,
+                            elements=page.elements,
+                            text_blocks=page.text_blocks,
+                            display_page=page.display_page
+                        ))
+                    break
+
+                before = remaining_content[:first_idx].strip()
+                # Use header end position to skip past header and avoid infinite loop
+                header_end = item_m.end()
+                after = remaining_content[header_end:].strip()
+
+                if current_item and before:
+                    current_pages.append(Page(
+                        number=page_num,
+                        content=before,
+                        elements=page.elements,
+                        text_blocks=page.text_blocks,
+                        display_page=page.display_page
+                    ))
+
+                flush_section()
+
+                code = self._normalize_8k_item_code(item_m.group(2))
+                title_inline = (item_m.group(3) or "").strip()
+                title_inline = MD_EDGE.sub("", title_inline)
+                current_item = f"ITEM {code}"
+                current_item_title = title_inline if title_inline else ITEM_8K_TITLES.get(code)
+
+                if self.desired_items and code not in self.desired_items:
+                    self._log(f"DEBUG: Skipping ITEM {code} (not in desired_items)")
+                    current_item = None
+                    current_item_title = None
+                    remaining_content = after
                     continue
 
-                # Get item code and title
-                code = self._normalize_8k_item_code(m.group(2))
-                title_inline = (m.group(3) or "").strip()
-                title_inline = MD_EDGE.sub("", title_inline)
+                remaining_content = after
 
-                # This is a valid ITEM header
-                item_m = m
-                first_idx = m.start()
-                self._log(f"DEBUG: Page {page_num} found ITEM {code} at position {first_idx}")
-                break
-
-            # No item header found - add to current section
-            if first_idx is None:
-                if current_item:
-                    current_pages.append({"page": page_num, "content": content.strip()})
-                continue
-
-            # Found item header - split page
-            before = content[:first_idx].strip()
-            after = content[first_idx:].strip()
-
-            # Add "before" content to current section
-            if current_item and before:
-                current_pages.append({"page": page_num, "content": before})
-
-            # Flush current section
-            flush_section()
-
-            # Start new section
-            code = self._normalize_8k_item_code(item_m.group(2))
-            title_inline = (item_m.group(3) or "").strip()
-            title_inline = MD_EDGE.sub("", title_inline)
-            current_item = f"ITEM {code}"
-            current_item_title = title_inline if title_inline else ITEM_8K_TITLES.get(code)
-
-            # Filter by desired_items if provided
-            if self.desired_items and code not in self.desired_items:
-                self._log(f"DEBUG: Skipping ITEM {code} (not in desired_items)")
-                current_item = None
-                current_item_title = None
-                continue
-
-            # Add "after" content to new section
-            if after:
-                current_pages.append({"page": page_num, "content": after})
-
-        # Flush final section
         flush_section()
 
         self._log(f"DEBUG: Total sections extracted: {len(sections)}")
         return sections
 
-    def _map_8k_content_to_pages(self, section_content: str) -> List[Any]:
-        """Map extracted section content back to Page objects, splitting at section boundaries."""
-        from sec2md.models import Page
-
-        matched_pages = []
-        section_content_cleaned = self._clean_8k_text(section_content)
-        remaining_section = section_content_cleaned
-
-        # Use filtered pages (excludes cover, TOC, signatures)
-        pages_to_search = getattr(self, '_filtered_8k_pages', self.pages)
-
-        for page_dict in pages_to_search:
-            page_num = page_dict["page"]
-            page_content = page_dict["content"]
-            page_content_cleaned = self._clean_8k_text(page_content)
-
-            # Skip pages that don't contain any of the remaining section content
-            if not any(chunk in page_content_cleaned for chunk in remaining_section[:200].split()[:10]):
-                continue
-
-            # Find where the section content appears on this page
-            # Use the original page to preserve formatting/elements
-            original_page = self._original_pages[page_num]
-
-            # For 8-K, we need to split the page content at ITEM boundaries
-            # Find all ITEM headers on this page
-            item_positions = []
-            for m in self._ITEM_8K_RE.finditer(page_content_cleaned):
-                code = self._normalize_8k_item_code(m.group(2))
-                title = (m.group(3) or "").strip()
-                # Skip TOC entries
-                if not re.search(r'\|\s*\d+\s*\|', title):
-                    item_positions.append((m.start(), f"ITEM {code}"))
-
-            # Find which portion of the page belongs to this section
-            section_start_in_page = page_content_cleaned.find(section_content_cleaned[:100])
-
-            if section_start_in_page >= 0:
-                # Find the end: either next ITEM on this page, or end of page
-                section_end_in_page = len(page_content_cleaned)
-                for pos, item_code in item_positions:
-                    # Find the next ITEM after our section starts
-                    if pos > section_start_in_page + 50:  # Give 50 chars buffer
-                        section_end_in_page = pos
-                        break
-
-                # Extract just this section's content from the page
-                page_section_content = page_content_cleaned[section_start_in_page:section_end_in_page].strip()
-
-                # Create a new Page with only this section's content
-                # Note: This loses elements, but keeps the section boundary clean
-                matched_pages.append(Page(
-                    number=page_num,
-                    content=page_section_content,
-                    elements=None,  # TODO: Could filter elements by content matching
-                    text_blocks=None
-                ))
-
-                # Update remaining section content to find on next pages
-                # Remove what we've matched from the section
-                matched_len = len(page_section_content)
-                remaining_section = remaining_section[matched_len:] if matched_len < len(remaining_section) else ""
-
-                if not remaining_section.strip():
-                    break  # Found all content for this section
-
-        return matched_pages
-
-    # ========== End 8-K Methods ==========
-
     def get_sections(self) -> List[Any]:
-        """Get sections from the filing.
-
-        Routes to appropriate handler based on filing_type:
-        - 8-K: Uses _get_8k_sections() (flat item structure)
-        - 10-K/10-Q/20-F: Uses _get_standard_sections() (PART + ITEM structure)
-        """
+        """Get sections from the filing."""
         if self.filing_type == "8-K":
             return self._get_8k_sections()
         else:
             return self._get_standard_sections()
 
     def _get_standard_sections(self) -> List[Any]:
-        """Extract 10-K/10-Q/20-F sections (PART + ITEM structure)."""
+        """Extract 10-K/10-Q/20-F sections."""
+        from sec2md.models import Section, Page
+
         sections = []
         current_part = None
         current_item = None
         current_item_title = None
-        current_pages: List[Dict] = []
+        current_pages: List[Page] = []
 
         def flush_section():
             nonlocal sections, current_part, current_item, current_item_title, current_pages
             if current_pages:
-                sections.append({
-                    "part": current_part,
-                    "item": current_item,
-                    "item_title": current_item_title,
-                    "page_start": current_pages[0]["page"],
-                    "pages": current_pages
-                })
+                sections.append(Section(
+                    part=current_part,
+                    item=current_item,
+                    item_title=current_item_title,
+                    pages=current_pages
+                ))
                 current_pages = []
 
-        for page_dict in self.pages:
-            page_num = page_dict["page"]
-            content = page_dict["content"]
+        for page in self.pages:
+            page_num = page.number
+            content = page.content
 
             if self._is_toc(content, page_num):
                 self._log(f"DEBUG: Page {page_num} detected as TOC, skipping")
@@ -542,6 +413,17 @@ class SectionExtractor:
 
             for m in ITEM_PATTERN.finditer(joined):
                 if first_idx is None or m.start() < first_idx:
+                    context_start = max(0, m.start() - 30)
+                    context = joined[context_start:m.start()]
+                    if re.search(r'\bPart\s+[IVXLC]+', context, re.IGNORECASE):
+                        self._log(f"DEBUG: Page {page_num} skipping inline reference at {m.start()}")
+                        continue
+
+                    title = (m.group(3) or "").strip()
+                    if not title or re.match(r'^[,\s\d]+$', title):
+                        self._log(f"DEBUG: Page {page_num} skipping breadcrumb ITEM {m.group(2)} with title '{title}'")
+                        continue
+
                     item_m = m
                     first_idx = m.start()
                     first_kind = 'item'
@@ -552,14 +434,26 @@ class SectionExtractor:
                 self._log(f"DEBUG: Page {page_num} - no header found. In section: {current_part or current_item}")
                 if current_part or current_item:
                     if joined.strip():
-                        current_pages.append({"page": page_num, "content": joined})
+                        current_pages.append(Page(
+                            number=page_num,
+                            content=joined,
+                            elements=page.elements,
+                            text_blocks=page.text_blocks,
+                            display_page=page.display_page
+                        ))
                 continue
 
             before = joined[:first_idx].strip()
             after = joined[first_idx:].strip()
 
             if (current_part or current_item) and before:
-                current_pages.append({"page": page_num, "content": before})
+                current_pages.append(Page(
+                    number=page_num,
+                    content=before,
+                    elements=page.elements,
+                    text_blocks=page.text_blocks,
+                    display_page=page.display_page
+                ))
 
             flush_section()
 
@@ -580,7 +474,13 @@ class SectionExtractor:
                 _, current_item = self._normalize_section_key(current_part, item_num)
 
             if after:
-                current_pages.append({"page": page_num, "content": after})
+                current_pages.append(Page(
+                    number=page_num,
+                    content=after,
+                    elements=page.elements,
+                    text_blocks=page.text_blocks,
+                    display_page=page.display_page
+                ))
 
                 if first_kind == 'part' and part_m:
                     item_after = None
@@ -589,13 +489,19 @@ class SectionExtractor:
                         break
                     if item_after:
                         start = item_after.start()
-                        current_pages[-1]["content"] = after[start:]
+                        after = after[start:]
+                        current_pages[-1] = Page(
+                            number=page_num,
+                            content=after,
+                            elements=page.elements,
+                            text_blocks=page.text_blocks,
+                            display_page=page.display_page
+                        )
                         item_num = item_after.group(2)
                         title = (item_after.group(3) or "").strip()
                         current_item_title = self._clean_item_title(title) if title else None
                         _, current_item = self._normalize_section_key(current_part, item_num)
                         self._log(f"DEBUG: Page {page_num} - promoted PART to ITEM {item_num} (intra-page)")
-                        after = current_pages[-1]["content"]
 
                 tail = after
                 while True:
@@ -616,7 +522,13 @@ class SectionExtractor:
                     after_seg = tail[next_idx:].strip()
 
                     if before_seg:
-                        current_pages[-1]["content"] = before_seg
+                        current_pages[-1] = Page(
+                            number=page_num,
+                            content=before_seg,
+                            elements=page.elements,
+                            text_blocks=page.text_blocks,
+                            display_page=page.display_page
+                        )
                     flush_section()
 
                     if next_kind == 'part' and next_part_m:
@@ -636,33 +548,45 @@ class SectionExtractor:
                         _, current_item = self._normalize_section_key(current_part, item_num)
                         self._log(f"DEBUG: Page {page_num} - intra-page ITEM transition to {current_item}")
 
-                    current_pages.append({"page": page_num, "content": after_seg})
+                    current_pages.append(Page(
+                        number=page_num,
+                        content=after_seg,
+                        elements=page.elements,
+                        text_blocks=page.text_blocks,
+                        display_page=page.display_page
+                    ))
                     tail = after_seg
 
         flush_section()
 
         self._log(f"DEBUG: Total sections before validation: {len(sections)}")
         for s in sections:
-            self._log(f"  - Part: {s['part']}, Item: {s['item']}, Pages: {len(s['pages'])}, Start: {s['page_start']}")
+            self._log(f"  - Part: {s.part}, Item: {s.item}, Pages: {len(s.pages)}, Start: {s.pages[0].number if s.pages else 0}")
 
         def _section_text_len(s):
-            return sum(len(p["content"].strip()) for p in s["pages"])
+            return sum(len(p.content.strip()) for p in s.pages)
 
-        sections = [s for s in sections if s["item"] is not None or _section_text_len(s) > 80]
+        sections = [s for s in sections if s.item is not None or _section_text_len(s) > 80]
         self._log(f"DEBUG: Sections after dropping empty PART stubs: {len(sections)}")
 
         if self.structure and sections:
             self._log(f"DEBUG: Validating against structure: {self.filing_type}")
             fixed = []
             for s in sections:
-                part = s["part"]
-                item = s["item"]
+                part = s.part
+                item = s.item
 
                 if part is None and item and self.filing_type:
                     inferred = self._infer_part_for_item(self.filing_type, item)
                     if inferred:
                         self._log(f"DEBUG: Inferred {inferred} from {item}")
-                        s = {**s, "part": inferred}
+                        # Update the section's part
+                        s = Section(
+                            part=inferred,
+                            item=s.item,
+                            item_title=s.item_title,
+                            pages=s.pages
+                        )
                         part = inferred
 
                 if (part in self.structure) and (item is None or item in self.structure.get(part, [])):
@@ -673,68 +597,10 @@ class SectionExtractor:
             sections = fixed
             self._log(f"DEBUG: Sections after validation: {len(sections)}")
 
-        # Convert to Section objects with Page objects (preserving elements)
-        from sec2md.models import Section, Page
-
-        section_objects = []
-        for section_data in sections:
-            # Build Page objects for this section, preserving elements from originals
-            section_pages = []
-            for page_dict in section_data["pages"]:
-                page_num = page_dict["page"]
-                original_page = self._original_pages.get(page_num)
-
-                # Filter text_blocks to only include ones relevant to this section's content
-                filtered_text_blocks = None
-                if original_page and original_page.text_blocks:
-                    section_content = page_dict["content"]
-                    filtered_text_blocks = []
-                    for tb in original_page.text_blocks:
-                        # Include TextBlock if:
-                        # 1. Its title appears in section content, OR
-                        # 2. Any of its element content appears in section (for short titles)
-                        title_match = tb.title and tb.title in section_content
-                        content_match = any(
-                            # Check if element content (or significant portion) is in section
-                            elem.content[:200] in section_content or section_content in elem.content
-                            for elem in tb.elements
-                        )
-                        if title_match or content_match:
-                            filtered_text_blocks.append(tb)
-                    filtered_text_blocks = filtered_text_blocks if filtered_text_blocks else None
-
-                section_pages.append(
-                    Page(
-                        number=page_num,
-                        content=page_dict["content"],
-                        elements=original_page.elements if original_page else None,
-                        text_blocks=filtered_text_blocks
-                    )
-                )
-
-            section_objects.append(
-                Section(
-                    part=section_data["part"],
-                    item=section_data["item"],
-                    item_title=section_data["item_title"],
-                    pages=section_pages
-                )
-            )
-
-        return section_objects
+        return sections
 
     def get_section(self, part: str, item: Optional[str] = None):
-        """Get a specific section by part and item.
-
-        Args:
-            part: Part name (e.g., "PART I")
-            item: Optional item name (e.g., "ITEM 1A")
-
-        Returns:
-            Section object if found, None otherwise
-        """
-        from sec2md.models import Section
-
+        """Get a specific section by part and item."""
         part_normalized = self._normalize_section(part)
         item_normalized = self._normalize_section(item) if item else None
         sections = self.get_sections()

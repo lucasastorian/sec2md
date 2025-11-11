@@ -273,6 +273,8 @@ class Element(BaseModel):
     kind: str = Field(..., description="Element type (e.g., 'paragraph', 'table', 'heading')")
     page_start: int = Field(..., description="First page this element appears on")
     page_end: int = Field(..., description="Last page this element appears on")
+    content_start_offset: Optional[int] = Field(None, description="Character offset where element starts in page content")
+    content_end_offset: Optional[int] = Field(None, description="Character offset where element ends in page content")
 
     model_config = {"frozen": False}
 
@@ -301,6 +303,7 @@ class Page(BaseModel):
     content: str = Field(..., description="Markdown content of the page")
     elements: Optional[List[Element]] = Field(None, description="Citable elements on this page")
     text_blocks: Optional[List[TextBlock]] = Field(None, description="XBRL TextBlocks on this page")
+    display_page: Optional[int] = Field(None, description="Original page number as shown in the filing (e.g., bottom of page)")
 
     model_config = {"frozen": False, "arbitrary_types_allowed": True}
 
@@ -329,7 +332,8 @@ class Page(BaseModel):
         preview = self.content[:100].replace('\n', ' ')
         elem_info = f", elements={len(self.elements)}" if self.elements else ""
         tb_info = f", text_blocks={len(self.text_blocks)}" if self.text_blocks else ""
-        return f"Page(number={self.number}, tokens={self.tokens}{elem_info}{tb_info}, preview='{preview}...')"
+        display_info = f", display_page={self.display_page}" if self.display_page else ""
+        return f"Page(number={self.number}{display_info}, tokens={self.tokens}{elem_info}{tb_info}, preview='{preview}...')"
 
 
 class Section(BaseModel):
