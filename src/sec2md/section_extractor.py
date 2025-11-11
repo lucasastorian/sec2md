@@ -250,12 +250,40 @@ class SectionExtractor:
         end = mstop.start() if mstop else next_item_start
         return doc[start_after:end].strip()
 
+    def _is_8k_boilerplate_page(self, page_content: str, page_num: int) -> bool:
+        """Detect cover, TOC, and signature pages in 8-Ks."""
+        # Cover page is always page 1
+        if page_num == 1:
+            return True
+
+        # TOC page: has "TABLE OF CONTENTS" header (bold, all caps)
+        if re.search(r'\*\*TABLE OF CONTENTS\*\*', page_content):
+            return True
+
+        # Signatures page: has "SIGNATURES" header and filing signature text
+        if re.search(r'\*\*SIGNATURES\*\*', page_content) and \
+           re.search(r'Pursuant to the requirements', page_content, re.IGNORECASE):
+            return True
+
+        return False
+
     def _get_8k_sections(self) -> List[Any]:
         """Extract 8-K sections (items only, no PART divisions)."""
         from sec2md.models import Section, Page, ITEM_8K_TITLES
 
-        # Concatenate all pages into one doc
-        full_content = "\n\n".join(p["content"] for p in self.pages)
+        # Filter out boilerplate pages (cover, TOC, signatures)
+        filtered_pages = []
+        for p in self.pages:
+            if not self._is_8k_boilerplate_page(p["content"], p["page"]):
+                filtered_pages.append(p)
+            else:
+                self._log(f"DEBUG: Skipping boilerplate page {p['page']}")
+
+        # Store filtered pages for use in _map_8k_content_to_pages
+        self._filtered_8k_pages = filtered_pages
+
+        # Concatenate filtered pages into one doc
+        full_content = "\n\n".join(p["content"] for p in filtered_pages)
         doc = self._clean_8k_text(full_content)
 
         if not doc:
@@ -290,7 +318,8 @@ class SectionExtractor:
         for i, h in enumerate(headers):
             code = h["no"]
             next_start = headers[i + 1]["start"] if i + 1 < len(headers) else len(doc)
-            body = self._slice_8k_body(doc, h["end"], next_start)
+            # Include the header in the body by slicing from h["start"] instead of h["end"]
+            body = self._slice_8k_body(doc, h["start"], next_start)
 
             # Filter by desired_items if provided
             if self.desired_items and code not in self.desired_items:
@@ -337,7 +366,10 @@ class SectionExtractor:
         section_content_cleaned = self._clean_8k_text(section_content)
         remaining_section = section_content_cleaned
 
-        for page_dict in self.pages:
+        # Use filtered pages (excludes cover, TOC, signatures)
+        pages_to_search = getattr(self, '_filtered_8k_pages', self.pages)
+
+        for page_dict in pages_to_search:
             page_num = page_dict["page"]
             page_content = page_dict["content"]
             page_content_cleaned = self._clean_8k_text(page_content)
