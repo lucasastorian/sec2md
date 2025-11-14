@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, TYPE_CHECKING
+from typing import List, Optional, Tuple, Dict, TYPE_CHECKING
 from pydantic import BaseModel, Field, computed_field
 
 from sec2md.chunker.blocks import BaseBlock
@@ -16,6 +16,7 @@ class Chunk(BaseModel):
     header: Optional[str] = Field(None, description="Optional header for embedding context")
     elements: List['Element'] = Field(default_factory=list, description="Element objects for citation")
     vector: Optional[List[float]] = Field(None, description="Vector embedding for this chunk")
+    display_page_map: Optional[Dict[int, int]] = Field(None, description="Maps page number to original display_page from filing")
 
     model_config = {"frozen": False, "arbitrary_types_allowed": True}
 
@@ -56,6 +57,30 @@ class Chunk(BaseModel):
     def page_range(self) -> Tuple[int, int]:
         """(start_page, end_page) tuple."""
         return (self.start_page, self.end_page)
+
+    @computed_field
+    @property
+    def start_display_page(self) -> Optional[int]:
+        """Original display page number for first page (as shown in filing footer/header)."""
+        if self.display_page_map and self.start_page in self.display_page_map:
+            return self.display_page_map[self.start_page]
+        return None
+
+    @computed_field
+    @property
+    def end_display_page(self) -> Optional[int]:
+        """Original display page number for last page (as shown in filing footer/header)."""
+        if self.display_page_map and self.end_page in self.display_page_map:
+            return self.display_page_map[self.end_page]
+        return None
+
+    @computed_field
+    @property
+    def display_page_range(self) -> Optional[Tuple[int, int]]:
+        """(start_display_page, end_display_page) tuple, or None if not available."""
+        if self.start_display_page is not None and self.end_display_page is not None:
+            return (self.start_display_page, self.end_display_page)
+        return None
 
     @computed_field
     @property
@@ -126,7 +151,13 @@ class Chunk(BaseModel):
 
     def __repr__(self):
         pages_str = f"{self.start_page}-{self.end_page}" if self.start_page != self.end_page else str(self.start_page)
-        return f"Chunk(pages={pages_str}, blocks={len(self.blocks)}, tokens={self.num_tokens})"
+        display_str = ""
+        if self.start_display_page is not None:
+            if self.start_display_page != self.end_display_page:
+                display_str = f", display_pages={self.start_display_page}-{self.end_display_page}"
+            else:
+                display_str = f", display_page={self.start_display_page}"
+        return f"Chunk(pages={pages_str}{display_str}, blocks={len(self.blocks)}, tokens={self.num_tokens})"
 
     def _repr_markdown_(self):
         """This method is called by IPython to display as Markdown"""

@@ -24,6 +24,10 @@ NBSP, NARROW_NBSP, ZWSP = '\u00A0', '\u202F', '\u200B'
 
 DOT_LEAD_RE = re.compile(r'^.*\.{3,}\s*\d{1,4}\s*$', re.M)  # "... 123"
 ITEM_ROWS_RE = re.compile(r'^\s*ITEM\s+\d{1,2}[A-Z]?\.?\b', re.I | re.M)
+ITEM_BREADCRUMB_TITLE_RE = re.compile(
+    r'^[,\s]*(\d{1,2}[A-Z]?)(\s*,\s*\d{1,2}[A-Z]?)*\s*$',
+    re.IGNORECASE
+)
 
 FILING_STRUCTURES = {
     "10-K": {
@@ -83,20 +87,26 @@ class SectionExtractor:
         lines = [ln.rstrip() for ln in content.split('\n')]
         content_str = '\n'.join(lines)
 
-        content_str = re.sub(
-            r'^\s*PART\s+[IVXLC]+\s*$\n+^\s*Item\s+\d{1,2}[A-Z]?\s*$\n+',
-            '',
-            content_str,
-            flags=re.MULTILINE
-        )
+        # TODO: Breadcrumb removal - some filings have "PART II\n\nItem 7" on every page
+        # as navigation breadcrumbs, but removing them here breaks section detection for
+        # filings that use this pattern as actual section headers (e.g., MSFT 10-K).
+        # Solution: Handle breadcrumb removal during HTML parsing stage instead of here.
 
-        lines_list = content_str.split('\n')
-        filtered_lines = []
-        for line in lines_list:
-            if re.match(r'^\s*Item\s+\d{1,2}[A-Z]?(?:\s*,\s*\d{1,2}[A-Z]?)*\s*$', line, re.IGNORECASE):
-                continue
-            filtered_lines.append(line)
-        content_str = '\n'.join(filtered_lines)
+        # COMMENTED OUT - breaks section detection for some filings
+        # content_str = re.sub(
+        #     r'^\s*PART\s+[IVXLC]+\s*$\n+^\s*Item\s+\d{1,2}[A-Z]?\s*$\n+',
+        #     '',
+        #     content_str,
+        #     flags=re.MULTILINE
+        # )
+        #
+        # lines_list = content_str.split('\n')
+        # filtered_lines = []
+        # for line in lines_list:
+        #     if re.match(r'^\s*Item\s+\d{1,2}[A-Z]?(?:\s*,\s*\d{1,2}[A-Z]?)*\s*$', line, re.IGNORECASE):
+        #         continue
+        #     filtered_lines.append(line)
+        # content_str = '\n'.join(filtered_lines)
 
         lines = content_str.split('\n')
 
@@ -420,7 +430,7 @@ class SectionExtractor:
                         continue
 
                     title = (m.group(3) or "").strip()
-                    if not title or re.match(r'^[,\s\d]+$', title):
+                    if not title or ITEM_BREADCRUMB_TITLE_RE.match(title):
                         self._log(f"DEBUG: Page {page_num} skipping breadcrumb ITEM {m.group(2)} with title '{title}'")
                         continue
 
@@ -485,6 +495,10 @@ class SectionExtractor:
                 if first_kind == 'part' and part_m:
                     item_after = None
                     for m in ITEM_PATTERN.finditer(after):
+                        title_after = (m.group(3) or "").strip()
+                        if not title_after or ITEM_BREADCRUMB_TITLE_RE.match(title_after):
+                            self._log(f"DEBUG: Page {page_num} skipping breadcrumb ITEM {m.group(2)} after PART with title '{title_after}'")
+                            continue
                         item_after = m
                         break
                     if item_after:
@@ -513,6 +527,10 @@ class SectionExtractor:
                             break
                     for m in ITEM_PATTERN.finditer(tail):
                         if m.start() > 0 and (next_idx is None or m.start() < next_idx):
+                            title_tail = (m.group(3) or "").strip()
+                            if not title_tail or ITEM_BREADCRUMB_TITLE_RE.match(title_tail):
+                                self._log(f"DEBUG: Page {page_num} skipping breadcrumb ITEM {m.group(2)} in tail with title '{title_tail}'")
+                                continue
                             next_kind, next_idx, next_item_m = 'item', m.start(), m
 
                     if next_idx is None:
@@ -576,11 +594,11 @@ class SectionExtractor:
                 part = s.part
                 item = s.item
 
-                if part is None and item and self.filing_type:
+                # If part is missing or inconsistent with canonical mapping, try to infer it from the item.
+                if item and self.filing_type:
                     inferred = self._infer_part_for_item(self.filing_type, item)
-                    if inferred:
-                        self._log(f"DEBUG: Inferred {inferred} from {item}")
-                        # Update the section's part
+                    if inferred and inferred != part:
+                        self._log(f"DEBUG: Rewriting part from {part} to {inferred} for {item}")
                         s = Section(
                             part=inferred,
                             item=s.item,

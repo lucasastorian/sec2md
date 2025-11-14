@@ -34,8 +34,14 @@ class Chunker:
             if hasattr(page, 'elements') and page.elements:
                 page_elements[page.number] = page.elements
 
+        # Build display_page map: page number -> display_page
+        display_page_map = {}
+        for page in pages:
+            if hasattr(page, 'display_page') and page.display_page is not None:
+                display_page_map[page.number] = page.display_page
+
         blocks = self._split_into_blocks(pages=pages)
-        return self._chunk_blocks(blocks=blocks, header=header, page_elements=page_elements)
+        return self._chunk_blocks(blocks=blocks, header=header, page_elements=page_elements, display_page_map=display_page_map)
 
     def chunk_text(self, text: str) -> List[str]:
         """Chunk a single text string into multiple chunks"""
@@ -96,9 +102,10 @@ class Chunker:
             return True
         return True
 
-    def _chunk_blocks(self, blocks: List[BaseBlock], header: str = None, page_elements: dict = None) -> List[Chunk]:
+    def _chunk_blocks(self, blocks: List[BaseBlock], header: str = None, page_elements: dict = None, display_page_map: dict = None) -> List[Chunk]:
         """Converts the blocks to chunks"""
         page_elements = page_elements or {}
+        display_page_map = display_page_map or {}
         chunks = []
         chunk_blocks = []
         num_tokens = 0
@@ -108,26 +115,26 @@ class Chunker:
 
             if block.block_type == 'Text':
                 chunk_blocks, num_tokens, chunks = self._process_text_block(
-                    block, chunk_blocks, num_tokens, chunks, header, page_elements
+                    block, chunk_blocks, num_tokens, chunks, header, page_elements, display_page_map
                 )
 
             elif block.block_type == 'Table':
                 chunk_blocks, num_tokens, chunks = self._process_table_block(
-                    block, chunk_blocks, num_tokens, chunks, blocks, i, header, page_elements
+                    block, chunk_blocks, num_tokens, chunks, blocks, i, header, page_elements, display_page_map
                 )
 
             else:
                 chunk_blocks, num_tokens, chunks = self._process_header_table_block(
-                    block, chunk_blocks, num_tokens, chunks, next_block, header, page_elements
+                    block, chunk_blocks, num_tokens, chunks, next_block, header, page_elements, display_page_map
                 )
 
         if chunk_blocks:
-            self._finalize_chunk(chunks, chunk_blocks, header, page_elements)
+            self._finalize_chunk(chunks, chunk_blocks, header, page_elements, display_page_map)
 
         return chunks
 
     def _process_text_block(self, block: TextBlock, chunk_blocks: List[BaseBlock], num_tokens: int,
-                            chunks: List[Chunk], header: str = None, page_elements: dict = None):
+                            chunks: List[Chunk], header: str = None, page_elements: dict = None, display_page_map: dict = None):
         """Process a text block by breaking it into sentences if needed"""
         sentences = []
         sentences_tokens = 0
@@ -139,7 +146,7 @@ class Chunker:
                     chunk_blocks.append(new_block)
                     num_tokens += sentences_tokens
 
-                chunks, chunk_blocks, num_tokens = self._create_chunk(chunks=chunks, blocks=chunk_blocks, header=header, page_elements=page_elements)
+                chunks, chunk_blocks, num_tokens = self._create_chunk(chunks=chunks, blocks=chunk_blocks, header=header, page_elements=page_elements, display_page_map=display_page_map)
 
                 sentences = [sentence]
                 sentences_tokens = sentence.tokens
@@ -156,7 +163,7 @@ class Chunker:
         return chunk_blocks, num_tokens, chunks
 
     def _process_table_block(self, block: BaseBlock, chunk_blocks: List[BaseBlock], num_tokens: int,
-                             chunks: List[Chunk], all_blocks: List[BaseBlock], block_idx: int, header: str = None, page_elements: dict = None):
+                             chunks: List[Chunk], all_blocks: List[BaseBlock], block_idx: int, header: str = None, page_elements: dict = None, display_page_map: dict = None):
         """Process a table block with optional header backtrack"""
         context = []
         context_tokens = 0
@@ -184,7 +191,7 @@ class Chunker:
 
         if num_tokens + context_tokens + block.tokens > self.chunk_size:
             if chunk_blocks:
-                chunks, chunk_blocks, num_tokens = self._create_chunk(chunks=chunks, blocks=chunk_blocks, header=header, page_elements=page_elements)
+                chunks, chunk_blocks, num_tokens = self._create_chunk(chunks=chunks, blocks=chunk_blocks, header=header, page_elements=page_elements, display_page_map=display_page_map)
 
             # If we're backtracking context and the last chunk is ONLY that context, remove it
             if context and chunks and len(chunks[-1].blocks) == len(context):
@@ -200,7 +207,7 @@ class Chunker:
         return chunk_blocks, num_tokens, chunks
 
     def _process_header_table_block(self, block: BaseBlock, chunk_blocks: List[BaseBlock], num_tokens: int,
-                                    chunks: List[Chunk], next_block: BaseBlock, header: str = None, page_elements: dict = None):
+                                    chunks: List[Chunk], next_block: BaseBlock, header: str = None, page_elements: dict = None, display_page_map: dict = None):
         """Process a header block"""
         if not chunk_blocks:
             chunk_blocks.append(block)
@@ -214,7 +221,7 @@ class Chunker:
             return chunk_blocks, num_tokens, chunks
 
         if num_tokens + block.tokens > self.chunk_size:
-            chunks, chunk_blocks, num_tokens = self._create_chunk(chunks=chunks, blocks=chunk_blocks, header=header, page_elements=page_elements)
+            chunks, chunk_blocks, num_tokens = self._create_chunk(chunks=chunks, blocks=chunk_blocks, header=header, page_elements=page_elements, display_page_map=display_page_map)
             chunk_blocks.append(block)
             num_tokens += block.tokens
         else:
@@ -223,20 +230,30 @@ class Chunker:
 
         return chunk_blocks, num_tokens, chunks
 
-    def _finalize_chunk(self, chunks: List[Chunk], blocks: List[BaseBlock], header: str, page_elements: dict):
+    def _finalize_chunk(self, chunks: List[Chunk], blocks: List[BaseBlock], header: str, page_elements: dict, display_page_map: dict):
         """Create chunk with elements from the pages it spans"""
         chunk_pages = set(block.page for block in blocks)
         elements = []
         for page_num in sorted(chunk_pages):
             if page_num in page_elements:
                 elements.extend(page_elements[page_num])
-        chunks.append(Chunk(blocks=blocks, header=header, elements=elements))
 
-    def _create_chunk(self, chunks: List[Chunk], blocks: List[BaseBlock], header: str = None, page_elements: dict = None) -> Tuple[
+        # Only include display_page_map if it has mappings, otherwise None for cleaner repr
+        chunk_display_map = {k: v for k, v in display_page_map.items() if k in chunk_pages} if display_page_map else None
+
+        chunks.append(Chunk(
+            blocks=blocks,
+            header=header,
+            elements=elements,
+            display_page_map=chunk_display_map if chunk_display_map else None
+        ))
+
+    def _create_chunk(self, chunks: List[Chunk], blocks: List[BaseBlock], header: str = None, page_elements: dict = None, display_page_map: dict = None) -> Tuple[
         List[Chunk], List[BaseBlock], int]:
         """Creates a chunk and returns overlap blocks"""
         page_elements = page_elements or {}
-        self._finalize_chunk(chunks, blocks, header, page_elements)
+        display_page_map = display_page_map or {}
+        self._finalize_chunk(chunks, blocks, header, page_elements, display_page_map)
 
         if not self.chunk_overlap:
             return chunks, [], 0

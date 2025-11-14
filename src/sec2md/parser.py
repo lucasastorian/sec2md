@@ -840,6 +840,60 @@ class Parser:
         ratio = increasing_count / total_transitions
         return ratio >= 0.8
 
+    @staticmethod
+    def _strip_page_breadcrumbs(content: str) -> str:
+        """
+        Remove repeated PART/ITEM breadcrumbs that appear at the top of pages.
+
+        Pattern targeted (with optional markdown bold wrappers):
+            PART II
+
+            Item 7
+
+        The ITEM line must have no trailing title or punctuation so that real
+        section headers like "ITEM 7. MANAGEMENT'S DISCUSSION..." are preserved.
+        """
+        if not content:
+            return content
+
+        lines = content.split("\n")
+        idx = 0
+
+        # Skip initial blank lines
+        while idx < len(lines) and not lines[idx].strip():
+            idx += 1
+
+        if idx >= len(lines):
+            return content
+
+        part_line = lines[idx].strip()
+        # Allow optional markdown bold/underline wrappers around PART
+        if not re.match(r"^(?:\*\*|__)?\s*PART\s+[IVXLC]+\s*(?:\*\*|__)?$", part_line, re.IGNORECASE):
+            return content
+
+        # Advance to potential ITEM line, skipping up to one blank run
+        idx += 1
+        while idx < len(lines) and not lines[idx].strip():
+            idx += 1
+
+        if idx >= len(lines):
+            return content
+
+        item_line = lines[idx].strip()
+        # Require ITEM <num>[suffix] with optional trailing list of other item numbers
+        # e.g., \"ITEM 2\" or \"ITEM 2, 3, 4\" or \"ITEM 9, 9A\"
+        if not re.match(r'^(?:\*\*|__)?\s*ITEM\s+\d{1,2}[A-Z]?(?:\s*,\s*\d{1,2}[A-Z]?)*\s*(?:\*\*|__)?$',
+                        item_line,
+                        re.IGNORECASE):
+            return content
+
+        # Drop PART/ITEM lines and any immediate blank lines after them
+        idx += 1
+        while idx < len(lines) and not lines[idx].strip():
+            idx += 1
+
+        return "\n".join(lines[idx:])
+
     def get_pages(self, include_elements: bool = True) -> List[Page]:
         """Get parsed pages as Page objects."""
         self.pages = defaultdict(list)
@@ -860,6 +914,9 @@ class Parser:
                 if line or (lines and lines[-1]):
                     lines.append(line)
             content = "\n".join(lines).strip()
+
+            # Strip repeated PART/ITEM breadcrumbs that show up at the top of pages
+            content = self._strip_page_breadcrumbs(content).strip()
 
             result.append(Page(number=page_num, content=content, elements=None))
 

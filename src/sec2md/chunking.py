@@ -170,6 +170,7 @@ def chunk_text_block(
             number=page_num,     # Real page number
             content=content,     # Only content from this page
             elements=elems       # Only elements from this page
+            # Note: display_page not available here since TextBlocks don't preserve it
         ))
 
     chunker = Chunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
