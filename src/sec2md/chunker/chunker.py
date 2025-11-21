@@ -245,7 +245,8 @@ class Chunker:
             blocks=blocks,
             header=header,
             elements=elements,
-            display_page_map=chunk_display_map if chunk_display_map else None
+            display_page_map=chunk_display_map if chunk_display_map else None,
+            index=len(chunks)  # 0-based index
         ))
 
     def _create_chunk(self, chunks: List[Chunk], blocks: List[BaseBlock], header: str = None, page_elements: dict = None, display_page_map: dict = None) -> Tuple[

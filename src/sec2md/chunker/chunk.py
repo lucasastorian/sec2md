@@ -17,6 +17,7 @@ class Chunk(BaseModel):
     elements: List['Element'] = Field(default_factory=list, description="Element objects for citation")
     vector: Optional[List[float]] = Field(None, description="Vector embedding for this chunk")
     display_page_map: Optional[Dict[int, int]] = Field(None, description="Maps page number to original display_page from filing")
+    index: Optional[int] = Field(None, description="Sequential index of this chunk (0-based)")
 
     model_config = {"frozen": False, "arbitrary_types_allowed": True}
 
@@ -145,11 +146,18 @@ class Chunk(BaseModel):
         """List of element IDs for citations."""
         return [e.id for e in self.elements] if self.elements else []
 
+    @computed_field
+    @property
+    def elements_dict(self) -> List[dict]:
+        """Elements as list of dicts with full serialization."""
+        return [e.model_dump() for e in self.elements] if self.elements else []
+
     def to_dict(self) -> dict:
         """Alias for model_dump() - kept for backward compat during alpha."""
         return self.model_dump()
 
     def __repr__(self):
+        index_str = f"[{self.index}] " if self.index is not None else ""
         pages_str = f"{self.start_page}-{self.end_page}" if self.start_page != self.end_page else str(self.start_page)
         display_str = ""
         if self.start_display_page is not None:
@@ -157,7 +165,7 @@ class Chunk(BaseModel):
                 display_str = f", display_pages={self.start_display_page}-{self.end_display_page}"
             else:
                 display_str = f", display_page={self.start_display_page}"
-        return f"Chunk(pages={pages_str}{display_str}, blocks={len(self.blocks)}, tokens={self.num_tokens})"
+        return f"Chunk{index_str}(pages={pages_str}{display_str}, blocks={len(self.blocks)}, tokens={self.num_tokens})"
 
     def _repr_markdown_(self):
         """This method is called by IPython to display as Markdown"""

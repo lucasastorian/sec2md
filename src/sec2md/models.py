@@ -313,6 +313,12 @@ class Page(BaseModel):
         """Total number of tokens on this page."""
         return _count_tokens(self.content)
 
+    @computed_field
+    @property
+    def elements_dict(self) -> Optional[List[dict]]:
+        """Elements as list of dicts with full serialization."""
+        return [e.model_dump() for e in self.elements] if self.elements else None
+
     def preview(self) -> None:
         """
         Preview the full page content.
@@ -327,6 +333,20 @@ class Page(BaseModel):
 
     def __str__(self) -> str:
         return self.content
+
+    def to_dict(self, include_only_essentials: bool = False) -> dict:
+        """
+        Convert page to dict with proper nested serialization.
+
+        Args:
+            include_only_essentials: If True, only include number, content, and elements.
+
+        Returns:
+            Dict with all nested models properly serialized.
+        """
+        if include_only_essentials:
+            return self.model_dump(include={'number', 'content', 'elements'})
+        return self.model_dump()
 
     def __repr__(self) -> str:
         preview = self.content[:100].replace('\n', ' ')

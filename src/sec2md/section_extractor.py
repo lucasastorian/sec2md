@@ -6,7 +6,7 @@ from typing import List, Optional, Literal, Any
 LEAD_WRAP = r'(?:\*\*|__)?\s*(?:</?[^>]+>\s*)*'
 
 PART_PATTERN = re.compile(
-    rf'^\s*{LEAD_WRAP}(PART\s+[IVXLC]+)\b(?:\*\*|__)?(?:\s*$|\s+)',
+    rf'^\s*{LEAD_WRAP}(PART\s+[IVXLC]+)\.?(?:\*\*|__)?(?:\s*$|\s+)',
     re.IGNORECASE | re.MULTILINE
 )
 ITEM_PATTERN = re.compile(
@@ -42,8 +42,9 @@ FILING_STRUCTURES = {
     },
     "20-F": {
         "PART I": [
-            "ITEM 1", "ITEM 2", "ITEM 3", "ITEM 4", "ITEM 5", "ITEM 6",
-            "ITEM 7", "ITEM 8", "ITEM 9", "ITEM 10", "ITEM 11", "ITEM 12", "ITEM 12D"
+            "ITEM 1", "ITEM 2", "ITEM 3", "ITEM 4", "ITEM 4A", "ITEM 5",
+            # Some 20-F filings include items 6-12 in PART I without explicit PART II header
+            "ITEM 6", "ITEM 7", "ITEM 8", "ITEM 9", "ITEM 10", "ITEM 11", "ITEM 12", "ITEM 12D"
         ],
         "PART II": [
             "ITEM 13", "ITEM 14", "ITEM 15",
@@ -145,9 +146,26 @@ class SectionExtractor:
         """Detect table of contents pages."""
         if self._toc_locked or page_num > 5:
             return False
+
+        # Check for traditional TOC patterns (dot leaders, plain ITEM rows)
         item_hits = len(ITEM_ROWS_RE.findall(content))
         leader_hits = len(DOT_LEAD_RE.findall(content))
-        return (item_hits >= 3) or (leader_hits >= 3)
+        if (item_hits >= 3) or (leader_hits >= 3):
+            return True
+
+        # Check for table-based TOCs (modern filings)
+        # Look for markdown tables with ITEM entries and page numbers
+        # Pattern: | ITEM X. | TITLE | PAGE |
+        table_item_pattern = re.compile(r'\|\s*ITEM\s+\d{1,2}[A-Z]?\.?\s*\|', re.IGNORECASE)
+        table_item_hits = len(table_item_pattern.findall(content))
+        if table_item_hits >= 3:
+            return True
+
+        # Also check for "TABLE OF CONTENTS" header
+        if re.search(r'TABLE\s+OF\s+CONTENTS', content, re.IGNORECASE) and table_item_hits >= 2:
+            return True
+
+        return False
     _ITEM_8K_RE = re.compile(
         rf'^\s*{LEAD_WRAP}(ITEM)\s+([1-9]\.\d{{2}}[A-Z]?)\.?\s*(?:[:.\-–—]\s*)?(.*)$',
         re.IGNORECASE | re.MULTILINE
