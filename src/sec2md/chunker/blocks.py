@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field, computed_field
 
 try:
@@ -37,6 +37,7 @@ class BaseBlock(BaseModel):
     block_type: str = Field(..., description="Type of markdown block")
     content: str = Field(..., description="Block content")
     page: int = Field(..., description="Page number")
+    element_ids: Optional[List[str]] = Field(default=None, description="Element IDs backing this block")
 
     model_config = {"frozen": False}
 
@@ -68,9 +69,9 @@ class TextBlock(BaseBlock):
         return [Sentence(content=content) for content in split_sentences(self.content)]
 
     @classmethod
-    def from_sentences(cls, sentences: List[Sentence], page: int):
+    def from_sentences(cls, sentences: List[Sentence], page: int, element_ids: Optional[List[str]] = None):
         content = " ".join([sentence.content for sentence in sentences])
-        return cls(content=content, page=page, block_type='Text')
+        return cls(content=content, page=page, block_type='Text', element_ids=element_ids)
 
 
 class TableBlock(BaseBlock):
