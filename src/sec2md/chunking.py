@@ -11,6 +11,7 @@ def chunk_pages(
     pages: List[Page],
     chunk_size: int = 512,
     chunk_overlap: int = 128,
+    max_table_tokens: int = 2048,
     header: Optional[str] = None
 ) -> List[Chunk]:
     """
@@ -20,6 +21,7 @@ def chunk_pages(
         pages: List of Page objects (with optional elements)
         chunk_size: Target chunk size in tokens (estimated as chars/4)
         chunk_overlap: Overlap between chunks in tokens
+        max_table_tokens: Maximum tokens allowed per table before splitting
         header: Optional header to prepend to each chunk's embedding_text
 
     Returns:
@@ -32,7 +34,7 @@ def chunk_pages(
         ...     print(f"Page {chunk.page}: {chunk.content[:100]}...")
         ...     print(f"Elements: {chunk.elements}")
     """
-    chunker = Chunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    chunker = Chunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap, max_table_tokens=max_table_tokens)
     return chunker.split(pages=pages, header=header)
 
 
@@ -40,6 +42,7 @@ def chunk_section(
     section: Section,
     chunk_size: int = 512,
     chunk_overlap: int = 128,
+    max_table_tokens: int = 2048,
     header: Optional[str] = None
 ) -> List[Chunk]:
     """
@@ -49,6 +52,7 @@ def chunk_section(
         section: Section object from extract_sections()
         chunk_size: Target chunk size in tokens (estimated as chars/4)
         chunk_overlap: Overlap between chunks in tokens
+        max_table_tokens: Maximum tokens allowed per table before splitting
         header: Optional header to prepend to each chunk's embedding_text
 
     Returns:
@@ -63,6 +67,7 @@ def chunk_section(
         pages=section.pages,
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
+        max_table_tokens=max_table_tokens,
         header=header
     )
 
@@ -132,6 +137,7 @@ def chunk_text_block(
     text_block: TextBlock,
     chunk_size: int = 512,
     chunk_overlap: int = 128,
+    max_table_tokens: int = 2048,
     header: Optional[str] = None
 ) -> List[Chunk]:
     """
@@ -173,6 +179,6 @@ def chunk_text_block(
             # Note: display_page not available here since TextBlocks don't preserve it
         ))
 
-    chunker = Chunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    chunker = Chunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap, max_table_tokens=max_table_tokens)
 
     return chunker.split(pages=pages, header=header)

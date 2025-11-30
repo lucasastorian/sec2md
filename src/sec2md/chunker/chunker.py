@@ -3,7 +3,7 @@ import re
 from typing import Union, Tuple, List, Dict, Any, Optional
 
 from sec2md.chunker.chunk import Chunk
-from sec2md.chunker.blocks import BaseBlock, TextBlock, TableBlock, HeaderBlock
+from sec2md.chunker.blocks import BaseBlock, TextBlock, TableBlock, HeaderBlock, estimate_tokens
 
 # Rebuild Chunk after Element is defined
 from sec2md.models import Element
@@ -15,9 +15,10 @@ logger = logging.getLogger(__name__)
 class Chunker:
     """Splits content into chunks"""
 
-    def __init__(self, chunk_size: int = 512, chunk_overlap: int = 128):
+    def __init__(self, chunk_size: int = 512, chunk_overlap: int = 128, max_table_tokens: int = 2048):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
+        self.max_table_tokens = max_table_tokens
 
     def split(self, pages: List[Any], header: str = None) -> List[Chunk]:
         """Split the pages into chunks with optional header for embedding context.
@@ -222,15 +223,76 @@ class Chunker:
 
     def _process_table_block(self, block: BaseBlock, chunk_blocks: List[BaseBlock], num_tokens: int,
                              chunks: List[Chunk], all_blocks: List[BaseBlock], block_idx: int, header: str = None, page_elements: dict = None, display_page_map: dict = None, page_contents: dict = None, element_by_id: dict = None):
-        """Process a table block with optional header backtrack"""
-        context = []
-        context_tokens = 0
+        """Process a table block with optional header backtrack and size-aware splitting."""
+        context, context_tokens = self._get_table_context(all_blocks, block_idx)
+        table_blocks = self._split_table_block(block)
 
-        # Backtrack for header only if 1-2 short blocks precede
+        for table_block in table_blocks:
+            chunk_blocks, num_tokens, chunks = self._add_table_block(
+                table_block=table_block,
+                context=context,
+                context_tokens=context_tokens,
+                chunk_blocks=chunk_blocks,
+                num_tokens=num_tokens,
+                chunks=chunks,
+                header=header,
+                page_elements=page_elements,
+                display_page_map=display_page_map,
+                page_contents=page_contents,
+                element_by_id=element_by_id
+            )
+
+        return chunk_blocks, num_tokens, chunks
+
+    def _add_table_block(self, table_block: TableBlock, context: List[BaseBlock], context_tokens: int,
+                         chunk_blocks: List[BaseBlock], num_tokens: int, chunks: List[Chunk], header: str = None,
+                         page_elements: dict = None, display_page_map: dict = None, page_contents: dict = None,
+                         element_by_id: dict = None) -> Tuple[List[BaseBlock], int, List[Chunk]]:
+        """Attach a (possibly split) table block to the current chunk stream."""
+        context_to_use = context if context and not self._has_context(chunk_blocks, context) else []
+        context_to_use_tokens = context_tokens if context_to_use else 0
+
+        if num_tokens + context_to_use_tokens + table_block.tokens > self.chunk_size:
+            if chunk_blocks:
+                chunks, chunk_blocks, num_tokens = self._create_chunk(
+                    chunks=chunks,
+                    blocks=chunk_blocks,
+                    header=header,
+                    page_elements=page_elements,
+                    display_page_map=display_page_map,
+                    page_contents=page_contents,
+                    element_by_id=element_by_id
+                )
+
+            if context_to_use and chunks and len(chunks[-1].blocks) == len(context_to_use):
+                if all(chunks[-1].blocks[i] == context_to_use[i] for i in range(len(context_to_use))):
+                    chunks.pop()
+
+            chunk_blocks = context_to_use + [table_block]
+            num_tokens = context_to_use_tokens + table_block.tokens
+        else:
+            chunk_blocks.extend(context_to_use + [table_block])
+            num_tokens += context_to_use_tokens + table_block.tokens
+
+        return chunk_blocks, num_tokens, chunks
+
+    @staticmethod
+    def _has_context(chunk_blocks: List[BaseBlock], context: List[BaseBlock]) -> bool:
+        """Return True if the chunk already starts with the provided context."""
+        if not context or len(chunk_blocks) < len(context):
+            return False
+        return chunk_blocks[:len(context)] == context
+
+    def _get_table_context(self, all_blocks: List[BaseBlock], block_idx: int) -> Tuple[List[BaseBlock], int]:
+        """Backtrack short preceding blocks to carry into table chunks."""
+        context: List[BaseBlock] = []
+        context_tokens = 0
         count = 0
+        current_page = all_blocks[block_idx].page if 0 <= block_idx < len(all_blocks) else None
+
         for j in range(block_idx - 1, -1, -1):
             prev = all_blocks[j]
-            if prev.page != block.page:
+            if prev.page != current_page:
                 break
             if prev.block_type == 'Header':
                 if context_tokens + prev.tokens <= 128:
@@ -247,30 +309,65 @@ class Chunker:
                 else:
                     break
 
-        if num_tokens + context_tokens + block.tokens > self.chunk_size:
-            if chunk_blocks:
-                chunks, chunk_blocks, num_tokens = self._create_chunk(
-                    chunks=chunks,
-                    blocks=chunk_blocks,
-                    header=header,
-                    page_elements=page_elements,
-                    display_page_map=display_page_map,
-                    page_contents=page_contents,
-                    element_by_id=element_by_id
-                )
+        return context, context_tokens
 
-            # If we're backtracking context and the last chunk is ONLY that context, remove it
-            if context and chunks and len(chunks[-1].blocks) == len(context):
-                if all(chunks[-1].blocks[i] == context[i] for i in range(len(context))):
-                    chunks.pop()
+    def _split_table_block(self, block: TableBlock) -> List[TableBlock]:
+        """Split oversized tables while repeating headers and adding ellipsis rows."""
+        if not self.max_table_tokens or block.tokens <= self.max_table_tokens:
+            return [block]
 
-            chunk_blocks = context + [block]
-            num_tokens = context_tokens + block.tokens
-        else:
-            chunk_blocks.extend(context + [block])
-            num_tokens += context_tokens + block.tokens
+        lines = [line for line in block.content.split('\n') if line.strip()]
+        if len(lines) <= 2:
+            return [block]
 
-        return chunk_blocks, num_tokens, chunks
+        header_line = lines[0]
+        separator_line = lines[1] if len(lines) > 1 else ""
+        data_rows = lines[2:]
+
+        header_cells = [cell.strip() for cell in header_line.strip().split('|') if cell.strip()]
+        num_cols = max(1, len(header_cells))
+        ellipsis_row = "|" + "|".join(["..."] * num_cols) + "|"
+        if not separator_line:
+            separator_line = "|" + "|".join(["---"] * num_cols) + "|"
+
+        table_blocks: List[TableBlock] = []
+        row_idx = 0
+
+        while row_idx < len(data_rows):
+            base_lines = [header_line, separator_line]
+            if row_idx > 0:
+                base_lines.append(ellipsis_row)
+
+            segment_rows = []
+            while row_idx < len(data_rows):
+                next_row = data_rows[row_idx]
+                candidate_lines = base_lines + segment_rows + [next_row]
+                if row_idx < len(data_rows) - 1:
+                    candidate_lines.append(ellipsis_row)
+                candidate_tokens = estimate_tokens("\n".join(candidate_lines))
+
+                if candidate_tokens > self.max_table_tokens and segment_rows:
+                    break
+
+                if candidate_tokens > self.max_table_tokens:
+                    segment_rows.append(next_row)
+                    row_idx += 1
+                    break
+
+                segment_rows.append(next_row)
+                row_idx += 1
+
+            content_lines = base_lines + segment_rows
+            if row_idx < len(data_rows):
+                content_lines.append(ellipsis_row)
+
+            table_blocks.append(TableBlock(
+                content="\n".join(content_lines),
+                page=block.page,
+                element_ids=block.element_ids
+            ))
+
+        return table_blocks
 
     def _process_header_table_block(self, block: BaseBlock, chunk_blocks: List[BaseBlock], num_tokens: int,
                                     chunks: List[Chunk], next_block: BaseBlock, header: str = None, page_elements: dict = None, display_page_map: dict = None, page_contents: dict = None, element_by_id: dict = None):
