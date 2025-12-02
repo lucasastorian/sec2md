@@ -9,6 +9,10 @@ from sec2md.chunker.blocks import BaseBlock, TextBlock, TableBlock, HeaderBlock,
 from sec2md.models import Element
 Chunk.model_rebuild()
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    pass  # Element already imported above
+
 logger = logging.getLogger(__name__)
 
 
@@ -52,7 +56,11 @@ class Chunker:
                 display_page_map[page.number] = page.display_page
 
         use_elements = any(page_elements.values())
-        blocks = self._split_into_blocks(pages=pages, use_elements=use_elements)
+        blocks, synthetic_elements = self._split_into_blocks(pages=pages, use_elements=use_elements)
+
+        # Merge synthetic elements (from table splitting) into element_by_id
+        element_by_id.update(synthetic_elements)
+
         return self._chunk_blocks(
             blocks=blocks,
             header=header,
@@ -69,13 +77,118 @@ class Chunker:
         chunks = self.split(pages=pages)
         return [chunk.content for chunk in chunks]
 
-    def _split_into_blocks(self, pages: List[Any], use_elements: bool = False):
-        """Splits the pages into blocks."""
-        return self._split_from_elements(pages) if use_elements else self._split_from_text(pages)
+    def _split_into_blocks(self, pages: List[Any], use_elements: bool = False) -> Tuple[List[BaseBlock], Dict[str, Element]]:
+        """Splits the pages into blocks.
 
-    def _split_from_elements(self, pages: List[Any]) -> List[BaseBlock]:
-        """Build blocks directly from parser elements."""
+        Returns:
+            Tuple of (blocks, synthetic_elements) where synthetic_elements contains
+            any new elements created from splitting large tables.
+        """
+        if use_elements:
+            return self._split_from_elements(pages)
+        else:
+            # Text-based splitting doesn't produce synthetic elements
+            return self._split_from_text(pages), {}
+
+    def _split_table_element(self, elem: Element, page_number: int) -> List[Tuple[Element, TableBlock]]:
+        """Split an oversized table element into smaller synthetic elements with corresponding blocks.
+
+        Returns:
+            List of (Element, TableBlock) tuples. Each element has sliced content matching its block.
+        """
+        content = elem.content
+        tokens = estimate_tokens(content)
+
+        # No splitting needed
+        if not self.max_table_tokens or tokens <= self.max_table_tokens:
+            block = TableBlock(content=content, page=page_number, element_ids=[elem.id])
+            return [(elem, block)]
+
+        lines = [line for line in content.split('\n') if line.strip()]
+        if len(lines) <= 2:
+            # Table too small to split (just header + separator)
+            block = TableBlock(content=content, page=page_number, element_ids=[elem.id])
+            return [(elem, block)]
+
+        header_line = lines[0]
+        separator_line = lines[1] if len(lines) > 1 else ""
+        data_rows = lines[2:]
+
+        # Build ellipsis row matching column count
+        header_cells = [cell.strip() for cell in header_line.strip().split('|') if cell.strip()]
+        num_cols = max(1, len(header_cells))
+        ellipsis_row = "|" + "|".join(["..."] * num_cols) + "|"
+        if not separator_line:
+            separator_line = "|" + "|".join(["---"] * num_cols) + "|"
+
+        results: List[Tuple[Element, TableBlock]] = []
+        row_idx = 0
+        part_idx = 0
+
+        while row_idx < len(data_rows):
+            base_lines = [header_line, separator_line]
+            if row_idx > 0:
+                base_lines.append(ellipsis_row)
+
+            segment_rows = []
+            while row_idx < len(data_rows):
+                next_row = data_rows[row_idx]
+                candidate_lines = base_lines + segment_rows + [next_row]
+                if row_idx < len(data_rows) - 1:
+                    candidate_lines.append(ellipsis_row)
+                candidate_tokens = estimate_tokens("\n".join(candidate_lines))
+
+                # Over budget and we have rows - stop here
+                if candidate_tokens > self.max_table_tokens and segment_rows:
+                    break
+
+                # Over budget but no rows yet - take this one anyway (single row exceeds limit)
+                if candidate_tokens > self.max_table_tokens:
+                    segment_rows.append(next_row)
+                    row_idx += 1
+                    break
+
+                segment_rows.append(next_row)
+                row_idx += 1
+
+            content_lines = base_lines + segment_rows
+            if row_idx < len(data_rows):
+                content_lines.append(ellipsis_row)
+
+            segment_content = "\n".join(content_lines)
+            segment_id = f"{elem.id}:part-{part_idx}"
+
+            # Create synthetic element with sliced content
+            segment_element = Element(
+                id=segment_id,
+                content=segment_content,
+                kind=elem.kind,
+                page_start=elem.page_start,
+                page_end=elem.page_end,
+                content_start_offset=elem.content_start_offset,
+                content_end_offset=elem.content_end_offset
+            )
+
+            segment_block = TableBlock(
+                content=segment_content,
+                page=page_number,
+                element_ids=[segment_id]
+            )
+
+            results.append((segment_element, segment_block))
+            part_idx += 1
+
+        return results
+
+    def _split_from_elements(self, pages: List[Any]) -> Tuple[List[BaseBlock], Dict[str, Element]]:
+        """Build blocks directly from parser elements.
+
+        Returns:
+            Tuple of (blocks, synthetic_elements) where synthetic_elements contains
+            any new elements created from splitting large tables.
+        """
         blocks: List[BaseBlock] = []
+        synthetic_elements: Dict[str, Element] = {}
 
         for page in pages:
             elems = getattr(page, 'elements', None)
@@ -94,15 +207,19 @@ class Chunker:
 
             for _, elem in ordered:
                 kind = (elem.kind or "").lower()
-                element_ids = [elem.id]
                 if kind == "table":
-                    blocks.append(TableBlock(content=elem.content, page=page.number, element_ids=element_ids))
+                    # Split large tables into multiple elements + blocks
+                    for split_elem, split_block in self._split_table_element(elem, page.number):
+                        if split_elem.id != elem.id:
+                            # This is a synthetic element from splitting
+                            synthetic_elements[split_elem.id] = split_elem
+                        blocks.append(split_block)
                 elif kind == "header":
-                    blocks.append(HeaderBlock(content=elem.content, page=page.number, element_ids=element_ids))
+                    blocks.append(HeaderBlock(content=elem.content, page=page.number, element_ids=[elem.id]))
                 else:
-                    blocks.append(TextBlock(content=elem.content, page=page.number, element_ids=element_ids))
+                    blocks.append(TextBlock(content=elem.content, page=page.number, element_ids=[elem.id]))
 
-        return blocks
+        return blocks, synthetic_elements
 
     @staticmethod
     def _split_from_text(pages: List[Any]):
@@ -223,24 +340,26 @@ class Chunker:
 
     def _process_table_block(self, block: BaseBlock, chunk_blocks: List[BaseBlock], num_tokens: int,
                              chunks: List[Chunk], all_blocks: List[BaseBlock], block_idx: int, header: str = None, page_elements: dict = None, display_page_map: dict = None, page_contents: dict = None, element_by_id: dict = None):
-        """Process a table block with optional header backtrack and size-aware splitting."""
-        context, context_tokens = self._get_table_context(all_blocks, block_idx)
-        table_blocks = self._split_table_block(block)
+        """Process a table block with optional header backtrack.
 
-        for table_block in table_blocks:
-            chunk_blocks, num_tokens, chunks = self._add_table_block(
-                table_block=table_block,
-                context=context,
-                context_tokens=context_tokens,
-                chunk_blocks=chunk_blocks,
-                num_tokens=num_tokens,
-                chunks=chunks,
-                header=header,
-                page_elements=page_elements,
-                display_page_map=display_page_map,
-                page_contents=page_contents,
-                element_by_id=element_by_id
-            )
+        Note: Table splitting by token limit is now handled at the element level
+        in _split_table_element, so blocks arriving here are already properly sized.
+        """
+        context, context_tokens = self._get_table_context(all_blocks, block_idx)
+
+        chunk_blocks, num_tokens, chunks = self._add_table_block(
+            table_block=block,
+            context=context,
+            context_tokens=context_tokens,
+            chunk_blocks=chunk_blocks,
+            num_tokens=num_tokens,
+            chunks=chunks,
+            header=header,
+            page_elements=page_elements,
+            display_page_map=display_page_map,
+            page_contents=page_contents,
+            element_by_id=element_by_id
+        )
 
         return chunk_blocks, num_tokens, chunks
 
@@ -310,64 +429,6 @@ class Chunker:
                     break
 
         return context, context_tokens
-
-    def _split_table_block(self, block: TableBlock) -> List[TableBlock]:
-        """Split oversized tables while repeating headers and adding ellipsis rows."""
-        if not self.max_table_tokens or block.tokens <= self.max_table_tokens:
-            return [block]
-
-        lines = [line for line in block.content.split('\n') if line.strip()]
-        if len(lines) <= 2:
-            return [block]
-
-        header_line = lines[0]
-        separator_line = lines[1] if len(lines) > 1 else ""
-        data_rows = lines[2:]
-
-        header_cells = [cell.strip() for cell in header_line.strip().split('|') if cell.strip()]
-        num_cols = max(1, len(header_cells))
-        ellipsis_row = "|" + "|".join(["..."] * num_cols) + "|"
-        if not separator_line:
-            separator_line = "|" + "|".join(["---"] * num_cols) + "|"
-
-        table_blocks: List[TableBlock] = []
-        row_idx = 0
-
-        while row_idx < len(data_rows):
-            base_lines = [header_line, separator_line]
-            if row_idx > 0:
-                base_lines.append(ellipsis_row)
-
-            segment_rows = []
-            while row_idx < len(data_rows):
-                next_row = data_rows[row_idx]
-                candidate_lines = base_lines + segment_rows + [next_row]
-                if row_idx < len(data_rows) - 1:
-                    candidate_lines.append(ellipsis_row)
-                candidate_tokens = estimate_tokens("\n".join(candidate_lines))
-
-                if candidate_tokens > self.max_table_tokens and segment_rows:
-                    break
-
-                if candidate_tokens > self.max_table_tokens:
-                    segment_rows.append(next_row)
-                    row_idx += 1
-                    break
-
-                segment_rows.append(next_row)
-                row_idx += 1
-
-            content_lines = base_lines + segment_rows
-            if row_idx < len(data_rows):
-                content_lines.append(ellipsis_row)
-
-            table_blocks.append(TableBlock(
-                content="\n".join(content_lines),
-                page=block.page,
-                element_ids=block.element_ids
-            ))
-
-        return table_blocks
 
     def _process_header_table_block(self, block: BaseBlock, chunk_blocks: List[BaseBlock], num_tokens: int,
                                     chunks: List[Chunk], next_block: BaseBlock, header: str = None, page_elements: dict = None, display_page_map: dict = None, page_contents: dict = None, element_by_id: dict = None):
