@@ -293,6 +293,20 @@ class Element(BaseModel):
         """Token count of this element."""
         return _count_tokens(self.content)
 
+    def visualize(self, html: str) -> str:
+        """
+        Open the filing HTML in a browser with this element highlighted
+        in yellow and auto-scrolled to.
+
+        Args:
+            html: Annotated HTML from ``Parser.html()``.
+
+        Returns:
+            Path to the temporary HTML file.
+        """
+        from sec2md.visualize import open_highlighted
+        return open_highlighted(html, [self.id])
+
     def __repr__(self) -> str:
         preview = self.content[:80].replace('\n', ' ')
         pages = f"p{self.page_start}" if self.page_start == self.page_end else f"p{self.page_start}-{self.page_end}"

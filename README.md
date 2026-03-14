@@ -43,6 +43,37 @@ pages = sec2md.parse_filing(
 
 `sec2md` rebuilds SEC filings as clean, semantic Markdown that LLMs can actually work with — preserving the structure, tables, and pagination that make retrieval and citation possible.
 
+---
+
+## Trace Every Answer Back to the Source
+
+Most Markdown converters throw away provenance. You get text, but no way to prove *where* it came from. When your LLM says "revenue was $394B," your compliance team asks: *show me.* With a generic converter, you can't.
+
+sec2md solves this. Every piece of content — every paragraph, table, and heading — gets a **stable, traceable element ID** that maps directly back to the original HTML. From chunk to element to source DOM node, the chain is unbroken.
+
+```python
+parser = sec2md.Parser(filing_html)
+pages = parser.get_pages()
+chunks = sec2md.chunk_pages(pages)
+
+chunk = chunks[5]
+print(chunk.element_ids)
+# ['sec2md-p12-p0-a1b2c3d4', 'sec2md-p12-t0-e5f6a7b8', ...]
+
+# Open the original filing in your browser — scrolls to the source, highlights in yellow
+chunk.visualize(parser.html())
+```
+
+![Traceability](traceability.png)
+*`chunk.visualize()` opens the original filing HTML, scrolls to the chunk's source elements, and highlights them.*
+
+This isn't a nice-to-have — it's table stakes for production RAG on regulated documents. Every `Chunk` carries page numbers (both sequential and the original display page from the filing footer), element IDs for citation, and a direct link back to the source HTML. Every `Element` can do the same:
+
+```python
+element = chunk.elements[0]
+element.visualize(parser.html())  # Highlights just this element
+```
+
 ### What We Support
 
 | Filing Type | Section Extraction | Notes |
@@ -79,9 +110,9 @@ print(risk.tokens)       # 8,412
 
 Works across filing types — 10-K, 10-Q, 8-K, and 20-F.
 
-### Chunk with citations your users can verify
+### Chunk for RAG with full traceability
 
-Every chunk carries page numbers and traceable element IDs — so when your LLM says "revenue was $394B," you can point to exactly where in the filing that came from:
+Page-aware, token-budgeted chunks — each one carrying element IDs and page numbers you can trace back to the source:
 
 ```python
 chunks = sec2md.chunk_pages(pages, chunk_size=512)
@@ -124,9 +155,9 @@ md = sec2md.convert_to_markdown(filing.html())
 
 ## Why sec2md?
 
-**Purpose-built for SEC filings.** Not a generic HTML-to-Markdown converter — sec2md understands EDGAR's quirks: XBRL inline tags, PDF-to-HTML artifacts, multi-column absolute positioning, nested table wrappers, and the dozen other ways SEC HTML breaks standard parsers.
+**Traceable end-to-end.** Generic Markdown converters give you text with no provenance. sec2md gives you a full citation chain — from chunk to element to source DOM node — with stable IDs, page numbers, and one-line visualization back to the original filing. When compliance asks "where did this number come from?", you have an answer.
 
-**Citation-ready from the start.** Every element gets a stable ID. Every chunk carries page numbers — both the parser's sequential numbering and the original display page from the filing footer. Your compliance team will thank you.
+**Purpose-built for SEC filings.** Not a generic HTML-to-Markdown converter — sec2md understands EDGAR's quirks: XBRL inline tags, PDF-to-HTML artifacts, multi-column absolute positioning, nested table wrappers, and the dozen other ways SEC HTML breaks standard parsers.
 
 **One function call, zero configuration.** `parse_filing(html)` returns structured pages with elements, ready for chunking, section extraction, or direct use. No configuration files. No schema definitions. No training step.
 

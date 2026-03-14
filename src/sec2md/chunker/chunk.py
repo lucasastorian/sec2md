@@ -167,6 +167,20 @@ class Chunk(BaseModel):
                 display_str = f", display_page={self.start_display_page}"
         return f"Chunk{index_str}(pages={pages_str}{display_str}, blocks={len(self.blocks)}, tokens={self.num_tokens})"
 
+    def visualize(self, html: str) -> str:
+        """
+        Open the filing HTML in a browser with this chunk's source elements
+        highlighted in yellow and auto-scrolled to.
+
+        Args:
+            html: Annotated HTML from ``Parser.html()``.
+
+        Returns:
+            Path to the temporary HTML file.
+        """
+        from sec2md.visualize import open_highlighted
+        return open_highlighted(html, self.element_ids)
+
     def _repr_markdown_(self):
         """This method is called by IPython to display as Markdown"""
         return self.content

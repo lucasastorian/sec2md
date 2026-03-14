@@ -45,13 +45,12 @@ tests/.cache/
 # Distribution
 *.whl
 
-# Examples
+# Examples (generated images)
 examples/comparison.png
 examples/raw_html.png
 examples/clean_markdown.png
 examples/generate_comparison.py
 examples/create_comparison.py
-examples/comparison_demo.ipynb
 
 .claude
 
