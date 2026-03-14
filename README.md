@@ -30,8 +30,10 @@ And even the converters that handle the HTML well still throw away **provenance*
 ```python
 import sec2md
 
-parser = sec2md.Parser(filing_html)
-pages = parser.get_pages()
+pages = sec2md.parse_filing(
+    "https://www.sec.gov/Archives/edgar/data/320193/000032019323000106/aapl-20230930.htm",
+    user_agent="Your Name <you@example.com>"
+)
 
 # 60 pages | 293 citable elements | 46,238 tokens
 # Tables intact. Pages tracked. Sections detected. Every element traceable.
@@ -41,40 +43,9 @@ pages = parser.get_pages()
 
 ---
 
-## Traceability
+## Section-Aware Parsing
 
-Every paragraph, table, and heading gets a **stable element ID** that maps directly to a DOM node in the original filing HTML. From chunk to element to source — the chain is unbroken.
-
-```python
-chunks = sec2md.chunk_pages(pages, chunk_size=512)
-
-chunk = chunks[5]
-print(chunk.element_ids)
-# ['sec2md-p12-p0-a1b2c3d4', 'sec2md-p12-t0-e5f6a7b8', ...]
-print(chunk.page_range)          # (12, 13)
-print(chunk.display_page_range)  # (45, 46) — as printed in the filing
-
-# Open the original filing in your browser — scrolls to the source, highlights in yellow
-chunk.visualize(parser.html())
-```
-
-![Traceability](examples/tracability.png)
-*`chunk.visualize()` opens the original filing HTML, scrolls to the chunk's source elements, and highlights them.*
-
-Every `Chunk` carries page numbers (both sequential and the original display page from the filing footer), element IDs for citation, and a direct link back to the source HTML. Every `Element` can do the same:
-
-```python
-element = chunk.elements[0]
-element.visualize(parser.html())  # Highlights just this element
-```
-
----
-
-## What You Can Do
-
-### Extract sections
-
-Don't process 200 pages when you only need Risk Factors:
+A 10-K is modular — Business, Risk Factors, MD&A, Financial Statements. sec2md detects PART and ITEM boundaries automatically, so you can pull exactly the section you need instead of processing 200 pages:
 
 ```python
 from sec2md import Item10K
@@ -84,9 +55,10 @@ risk = sec2md.get_section(sections, Item10K.RISK_FACTORS)
 
 print(risk.page_range)  # (7, 19)
 print(risk.tokens)       # 11,474
+print(risk.markdown()[:200])
 ```
 
-Works across 10-K, 10-Q, 8-K, and 20-F.
+This works across every major filing type — same API, same enums, same structure:
 
 | Filing Type | Section Extraction | Notes |
 |---|---|---|
@@ -96,11 +68,62 @@ Works across 10-K, 10-Q, 8-K, and 20-F.
 | **20-F** | Items 1-19, 16A-16I | Foreign private issuers |
 | **DEF 14A, Exhibits** | -- | Parsed as clean Markdown |
 
-### Handle complex tables
+## Chunking for RAG
 
-SEC tables are notoriously complex — rowspans, colspans, merged cells, currency symbols in separate columns. Some filings don't even use `<table>` tags, building tables from absolutely-positioned CSS divs instead. sec2md handles both, and large tables are automatically split across chunks with headers preserved.
+Page-aware, token-budgeted chunks — each one carrying page numbers, element IDs, and display pages from the filing footer:
 
-### Works with edgartools
+```python
+chunks = sec2md.chunk_pages(pages, chunk_size=512)
+
+for chunk in chunks:
+    print(chunk.content)             # Clean markdown text
+    print(chunk.page_range)          # (12, 13)
+    print(chunk.display_page_range)  # (45, 46) — as printed in the filing
+    print(chunk.element_ids)         # Traceable source elements
+    print(chunk.has_table)           # True — tables kept intact
+```
+
+You can also chunk individual sections or XBRL TextBlocks. Large tables are automatically split across chunks with headers preserved.
+
+## Complex Table Handling
+
+SEC tables are notoriously complex — rowspans, colspans, merged cells, currency symbols in separate columns. Some filings don't even use `<table>` tags, building tables from absolutely-positioned CSS divs instead.
+
+sec2md handles both:
+
+```markdown
+| Product Category | Revenue (millions) |
+|------------------|-------------------|
+| iPhone           | $200,583          |
+| Mac              | $29,357           |
+| iPad             | $28,300           |
+```
+
+## Traceability
+
+This is the feature most Markdown converters don't have. Every paragraph, table, and heading gets a **stable element ID** that maps directly to a DOM node in the original filing HTML. From chunk to element to source — the chain is unbroken.
+
+```python
+parser = sec2md.Parser(filing_html)
+pages = parser.get_pages()
+chunks = sec2md.chunk_pages(pages)
+
+# See exactly where a chunk comes from in the original filing
+chunk = chunks[5]
+chunk.visualize(parser.html())
+
+# Or drill down to a single element
+chunk.elements[0].visualize(parser.html())
+```
+
+![Traceability](examples/tracability.png)
+*`element.visualize()` opens the original filing HTML, scrolls to the source element, and highlights it.*
+
+When your LLM says "revenue was $394B" and compliance asks *show me* — you can point to the exact location in the filing. Not the chunk. Not the Markdown. The source.
+
+---
+
+## Works with edgartools
 
 Pair with [edgartools](https://github.com/dgunning/edgartools) for end-to-end filing pipelines:
 
