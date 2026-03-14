@@ -216,6 +216,8 @@ class Chunker:
                         blocks.append(split_block)
                 elif kind == "header":
                     blocks.append(HeaderBlock(content=elem.content, page=page.number, element_ids=[elem.id]))
+                elif kind == "image":
+                    blocks.append(TextBlock(content=elem.content, page=page.number, element_ids=[elem.id]))
                 else:
                     blocks.append(TextBlock(content=elem.content, page=page.number, element_ids=[elem.id]))
 

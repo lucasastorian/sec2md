@@ -136,6 +136,18 @@ class Chunk(BaseModel):
 
     @computed_field
     @property
+    def has_image(self) -> bool:
+        """Returns True if this chunk contains one or more image elements"""
+        return any(e.kind == "image" for e in self.elements)
+
+    @computed_field
+    @property
+    def images(self) -> List['Element']:
+        """Returns list of image elements in this chunk"""
+        return [e for e in self.elements if e.kind == "image"]
+
+    @computed_field
+    @property
     def num_tokens(self) -> int:
         """Returns the total number of tokens in this chunk"""
         return sum(block.tokens for block in self.blocks)

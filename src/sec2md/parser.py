@@ -39,6 +39,7 @@ class Parser:
     def __init__(self, content: str):
         self.soup = BeautifulSoup(content, "lxml")
         self.includes_table = False
+        self.include_images = True
         self.pages: Dict[int, List[str]] = defaultdict(list)
         self.page_segments: Dict[int, List[Tuple[str, Optional[Tag], Optional[TextBlockInfo]]]] = defaultdict(list)
         self.input_char_count = len(self.soup.get_text())
@@ -268,9 +269,23 @@ class Parser:
             return ""
         return text
 
+    @staticmethod
+    def _img_to_markdown(el: Tag) -> str:
+        """Convert an <img> tag to markdown image syntax."""
+        src = el.get("src", "")
+        alt = el.get("alt", "")
+        if not src:
+            return ""
+        return f"![{alt}]({src})"
+
     def _process_element(self, element: Union[Tag, NavigableString]) -> str:
         if isinstance(element, NavigableString):
             return self._process_text_node(element)
+
+        if element.name == "img":
+            if self.include_images:
+                return self._img_to_markdown(element)
+            return ""
 
         if element.name == "table":
             eff_rows = self._effective_rows(element)
@@ -562,6 +577,14 @@ class Parser:
         if self._is_hidden(root):
             return page_num
 
+        if root.name == "img" and self.include_images:
+            md = self._img_to_markdown(root)
+            if md:
+                self._blankline_before(page_num)
+                self._append(page_num, md, source_node=root)
+                self._blankline_after(page_num)
+            return page_num
+
         text_block_started = False
         text_block_has_continuation = False
         continuation_ends_text_block = False
@@ -779,7 +802,8 @@ class Parser:
 
         return "\n".join(lines[idx:])
 
-    def get_pages(self, include_elements: bool = True) -> List[Page]:
+    def get_pages(self, include_elements: bool = True, include_images: bool = True) -> List[Page]:
+        self.include_images = include_images
         self.pages = defaultdict(list)
         self.page_segments = defaultdict(list)
         self.includes_table = False

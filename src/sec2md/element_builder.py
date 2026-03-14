@@ -187,6 +187,8 @@ def _infer_kind_from_nodes(nodes: List[Tag]) -> str:
             return "header"
         elif node.name == "table":
             return "table"
+        elif node.name == "img":
+            return "image"
         elif node.name in {"ul", "ol"}:
             return "list"
         elif node.name == "p":

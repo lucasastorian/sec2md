@@ -99,6 +99,26 @@ sec2md handles both:
 | iPad             | $28,300           |
 ```
 
+## Ready for Multimodal
+
+SEC filings aren't just text — they're full of charts, performance graphs, and segment breakdowns that never make it into your pipeline. Most parsers silently drop every `<img>` tag. Your model never sees the revenue trend chart that would have answered the question.
+
+sec2md extracts images as first-class elements — same page tracking, same element IDs, same citation chain as every paragraph and table:
+
+```python
+chunks = sec2md.chunk_pages(pages)
+
+for chunk in chunks:
+    if chunk.has_image:
+        print(chunk.images)       # Image elements with full traceability
+        print(chunk.page_range)   # Where it appeared in the filing
+
+# Self-contained HTML — no broken image links
+pages = sec2md.parse_filing(url, user_agent="...", embed_images=True)
+```
+
+Feed chunks with images to a vision model. Feed the rest to text. Every image stays traceable back to the source filing — same as everything else.
+
 ## Traceability
 
 This is the feature most Markdown converters don't have. Every paragraph, table, and heading gets a **stable element ID** that maps directly to a DOM node in the original filing HTML. From chunk to element to source — the chain is unbroken.
