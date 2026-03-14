@@ -6,6 +6,27 @@ from sec2md.parser import Parser
 from sec2md.models import Page
 
 
+def _resolve_source(source: str | bytes, user_agent: str | None = None) -> str:
+    """Validate input and resolve to HTML string."""
+    if isinstance(source, bytes):
+        if source.startswith(b'%PDF'):
+            raise ValueError(
+                "PDF content detected. This library only supports HTML input. "
+                "Please extract HTML from the filing first."
+            )
+        source = source.decode('utf-8', errors='ignore')
+
+    if isinstance(source, str) and source.strip().startswith('%PDF'):
+        raise ValueError(
+            "PDF content detected. This library only supports HTML input. "
+            "Please extract HTML from the filing first."
+        )
+
+    if is_url(source):
+        return fetch(source, user_agent=user_agent)
+    return source
+
+
 @overload
 def convert_to_markdown(
     source: str | bytes,
@@ -61,30 +82,7 @@ def convert_to_markdown(
         >>> filing = company.get_filings(form="10-K").latest()
         >>> md = convert_to_markdown(filing.html())
     """
-    # Handle bytes input
-    if isinstance(source, bytes):
-        # Check if it's PDF
-        if source.startswith(b'%PDF'):
-            raise ValueError(
-                "PDF content detected. This library only supports HTML input. "
-                "Please extract HTML from the filing first."
-            )
-        source = source.decode('utf-8', errors='ignore')
-
-    # Check for PDF in string
-    if isinstance(source, str) and source.strip().startswith('%PDF'):
-        raise ValueError(
-            "PDF content detected. This library only supports HTML input. "
-            "Please extract HTML from the filing first."
-        )
-
-    # Fetch from URL if needed
-    if is_url(source):
-        html = fetch(source, user_agent=user_agent)
-    else:
-        html = source
-
-    # Parse and convert
+    html = _resolve_source(source, user_agent=user_agent)
     parser = Parser(html)
 
     if return_pages:
@@ -134,29 +132,6 @@ def parse_filing(
         >>> page_dict = page.model_dump()  # Full serialization
         >>> essentials = page.model_dump(include={'number', 'content', 'elements'})
     """
-    # Handle bytes input
-    if isinstance(source, bytes):
-        # Check if it's PDF
-        if source.startswith(b'%PDF'):
-            raise ValueError(
-                "PDF content detected. This library only supports HTML input. "
-                "Please extract HTML from the filing first."
-            )
-        source = source.decode('utf-8', errors='ignore')
-
-    # Check for PDF in string
-    if isinstance(source, str) and source.strip().startswith('%PDF'):
-        raise ValueError(
-            "PDF content detected. This library only supports HTML input. "
-            "Please extract HTML from the filing first."
-        )
-
-    # Fetch from URL if needed
-    if is_url(source):
-        html = fetch(source, user_agent=user_agent)
-    else:
-        html = source
-
-    # Parse and return pages
+    html = _resolve_source(source, user_agent=user_agent)
     parser = Parser(html)
     return parser.get_pages(include_elements=include_elements)

@@ -1,0 +1,260 @@
+{
+  "filing_type": "10-K",
+  "page_count": 59,
+  "section_count": 23,
+  "sections": [
+    {
+      "item": "ITEM 1",
+      "part": "PART I",
+      "title": "Business",
+      "page_range": [
+        3,
+        7
+      ],
+      "tokens": 2774,
+      "chars": 15720
+    },
+    {
+      "item": "ITEM 1A",
+      "part": "PART I",
+      "title": "Risk Factors",
+      "page_range": [
+        7,
+        19
+      ],
+      "tokens": 11511,
+      "chars": 68538
+    },
+    {
+      "item": "ITEM 1B",
+      "part": "PART I",
+      "title": "Unresolved Staff Comments",
+      "page_range": [
+        19,
+        19
+      ],
+      "tokens": 12,
+      "chars": 41
+    },
+    {
+      "item": "ITEM 1C",
+      "part": "PART I",
+      "title": "Cybersecurity",
+      "page_range": [
+        19,
+        19
+      ],
+      "tokens": 453,
+      "chars": 2707
+    },
+    {
+      "item": "ITEM 2",
+      "part": "PART I",
+      "title": "Properties",
+      "page_range": [
+        20,
+        20
+      ],
+      "tokens": 98,
+      "chars": 484
+    },
+    {
+      "item": "ITEM 3",
+      "part": "PART I",
+      "title": "Legal Proceedings",
+      "page_range": [
+        20,
+        20
+      ],
+      "tokens": 834,
+      "chars": 4354
+    },
+    {
+      "item": "ITEM 4",
+      "part": "PART I",
+      "title": "Mine Safety Disclosures",
+      "page_range": [
+        20,
+        20
+      ],
+      "tokens": 12,
+      "chars": 48
+    },
+    {
+      "item": "ITEM 5",
+      "part": "PART II",
+      "title": "Market for Registrant\u2019s Common Equity, Related Stockholder Matters and Issuer Purchases of Equity Securities",
+      "page_range": [
+        21,
+        22
+      ],
+      "tokens": 725,
+      "chars": 2707
+    },
+    {
+      "item": "ITEM 6",
+      "part": "PART II",
+      "title": "[Reserved]",
+      "page_range": [
+        22,
+        22
+      ],
+      "tokens": 7,
+      "chars": 18
+    },
+    {
+      "item": "ITEM 7",
+      "part": "PART II",
+      "title": "Management\u2019s Discussion and Analysis of Financial Condition and Results of Operations",
+      "page_range": [
+        23,
+        28
+      ],
+      "tokens": 3808,
+      "chars": 15927
+    },
+    {
+      "item": "ITEM 7A",
+      "part": "PART II",
+      "title": "Quantitative and Qualitative Disclosures About Market Risk",
+      "page_range": [
+        29,
+        29
+      ],
+      "tokens": 602,
+      "chars": 3063
+    },
+    {
+      "item": "ITEM 8",
+      "part": "PART II",
+      "title": "Financial Statements and Supplementary Data",
+      "page_range": [
+        30,
+        52
+      ],
+      "tokens": 16722,
+      "chars": 64511
+    },
+    {
+      "item": "ITEM 9",
+      "part": "PART II",
+      "title": "Changes in and Disagreements with Accountants on Accounting and Financial Disclosure",
+      "page_range": [
+        53,
+        53
+      ],
+      "tokens": 21,
+      "chars": 99
+    },
+    {
+      "item": "ITEM 9A",
+      "part": "PART II",
+      "title": "Controls and Procedures",
+      "page_range": [
+        53,
+        53
+      ],
+      "tokens": 787,
+      "chars": 4478
+    },
+    {
+      "item": "ITEM 9B",
+      "part": "PART II",
+      "title": "Other Information",
+      "page_range": [
+        54,
+        54
+      ],
+      "tokens": 310,
+      "chars": 1352
+    },
+    {
+      "item": "ITEM 9C",
+      "part": "PART II",
+      "title": "Disclosure Regarding Foreign Jurisdictions that Prevent Inspections",
+      "page_range": [
+        54,
+        54
+      ],
+      "tokens": 19,
+      "chars": 93
+    },
+    {
+      "item": "ITEM 10",
+      "part": "PART III",
+      "title": "Directors, Executive Officers and Corporate Governance",
+      "page_range": [
+        54,
+        54
+      ],
+      "tokens": 194,
+      "chars": 1032
+    },
+    {
+      "item": "ITEM 11",
+      "part": "PART III",
+      "title": "Executive Compensation",
+      "page_range": [
+        54,
+        54
+      ],
+      "tokens": 31,
+      "chars": 157
+    },
+    {
+      "item": "ITEM 12",
+      "part": "PART III",
+      "title": "Security Ownership of Certain Beneficial Owners and Management and Related Stockholder Matters",
+      "page_range": [
+        54,
+        54
+      ],
+      "tokens": 43,
+      "chars": 229
+    },
+    {
+      "item": "ITEM 13",
+      "part": "PART III",
+      "title": "Certain Relationships and Related Transactions, and Director Independence",
+      "page_range": [
+        54,
+        54
+      ],
+      "tokens": 38,
+      "chars": 208
+    },
+    {
+      "item": "ITEM 14",
+      "part": "PART III",
+      "title": "Principal Accountant Fees and Services",
+      "page_range": [
+        54,
+        54
+      ],
+      "tokens": 35,
+      "chars": 173
+    },
+    {
+      "item": "ITEM 15",
+      "part": "PART IV",
+      "title": "Exhibit and Financial Statement Schedules",
+      "page_range": [
+        55,
+        58
+      ],
+      "tokens": 4461,
+      "chars": 13272
+    },
+    {
+      "item": "ITEM 16",
+      "part": "PART IV",
+      "title": "Form 10-K Summary",
+      "page_range": [
+        58,
+        59
+      ],
+      "tokens": 658,
+      "chars": 2299
+    }
+  ]
+}

@@ -8,45 +8,50 @@ Transform messy SEC filings into clean, structured Markdown.
 **Built for AI. Optimized for retrieval. Ready for production.**
 
 ![Before and After Comparison](comparison.png)
-*Apple 10-K cover page: Raw SEC HTML (left) vs. Clean Markdown (right)*
+*Apple 10-K: Raw SEC HTML (left) vs. sec2md output (right)*
 
 ---
 
 ## The Problem
 
-RAG pipelines fail on SEC filings because **standard parsers destroy document structure.**
+SEC filings are the worst documents you'll ever feed to an LLM.
 
-When you flatten a 200-page 10-K to plain text:
+200 pages of deeply nested HTML, XBRL tags, inline CSS, invisible elements, tables-within-tables, and PDF-to-HTML artifacts — all wrapped in markup that was designed for browser rendering, not machine comprehension.
 
-- ❌ **Tables break** — Complex financial statements become misaligned text
-- ❌ **Pages are lost** — Can't cite sources or trace answers back
-- ❌ **Sections merge** — Risk Factors and MD&A become indistinguishable
-- ❌ **Formatting is stripped** — Headers, bolds, lists (LLM reasoning cues) gone
-- ❌ **Retrieval fails** — Chunks without structure return wrong context
+When you throw this at a standard parser:
 
-Your RAG system is only as good as your data. Garbage in, garbage out.
+- **Tables break** — Financial statements become garbled text. Your model hallucinates numbers.
+- **Pages vanish** — Can't cite sources. Can't trace answers back. Compliance says no.
+- **Sections blur** — Risk Factors and MD&A become one wall of text. Retrieval pulls the wrong context.
+- **Structure is lost** — Headers, emphasis, lists — the cues LLMs use to reason — gone.
+
+Your RAG system is only as good as your input data. Garbage in, garbage out.
 
 ## The Solution
 
-`sec2md` **rebuilds** SEC filings as clean, semantic Markdown designed for AI systems:
+```python
+import sec2md
 
-- ✅ **Preserves structure** - Headers (`#`), paragraphs, lists maintained
-- ✅ **Converts tables** - Complex HTML tables → clean Markdown pipes
-- ✅ **Strips noise** - XBRL tags, inline styles, and boilerplate removed
-- ✅ **Tracks pages** - Original pagination preserved for citation
-- ✅ **Detects sections** - Auto-extract Risk Factors, MD&A, Business sections
-- ✅ **Chunks intelligently** - Page-aware splitting with metadata headers
+pages = sec2md.parse_filing(
+    "https://www.sec.gov/Archives/edgar/data/320193/000032019323000106/aapl-20230930.htm",
+    user_agent="Your Name <you@example.com>"
+)
+
+# 60 pages | 293 citable elements | 46,238 tokens
+# Tables intact. Pages tracked. Sections detected. Ready for your pipeline.
+```
+
+`sec2md` rebuilds SEC filings as clean, semantic Markdown that LLMs can actually work with — preserving the structure, tables, and pagination that make retrieval and citation possible.
 
 ### What We Support
 
-| Document Type              | Status | Notes                                |
-|----------------------------|--------|--------------------------------------|
-| **10-K/Q Filings**         | ✅     | Full section extraction (ITEM 1-16)  |
-| **Financial Statements**   | ✅     | Tables preserved in Markdown         |
-| **Notes to Financials**    | ✅     | Automatic table unwrapping           |
-| **8-K Press Releases**     | ✅     | Clean prose extraction               |
-| **Proxy Statements (DEF 14A)** | ✅ | Executive compensation, governance   |
-| **Exhibits** (Contracts)   | ✅     | Merger agreements, material contracts|
+| Filing Type | Section Extraction | Notes |
+|---|---|---|
+| **10-K** | 18 items (ITEM 1–16) | Full PART/ITEM detection |
+| **10-Q** | 11 items (Parts I & II) | Including financial statements |
+| **8-K** | 41 items (1.01–9.01) | With exhibit parsing from 9.01 |
+| **20-F** | Items 1–19, 16A–16I | Foreign private issuers |
+| **DEF 14A, Exhibits** | — | Parsed as clean Markdown |
 
 ---
 
@@ -56,118 +61,87 @@ Your RAG system is only as good as your data. Garbage in, garbage out.
 pip install sec2md
 ```
 
-## Quickstart
+## What You Can Do
 
-```python
-import sec2md
+### Pull exactly the section you need
 
-# Convert any SEC filing to clean Markdown
-md = sec2md.convert_to_markdown(
-    "https://www.sec.gov/Archives/edgar/data/320193/000032019324000123/aapl-20240928.htm",
-    user_agent="Your Name <you@example.com>"
-)
-```
-
-**Input:** Messy SEC HTML with XBRL tags, nested tables, inline styles
-**Output:** Clean, structured Markdown ready for LLMs
-
-```markdown
-## ITEM 1. Business
-
-Apple Inc. designs, manufactures, and markets smartphones, personal computers,
-tablets, wearables, and accessories worldwide...
-
-### Products
-
-| Product Category | Revenue (millions) |
-|------------------|-------------------|
-| iPhone           | $200,583          |
-| Mac              | $29,357           |
-| iPad             | $28,300           |
-...
-```
-
-## Core Features
-
-### 1️⃣ Section Extraction
-Extract specific sections from 10-K/10-Q filings with type-safe enums:
+Don't process 200 pages when you only need Risk Factors:
 
 ```python
 from sec2md import Item10K
 
-pages = sec2md.convert_to_markdown(html, return_pages=True)
 sections = sec2md.extract_sections(pages, filing_type="10-K")
-
-# Get Risk Factors section
 risk = sec2md.get_section(sections, Item10K.RISK_FACTORS)
-print(risk.markdown())  # Just the risk factors text
-print(risk.page_range)   # (12, 28) - page citations
+
+print(risk.page_range)  # (12, 28)
+print(risk.tokens)       # 8,412
 ```
 
-### 2️⃣ Page-Aware Chunking
-Intelligent chunking that preserves page numbers for citations:
+Works across filing types — 10-K, 10-Q, 8-K, and 20-F.
+
+### Chunk with citations your users can verify
+
+Every chunk carries page numbers and traceable element IDs — so when your LLM says "revenue was $394B," you can point to exactly where in the filing that came from:
 
 ```python
 chunks = sec2md.chunk_pages(pages, chunk_size=512)
 
 for chunk in chunks:
-    print(f"Page {chunk.page}: {chunk.content[:100]}...")
-    # Use for embeddings, citations, or retrieval
+    print(chunk.content)             # Clean markdown text
+    print(chunk.page_range)          # (12, 13)
+    print(chunk.display_page_range)  # (45, 46) — as printed in the filing
+    print(chunk.element_ids)         # Traceable source elements
+    print(chunk.has_table)           # True — tables kept intact
 ```
 
-### 3️⃣ RAG-Optimized Headers
-Boost retrieval quality by adding metadata to chunk embeddings:
+### Keep financial tables readable
 
-```python
-header = """# Apple Inc. (AAPL)
-Form 10-K | FY 2024 | Risk Factors"""
+SEC tables are notoriously complex — rowspans, colspans, merged cells, currency symbols in separate columns. Some filings don't even use `<table>` tags, building tables from absolutely-positioned CSS divs instead.
 
-chunks = sec2md.chunk_section(risk, header=header)
+sec2md handles both, and large tables are automatically split across chunks with headers preserved:
 
-# chunk.embedding_text includes header for better embeddings
-# chunk.content contains only the actual filing text
+```markdown
+| Product Category | Revenue (millions) |
+|------------------|-------------------|
+| iPhone           | $200,583          |
+| Mac              | $29,357           |
+| iPad             | $28,300           |
 ```
 
-### 4️⃣ EdgarTools Integration
-Works seamlessly with [edgartools](https://github.com/dgunning/edgartools):
+### Works with edgartools
+
+Pair with [edgartools](https://github.com/dgunning/edgartools) for end-to-end filing pipelines:
 
 ```python
 from edgar import Company
+
 company = Company("AAPL")
 filing = company.get_filings(form="10-K").latest()
-
 md = sec2md.convert_to_markdown(filing.html())
 ```
 
 ---
 
-## Why Choose sec2md?
+## Why sec2md?
 
-### Just Parse It
-Most libraries force you to choose between speed and accuracy. `sec2md` gives you both:
-- 🚀 **Fast** - Processes 200-page filings in seconds
-- 🎯 **Accurate** - Purpose-built for SEC document structure
-- 🔧 **Simple** - One function call, zero configuration
+**Purpose-built for SEC filings.** Not a generic HTML-to-Markdown converter — sec2md understands EDGAR's quirks: XBRL inline tags, PDF-to-HTML artifacts, multi-column absolute positioning, nested table wrappers, and the dozen other ways SEC HTML breaks standard parsers.
 
-### Built for Agentic RAG
-Don't rebuild what we've already solved:
-- ✅ **Page tracking** - Cite sources with exact page numbers
-- ✅ **Section detection** - Extract just what you need (Risk Factors, MD&A)
-- ✅ **Smart chunking** - Respects table boundaries, preserves context
-- ✅ **Metadata headers** - Boost embedding quality 2-3x with contextual headers
+**Citation-ready from the start.** Every element gets a stable ID. Every chunk carries page numbers — both the parser's sequential numbering and the original display page from the filing footer. Your compliance team will thank you.
+
+**One function call, zero configuration.** `parse_filing(html)` returns structured pages with elements, ready for chunking, section extraction, or direct use. No configuration files. No schema definitions. No training step.
 
 ---
 
 ## Documentation
 
-📚 **Full documentation:** [sec2md.readthedocs.io](https://sec2md.readthedocs.io)
+Full documentation: [sec2md.readthedocs.io](https://sec2md.readthedocs.io)
 
-- [Quickstart Guide](https://sec2md.readthedocs.io/quickstart) - Get up and running in 3 minutes
-- [Convert Filings](https://sec2md.readthedocs.io/usage/direct-conversion) - Handle 10-Ks, exhibits, press releases
-- [Extract Sections](https://sec2md.readthedocs.io/usage/sections) - Pull specific ITEM sections
-- [Chunking for RAG](https://sec2md.readthedocs.io/usage/chunking) - Page-aware chunking with contextual headers
-- [EdgarTools Integration](https://sec2md.readthedocs.io/usage/edgartools) - Automate filing downloads
-- [API Reference](https://sec2md.readthedocs.io/api/convert_to_markdown) - Complete API docs
+- [Quickstart Guide](https://sec2md.readthedocs.io/quickstart)
+- [Convert Filings](https://sec2md.readthedocs.io/usage/direct-conversion)
+- [Extract Sections](https://sec2md.readthedocs.io/usage/sections)
+- [Chunking for RAG](https://sec2md.readthedocs.io/usage/chunking)
+- [EdgarTools Integration](https://sec2md.readthedocs.io/usage/edgartools)
+- [API Reference](https://sec2md.readthedocs.io/api/convert_to_markdown)
 
 ---
 

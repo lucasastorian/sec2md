@@ -1,0 +1,5 @@
+Item 10. Directors, Executive Officers and Corporate Governance
+
+The Company has an insider trading policy governing the purchase, sale and other dispositions of the Company’s securities that applies to all Company personnel, including directors, officers, employees, and other covered persons. The Company also follows procedures for the repurchase of its securities. The Company believes that its insider trading policy and repurchase procedures are reasonably designed to promote compliance with insider trading laws, rules and regulations, and listing standards applicable to the Company. A copy of the Company’s insider trading policy is filed as Exhibit 19.1 to this Form 10-K.
+
+The remaining information required by this Item will be included in the Company’s definitive proxy statement to be filed with the SEC within 120 days after September 28, 2024, in connection with the solicitation of proxies for the Company’s 2025 annual meeting of shareholders (the “2025 Proxy Statement”), and is incorporated herein by reference.

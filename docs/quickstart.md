@@ -17,7 +17,7 @@ import sec2md
 
 # From URL (requires SEC-compliant user-agent)
 md = sec2md.convert_to_markdown(
-    "https://www.sec.gov/Archives/edgar/data/320193/000032019324000123/aapl-20240928.htm",
+    "https://www.sec.gov/Archives/edgar/data/320193/000032019323000106/aapl-20230930.htm",
     user_agent="Your Name <you@example.com>"
 )
 
@@ -29,13 +29,25 @@ md = sec2md.convert_to_markdown(html)
 print(md)
 ```
 
+## Structured Parsing
+
+For RAG pipelines, use `parse_filing` to get pages with citable elements:
+
+```python
+pages = sec2md.parse_filing(html)
+
+for page in pages:
+    print(f"Page {page.number}: {page.tokens} tokens, {len(page.elements)} elements")
+```
+
 ## What You Get
 
 Clean Markdown with:
-- ✅ Preserved tables (as Markdown pipes)
-- ✅ Stripped XBRL tags
-- ✅ Detected ITEM headers
-- ✅ Maintained document structure
+- Preserved tables (as Markdown pipes)
+- Stripped XBRL tags and inline styles
+- Detected ITEM/PART headers
+- Citable semantic elements with stable IDs
+- Original page numbers from filing footers
 
 ## Next Steps
 
@@ -45,7 +57,6 @@ Clean Markdown with:
 - [Work with EdgarTools](usage/edgartools.md) - Integrate with filing downloads
 - [Chunk for embeddings](usage/chunking.md) - Split into page-aware chunks
 
-**Need to understand how it works?**
+**Full API docs:**
 
-- [Parsing philosophy](concepts/parsing-philosophy.md) - Why SEC HTML is special
-- [API Reference](api/convert_to_markdown.md) - Full parameter docs
+- [API Reference](api/convert_to_markdown.md) - All function signatures and parameters

@@ -1,9 +1,39 @@
-"""Utility functions for fetching HTML."""
+"""Utility functions."""
 
+import re
 import requests
-from typing import Optional
+from typing import List, Optional
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
+
+_ws = re.compile(r"\s+")
+
+
+def clean_text(text: str) -> str:
+    text = text.replace("\u200b", "").replace("\ufeff", "").replace("\xa0", " ")
+    return _ws.sub(" ", text).strip()
+
+
+NUMERIC_RE = re.compile(r"""
+    ^\s*
+    [\(\[]?                      # optional opening paren/bracket
+    [\-—–]?\s*                   # optional dash
+    [$€£¥]?\s*                   # optional currency
+    \d+(?:[.,]\d{3})*           # integer part (with thousands)
+    (?:[.,]\d+)?                # decimals
+    \s*%?                       # optional percent
+    [\)\]]?\s*$                 # optional closing paren/bracket
+""", re.X)
+
+
+def median(values: List[float]) -> float:
+    if not values:
+        return 0.0
+    sorted_vals = sorted(values)
+    n = len(sorted_vals)
+    if n % 2 == 0:
+        return (sorted_vals[n // 2 - 1] + sorted_vals[n // 2]) / 2.0
+    return sorted_vals[n // 2]
 
 
 def is_url(source: str) -> bool:

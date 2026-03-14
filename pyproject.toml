@@ -63,3 +63,7 @@ target-version = "py39"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+markers = [
+    "integration: hits EDGAR (deselected by default, run with: pytest -m integration)",
+]
+addopts = "-m 'not integration'"

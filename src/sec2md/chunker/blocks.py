@@ -17,8 +17,11 @@ def estimate_tokens(text: str) -> int:
     Falls back to character/4 heuristic if tiktoken is not installed.
     """
     if TIKTOKEN_AVAILABLE:
-        encoding = tiktoken.get_encoding("cl100k_base")
-        return len(encoding.encode(text))
+        try:
+            encoding = tiktoken.get_encoding("cl100k_base")
+            return len(encoding.encode(text))
+        except Exception:
+            return max(1, len(text) // 4)
     else:
         # Fallback: simple heuristic
         return max(1, len(text) // 4)

@@ -252,7 +252,6 @@ class Chunker:
 
     @staticmethod
     def _is_table_line(line: str) -> bool:
-        import re
         if '|' not in line:
             return False
         stripped = line.strip()
@@ -314,15 +313,16 @@ class Chunker:
                     chunk_blocks.append(new_block)
                     num_tokens += sentences_tokens
 
-                chunks, chunk_blocks, num_tokens = self._create_chunk(
-                    chunks=chunks,
-                    blocks=chunk_blocks,
-                    header=header,
-                    page_elements=page_elements,
-                    display_page_map=display_page_map,
-                    page_contents=page_contents,
-                    element_by_id=element_by_id
-                )
+                if chunk_blocks:
+                    chunks, chunk_blocks, num_tokens = self._create_chunk(
+                        chunks=chunks,
+                        blocks=chunk_blocks,
+                        header=header,
+                        page_elements=page_elements,
+                        display_page_map=display_page_map,
+                        page_contents=page_contents,
+                        element_by_id=element_by_id
+                    )
 
                 sentences = [sentence]
                 sentences_tokens = sentence.tokens
@@ -506,12 +506,13 @@ class Chunker:
                 for sentence in reversed(block.sentences):
 
                     if overlap_tokens + sentence.tokens > self.chunk_overlap:
-                        text_block = TextBlock.from_sentences(
-                            sentences=sentences,
-                            page=block.page,
-                            element_ids=block.element_ids
-                        )
-                        overlap_blocks.insert(0, text_block)
+                        if sentences:
+                            text_block = TextBlock.from_sentences(
+                                sentences=sentences,
+                                page=block.page,
+                                element_ids=block.element_ids
+                            )
+                            overlap_blocks.insert(0, text_block)
                         return chunks, overlap_blocks, overlap_tokens
 
                     else:

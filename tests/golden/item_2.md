@@ -1,0 +1,3 @@
+Item 2. Properties
+
+The Company’s headquarters is located in Cupertino, California. As of September 28, 2024, the Company owned or leased facilities and land for corporate functions, R&D, data centers, retail and other purposes at locations throughout the U.S. and in various places outside the U.S. The Company believes its existing facilities and equipment, which are used by all reportable segments, are in good operating condition and are suitable for the conduct of its business.

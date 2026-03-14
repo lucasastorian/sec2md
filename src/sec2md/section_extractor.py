@@ -10,7 +10,7 @@ PART_PATTERN = re.compile(
     re.IGNORECASE | re.MULTILINE
 )
 ITEM_PATTERN = re.compile(
-    rf'^\s*{LEAD_WRAP}(ITEM)\s+(\d{{1,2}}[A-Z]?)\.?\s*(?:[:.\-–—]\s*)?(.*)',
+    rf'^\s*{LEAD_WRAP}(ITEM)\s+(\d{{1,2}}[A-Z]?)\.?[ \t]*(?:[:.\-–—][ \t]*)?(.*)',
     re.IGNORECASE | re.MULTILINE
 )
 
@@ -167,7 +167,7 @@ class SectionExtractor:
 
         return False
     _ITEM_8K_RE = re.compile(
-        rf'^\s*{LEAD_WRAP}(ITEM)\s+([1-9]\.\d{{2}}[A-Z]?)\.?\s*(?:[:.\-–—]\s*)?(.*)$',
+        rf'^\s*{LEAD_WRAP}(ITEM)\s+([1-9]\.\d{{2}}[A-Z]?)\.?[ \t]*(?:[:.\-–—][ \t]*)?(.*)$',
         re.IGNORECASE | re.MULTILINE
     )
     _HARD_STOP_8K_RE = re.compile(r'^\s*(SIGNATURES|EXHIBIT\s+INDEX)\b', re.IGNORECASE | re.MULTILINE)

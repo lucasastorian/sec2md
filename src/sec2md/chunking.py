@@ -28,7 +28,7 @@ def chunk_pages(
         List of Chunk objects with page tracking and elements
 
     Example:
-        >>> pages = sec2md.convert_to_markdown(html, return_pages=True, include_elements=True)
+        >>> pages = sec2md.convert_to_markdown(html, return_pages=True)
         >>> chunks = sec2md.chunk_pages(pages, chunk_size=512)
         >>> for chunk in chunks:
         ...     print(f"Page {chunk.page}: {chunk.content[:100]}...")

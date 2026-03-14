@@ -4,7 +4,7 @@ site_author: Lucas Astorian
 site_url: https://sec2md.readthedocs.io
 
 repo_name: sec2md
-repo_url: https://github.com/yourusername/sec2md
+repo_url: https://github.com/lucasastorian/sec2md
 
 theme:
   name: material
@@ -62,6 +62,6 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/yourusername/sec2md
+      link: https://github.com/lucasastorian/sec2md
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/sec2md

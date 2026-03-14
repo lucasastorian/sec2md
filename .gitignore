@@ -40,6 +40,7 @@ test_sec2md.ipynb
 .pytest_cache/
 .coverage
 htmlcov/
+tests/.cache/
 
 # Distribution
 *.whl

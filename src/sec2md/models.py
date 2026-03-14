@@ -22,14 +22,17 @@ except ImportError:
 def _count_tokens(text: str) -> int:
     """Count tokens in text using tiktoken if available, else char/4 heuristic."""
     if TIKTOKEN_AVAILABLE:
-        encoding = tiktoken.get_encoding("cl100k_base")
-        return len(encoding.encode(text))
+        try:
+            encoding = tiktoken.get_encoding("cl100k_base")
+            return len(encoding.encode(text))
+        except Exception:
+            return max(1, len(text) // 4)
     else:
         return max(1, len(text) // 4)
 
 
 # Type alias for filing types
-FilingType = Literal["10-K", "10-Q"]
+FilingType = Literal["10-K", "10-Q", "20-F", "8-K"]
 
 
 class Item10K(str, Enum):

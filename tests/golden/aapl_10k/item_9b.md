@@ -1,0 +1,7 @@
+Item 9B. Other Information
+
+Insider Trading Arrangements
+
+On August 27, 2024 , Deirdre O’Brien , the Company’s Senior Vice President, Retail , entered into a trading plan intended to satisfy the affirmative defense conditions of Rule 10b5-1(c) under the Exchange Act. The plan provides for the sale, subject to certain price limits, of shares vesting between April 1, 2025 and October 1, 2026, pursuant to certain equity awards granted to Ms. O’Brien, excluding any shares withheld by the Company to satisfy income tax withholding and remittance obligations. Ms. O’Brien’s plan will expire on December 31, 2026 , subject to early termination in accordance with the terms of the plan.
+
+On August 29, 2024 , Jeff Williams , the Company’s Chief Operating Officer , entered into a trading plan intended to satisfy the affirmative defense conditions of Rule 10b5-1(c) under the Exchange Act. The plan provides for the sale, subject to certain price limits, of up to 100,000 shares of common stock, as well as shares vesting between April 1, 2025 and October 1, 2025, pursuant to certain equity awards granted to Mr. Williams, excluding any shares withheld by the Company to satisfy income tax withholding and remittance obligations. Mr. Williams’ plan will expire on December 15, 2025 , subject to early termination in accordance with the terms of the plan.

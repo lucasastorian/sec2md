@@ -5,26 +5,26 @@ Split markdown into semantic chunks while preserving page numbers for citation a
 ## Why Chunk?
 
 Large filings (200+ pages) exceed LLM context windows. Chunking enables:
-- ✅ Embedding generation for vector search
-- ✅ Page-level citation ("found on page 47")
-- ✅ Section-aware retrieval
-- ✅ Controlled context windows
+- Embedding generation for vector search
+- Page-level citation ("found on page 47")
+- Section-aware retrieval
+- Controlled context windows
 
 ## Basic Chunking
 
 ```python
 import sec2md
 
-# Get pages
-pages = sec2md.convert_to_markdown(filing_html, return_pages=True)
+pages = sec2md.parse_filing(filing_html)
 
 # Chunk with defaults (512 tokens, 128 overlap)
 chunks = sec2md.chunk_pages(pages)
 
 for chunk in chunks:
-    print(f"Page {chunk.page}: {chunk.content[:100]}...")
-    print(f"Estimated tokens: {chunk.num_tokens}")
+    print(f"Pages {chunk.page_range}: {chunk.content[:100]}...")
+    print(f"Tokens: {chunk.num_tokens}")
     print(f"Has table: {chunk.has_table}")
+    print(f"Elements: {chunk.element_ids}")
 ```
 
 ## Chunk Parameters
@@ -32,15 +32,16 @@ for chunk in chunks:
 ```python
 chunks = sec2md.chunk_pages(
     pages,
-    chunk_size=512,      # Target size in tokens
-    chunk_overlap=128    # Overlap between chunks
+    chunk_size=512,          # Target size in tokens
+    chunk_overlap=128,       # Overlap between chunks
+    max_table_tokens=2048,   # Split tables exceeding this budget
 )
 ```
 
 **Token Estimation:**
-- Uses `len(text) // 4` heuristic
-- Good approximation for most text
+- Uses [tiktoken](https://github.com/openai/tiktoken) if installed, otherwise `len(text) // 4`
 - For exact counts, use your embedding provider's tokenizer
+- Adjust `chunk_size` based on your model's limits
 
 ## Section-Aware Chunking
 
@@ -49,11 +50,9 @@ Chunk specific sections instead of entire filings:
 ```python
 from sec2md import Item10K
 
-# Extract section
 sections = sec2md.extract_sections(pages, filing_type="10-K")
 risk_section = sec2md.get_section(sections, Item10K.RISK_FACTORS)
 
-# Chunk just this section
 chunks = sec2md.chunk_section(
     risk_section,
     chunk_size=512,
@@ -61,32 +60,57 @@ chunks = sec2md.chunk_section(
 )
 ```
 
+## TextBlock Chunking
+
+Chunk individual XBRL TextBlocks (financial statement notes):
+
+```python
+text_blocks = sec2md.merge_text_blocks(pages)
+
+for tb in text_blocks:
+    print(f"{tb.title} (pages {tb.start_page}–{tb.end_page})")
+    chunks = sec2md.chunk_text_block(tb, chunk_size=512)
+```
+
 ## Chunk Object
 
-Each `MarkdownChunk` provides:
+Each `Chunk` provides:
 
 ```python
 chunk = chunks[0]
 
-chunk.page           # Page number
-chunk.content        # Markdown text (no header)
-chunk.embedding_text # Text for embedding (includes header if provided)
-chunk.num_tokens     # Estimated token count
-chunk.has_table      # Boolean - contains table?
-chunk.blocks         # Internal block structure
+# Content
+chunk.content          # Markdown text (no header)
+chunk.embedding_text   # Content with header prepended
+chunk.num_tokens       # Estimated token count
+chunk.has_table        # Contains a table?
+
+# Page tracking
+chunk.page             # Primary page number
+chunk.start_page       # First page in chunk
+chunk.end_page         # Last page in chunk
+chunk.page_range       # (start_page, end_page)
+chunk.display_page_range  # Original page numbers as printed in filing
+
+# Citation
+chunk.element_ids      # List of source element IDs
+chunk.elements         # Element objects in this chunk
+chunk.index            # Sequential chunk index
+
+# Serialization
+chunk.to_dict()        # Full dictionary representation
+chunk.set_vector(vec)  # Attach embedding vector
 ```
 
 ## Improving Retrieval with Headers
 
-Add contextual metadata to chunks for **significantly better** retrieval quality:
+Add contextual metadata to chunks for better retrieval quality:
 
 ```python
 from sec2md import Item10K
 
-# Extract section
 risk = sec2md.get_section(sections, Item10K.RISK_FACTORS)
 
-# Build rich header with metadata
 header = f"""# Apple Inc. (AAPL - NASDAQ)
 Sector: Technology | Industry: Consumer Electronics
 Form 10-K | FY 2024 | Filed: 2024-11-01
@@ -94,19 +118,17 @@ Form 10-K | FY 2024 | Filed: 2024-11-01
 ## Risk Factors
 """
 
-# Chunk with header
 chunks = sec2md.chunk_section(risk, header=header)
 
-# Embed and store
 for chunk in chunks:
-    # embedding_text includes the header
     vector = embed_function(chunk.embedding_text)
 
-    # Store with metadata
     vector_db.add({
-        "text": chunk.content,      # Original text (no header)
-        "vector": vector,            # Embedding with header context
+        "text": chunk.content,
+        "vector": vector,
         "page": chunk.page,
+        "display_page": chunk.display_page_range,
+        "element_ids": chunk.element_ids,
         "item": "ITEM 1A",
         "company": "AAPL",
         "form": "10-K",
@@ -114,32 +136,17 @@ for chunk in chunks:
     })
 ```
 
-### Why Headers Improve Retrieval
+## Table Splitting
 
-**Without header:**
-```
-"The Company faces intense competition in the smartphone market..."
-```
+Large tables (common in financial statements) are automatically handled:
 
-**With header:**
-```
-# Apple Inc. (AAPL - NASDAQ)
-Form 10-K | FY 2024
-
-## Risk Factors
-
-...
-
-The Company faces intense competition in the smartphone market...
+```python
+chunks = sec2md.chunk_pages(pages, max_table_tokens=2048)
 ```
 
-The embedding now encodes:
-- Company name and ticker
-- Document type (10-K)
-- Section (Risk Factors)
-- Filing year
-
-User queries like *"What are Apple's risks in 2024?"* will retrieve this chunk with much higher accuracy.
+When a table exceeds `max_table_tokens`, it is split into multiple chunks with:
+- Header row repeated in each chunk
+- Ellipsis rows (`| ... | ... |`) indicating continuation
 
 ## Complete RAG Example
 
@@ -147,16 +154,14 @@ User queries like *"What are Apple's risks in 2024?"* will retrieve this chunk w
 import sec2md
 from sec2md import Item10K
 
-# 1. Convert and extract
-pages = sec2md.convert_to_markdown(filing_html, return_pages=True)
+# 1. Parse and extract
+pages = sec2md.parse_filing(filing_html)
 sections = sec2md.extract_sections(pages, filing_type="10-K")
 
 # 2. Process each section
 for section in sections:
-    # Build section-specific header
-    header = f"""# {company_name} ({ticker} - {exchange})
-Sector: {sector} | Industry: {industry}
-Form 10-K | FY {year} | Filed: {filing_date}
+    header = f"""# {company_name} ({ticker})
+Form 10-K | FY {year}
 
 ## {section.item_title}
 """
@@ -170,7 +175,9 @@ Form 10-K | FY {year} | Filed: {filing_date}
         vector_db.add({
             "content": chunk.content,
             "vector": vector,
-            "page": chunk.page,
+            "page_range": chunk.page_range,
+            "display_page_range": chunk.display_page_range,
+            "element_ids": chunk.element_ids,
             "item": section.item,
             "company": ticker
         })
@@ -194,5 +201,4 @@ Form 10-K | FY {year} | Filed: {filing_date}
 
 ## Next Steps
 
-- [Concepts: LLM Readiness](../concepts/llm-readiness.md) - Why structured chunks matter
 - [API Reference](../api/chunk.md) - Full parameter docs
