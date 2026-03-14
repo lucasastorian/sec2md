@@ -21,13 +21,16 @@ def highlight_html(html: str, element_ids: List[str]) -> str:
     if not element_ids:
         return html
 
-    selectors = ",\n".join(
+    direct = ",\n".join(
         f'[data-sec2md-block="{eid}"]' for eid in element_ids
+    )
+    descendants = ",\n".join(
+        f'[data-sec2md-block="{eid}"] *' for eid in element_ids
     )
 
     style_block = (
         '<style id="sec2md-highlight">\n'
-        f"{selectors} {{\n"
+        f"{direct},\n{descendants} {{\n"
         "  background-color: #FFFF00 !important;\n"
         "}\n"
         "</style>\n"

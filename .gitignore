@@ -52,5 +52,7 @@ examples/clean_markdown.png
 examples/generate_comparison.py
 examples/create_comparison.py
 
+scripts/
+
 .claude
 
