@@ -20,6 +20,14 @@ But even the converters that handle the HTML well still throw away **provenance*
 
 ## The Solution
 
+`sec2md` rebuilds SEC filings as clean, semantic Markdown — preserving structure, tables, and pagination. Unlike generic converters, it also preserves the **full citation chain** from every piece of output back to the source HTML, and extracts **iXBRL tags** so you can filter by the accounting taxonomy itself.
+
+---
+
+## Usage
+
+### 1. Convert a Filing to Markdown
+
 ```python
 import sec2md
 
@@ -28,11 +36,49 @@ pages = sec2md.parse_filing(
     user_agent="Your Name <you@example.com>"
 )
 
+pages[0]
+# Page(number=1, tokens=412, elements=8, preview='**FORM 10-K** ...')
+#   .content    → Clean markdown text
+#   .elements   → [Element(id='sec2md-p1-s0-...', kind='section', ...), ...]
+#   .tokens     → 412
+
 # 60 pages | 293 citable elements | 46,238 tokens
-# Tables intact. Pages tracked. Sections detected. Every element traceable.
 ```
 
-`sec2md` rebuilds SEC filings as clean, semantic Markdown — preserving structure, tables, and pagination. Unlike generic converters, it also preserves the **full citation chain** from every piece of output back to the source HTML, and extracts **iXBRL tags** so you can filter by the accounting taxonomy itself.
+### 2. Extract Sections
+
+A 10-K is modular — Business, Risk Factors, MD&A, Financial Statements. sec2md detects PART and ITEM boundaries automatically, so you can pull exactly the section you need instead of processing 200 pages:
+
+```python
+from sec2md import Item10K
+
+sections = sec2md.extract_sections(pages, filing_type="10-K")
+risk = sec2md.get_section(sections, Item10K.RISK_FACTORS)
+
+risk
+# Section(item='ITEM 1A', title='Risk Factors', pages=7-19, tokens=11474)
+#   .markdown()   → Full section as markdown string
+#   .page_range   → (7, 19)
+#   .pages        → [Page(...), Page(...), ...]
+```
+
+### 3. Chunk for RAG
+
+Page-aware, token-budgeted chunks — each one carrying page numbers, element IDs, XBRL tags, and display pages from the filing footer:
+
+```python
+chunks = sec2md.chunk_pages(pages, chunk_size=512)
+
+chunks[5]
+# Chunk[5](pages=12-13, display_pages=45-46, blocks=4, tokens=487)
+#   .content         → Clean markdown text
+#   .page_range      → (12, 13)
+#   .element_ids     → ['sec2md-p12-t3-a1b2c3d4', 'sec2md-p12-p4-e5f6g7h8', ...]
+#   .tags            → ['us-gaap:Assets', 'us-gaap:Liabilities', ...]
+#   .has_table       → True
+```
+
+You can also chunk individual sections or XBRL TextBlocks. Large tables are automatically split across chunks with headers preserved.
 
 ---
 
@@ -65,38 +111,6 @@ sec2md handles both:
 | iPad             | $28,300           |
 ```
 
-## Section-Aware Parsing
-
-A 10-K is modular — Business, Risk Factors, MD&A, Financial Statements. sec2md detects PART and ITEM boundaries automatically, so you can pull exactly the section you need instead of processing 200 pages:
-
-```python
-from sec2md import Item10K
-
-sections = sec2md.extract_sections(pages, filing_type="10-K")
-risk = sec2md.get_section(sections, Item10K.RISK_FACTORS)
-
-print(risk.page_range)  # (7, 19)
-print(risk.tokens)       # 11,474
-print(risk.markdown()[:200])
-```
-
-## Chunking for RAG
-
-Page-aware, token-budgeted chunks — each one carrying page numbers, element IDs, and display pages from the filing footer:
-
-```python
-chunks = sec2md.chunk_pages(pages, chunk_size=512)
-
-for chunk in chunks:
-    print(chunk.content)             # Clean markdown text
-    print(chunk.page_range)          # (12, 13)
-    print(chunk.display_page_range)  # (45, 46) — as printed in the filing
-    print(chunk.element_ids)         # Traceable source elements
-    print(chunk.has_table)           # True — tables kept intact
-```
-
-You can also chunk individual sections or XBRL TextBlocks. Large tables are automatically split across chunks with headers preserved.
-
 ## Multimodal: Image Extraction
 
 Charts, performance graphs, and segment breakdowns are extracted as first-class elements — same page tracking, same element IDs, same citation chain as every paragraph and table:
@@ -104,16 +118,17 @@ Charts, performance graphs, and segment breakdowns are extracted as first-class 
 ```python
 chunks = sec2md.chunk_pages(pages)
 
-for chunk in chunks:
-    if chunk.has_image:
-        print(chunk.images)       # Image elements with full traceability
-        print(chunk.page_range)   # Where it appeared in the filing
+image_chunks = [c for c in chunks if c.has_image]
+image_chunks[0]
+# Chunk[12](pages=5, blocks=2, tokens=156)
+#   .images      → [Element(id='sec2md-p5-i0-...', kind='image', ...)]
+#   .has_image   → True
 
 # Self-contained HTML — no broken image links
 pages = sec2md.parse_filing(url, user_agent="...", embed_images=True)
 ```
 
-Feed chunks with images to a vision model. Feed the rest to text. Every image stays traceable back to the source filing.
+Feed image chunks to a vision model, text chunks to a text model. Every image stays traceable back to the source filing.
 
 ## Traceability
 
