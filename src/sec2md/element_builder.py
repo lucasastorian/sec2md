@@ -14,6 +14,24 @@ from bs4.element import Tag
 
 from sec2md.models import Page, Element, TextBlock
 
+# iXBRL tag names used for fact extraction
+_XBRL_FACT_TAGS = {'ix:nonfraction', 'nonfraction', 'ix:nonnumeric', 'nonnumeric'}
+
+
+def _extract_xbrl_tags(nodes: List[Tag]) -> Optional[List[str]]:
+    """Extract distinct XBRL concept names from source DOM nodes."""
+    tags: List[str] = []
+    seen: set = set()
+    for node in nodes:
+        if not isinstance(node, Tag):
+            continue
+        for el in node.find_all(_XBRL_FACT_TAGS):
+            name = el.get('name', '')
+            if name and name not in seen:
+                seen.add(name)
+                tags.append(name)
+    return tags if tags else None
+
 
 def build_elements_for_pages(
     pages: List[Page],
@@ -51,6 +69,7 @@ def build_elements_for_pages(
         text_block_map: Dict[str, List[str]] = {}
 
         for element, nodes, text_block_info in merged_blocks:
+            element.tags = _extract_xbrl_tags(nodes)
             elements.append(element)
             block_nodes_map[element.id] = nodes
 

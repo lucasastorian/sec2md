@@ -43,6 +43,27 @@ pages = sec2md.parse_filing(
 
 ---
 
+## Supported Filings
+
+sec2md works with any SEC filing served as HTML. For filings with standardized structure, it also extracts individual sections automatically:
+
+| Filing Type | Description | Section Extraction |
+|---|---|---|
+| **10-K** | Annual report | 18 items (ITEM 1–16), full PART/ITEM detection |
+| **10-Q** | Quarterly report | 11 items (Parts I & II) |
+| **8-K** | Current report (material events) | 41 items (1.01–9.01), exhibit parsing |
+| **20-F** | Foreign private issuer annual report | Items 1–19, 16A–16I |
+| **SC 13D** | Beneficial ownership (activist) | 7 items (Items 1–7) |
+| **SC 13G** | Beneficial ownership (passive) | 10 items (Items 1–10) |
+| **S-1, S-3, S-4, F-1** | Registration statements | Parsed as clean Markdown |
+| **424B** | Prospectuses | Parsed as clean Markdown |
+| **6-K** | Foreign private issuer current report | Parsed as clean Markdown |
+| **DEF 14A, DEFA14A** | Proxy materials | Parsed as clean Markdown |
+| **40-F** | Canadian cross-border annual report | Parsed as clean Markdown |
+| **N-CSR** | Fund/ETF shareholder reports | Parsed as clean Markdown |
+| **SC TO-T** | Tender offer statements | Parsed as clean Markdown |
+| **Exhibits, Attachments** | Any HTML exhibit or attachment | Parsed as clean Markdown |
+
 ## Section-Aware Parsing
 
 A 10-K is modular — Business, Risk Factors, MD&A, Financial Statements. sec2md detects PART and ITEM boundaries automatically, so you can pull exactly the section you need instead of processing 200 pages:
@@ -57,16 +78,6 @@ print(risk.page_range)  # (7, 19)
 print(risk.tokens)       # 11,474
 print(risk.markdown()[:200])
 ```
-
-This works across every major filing type — same API, same enums, same structure:
-
-| Filing Type | Section Extraction | Notes |
-|---|---|---|
-| **10-K** | 18 items (ITEM 1-16) | Full PART/ITEM detection |
-| **10-Q** | 11 items (Parts I & II) | Including financial statements |
-| **8-K** | 41 items (1.01-9.01) | With exhibit parsing from 9.01 |
-| **20-F** | Items 1-19, 16A-16I | Foreign private issuers |
-| **DEF 14A, Exhibits** | -- | Parsed as clean Markdown |
 
 ## Chunking for RAG
 

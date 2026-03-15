@@ -32,7 +32,7 @@ def _count_tokens(text: str) -> int:
 
 
 # Type alias for filing types
-FilingType = Literal["10-K", "10-Q", "20-F", "8-K"]
+FilingType = Literal["10-K", "10-Q", "20-F", "8-K", "SC 13D", "SC 13G"]
 
 
 class Item10K(str, Enum):
@@ -144,6 +144,33 @@ class Item8K(str, Enum):
     FINANCIAL_STATEMENTS_EXHIBITS = "9.01"
 
 
+class Item13D(str, Enum):
+    """Schedule 13D Items — beneficial ownership disclosure."""
+
+    SECURITY_AND_ISSUER = "1"
+    IDENTITY_AND_BACKGROUND = "2"
+    SOURCE_OF_FUNDS = "3"
+    PURPOSE_OF_TRANSACTION = "4"
+    INTEREST_IN_SECURITIES = "5"
+    CONTRACTS_AND_ARRANGEMENTS = "6"
+    EXHIBITS = "7"
+
+
+class Item13G(str, Enum):
+    """Schedule 13G Items — passive beneficial ownership disclosure."""
+
+    SECURITY_AND_ISSUER = "1"
+    IDENTITY_AND_BACKGROUND = "2"
+    SOURCE_OF_FUNDS = "3"
+    OWNERSHIP = "4"
+    OWNERSHIP_FIVE_PERCENT_OR_LESS = "5"
+    OWNERSHIP_ON_BEHALF_OF_ANOTHER = "6"
+    SUBSIDIARY_CLASSIFICATION = "7"
+    GROUP_MEMBERS = "8"
+    NOTICE_OF_DISSOLUTION = "9"
+    CERTIFICATION = "10"
+
+
 # Internal mappings from enum to (part, item) tuples
 ITEM_10K_MAPPING: dict[Item10K, Tuple[str, str]] = {
     # Part I
@@ -235,6 +262,56 @@ ITEM_8K_TITLES: dict[str, str] = {
 }
 
 
+ITEM_13D_TITLES: dict[str, str] = {
+    "1": "Security and Issuer",
+    "2": "Identity and Background",
+    "3": "Source and Amount of Funds or Other Consideration",
+    "4": "Purpose of Transaction",
+    "5": "Interest in Securities of the Issuer",
+    "6": "Contracts, Arrangements, Understandings or Relationships with Respect to Securities of the Issuer",
+    "7": "Material to be Filed as Exhibits",
+}
+
+
+ITEM_13D_MAPPING: dict[Item13D, Tuple[Optional[str], str]] = {
+    Item13D.SECURITY_AND_ISSUER: (None, "ITEM 1"),
+    Item13D.IDENTITY_AND_BACKGROUND: (None, "ITEM 2"),
+    Item13D.SOURCE_OF_FUNDS: (None, "ITEM 3"),
+    Item13D.PURPOSE_OF_TRANSACTION: (None, "ITEM 4"),
+    Item13D.INTEREST_IN_SECURITIES: (None, "ITEM 5"),
+    Item13D.CONTRACTS_AND_ARRANGEMENTS: (None, "ITEM 6"),
+    Item13D.EXHIBITS: (None, "ITEM 7"),
+}
+
+
+ITEM_13G_TITLES: dict[str, str] = {
+    "1": "Security and Issuer",
+    "2": "Identity and Background",
+    "3": "Source and Amount of Funds or Other Consideration",
+    "4": "Ownership",
+    "5": "Ownership of Five Percent or Less of a Class",
+    "6": "Ownership of More than Five Percent on Behalf of Another Person",
+    "7": "Identification and Classification of the Subsidiary Which Acquired the Security Being Reported on by the Parent Holding Company",
+    "8": "Identification and Classification of Members of the Group",
+    "9": "Notice of Dissolution of Group",
+    "10": "Certification",
+}
+
+
+ITEM_13G_MAPPING: dict[Item13G, Tuple[Optional[str], str]] = {
+    Item13G.SECURITY_AND_ISSUER: (None, "ITEM 1"),
+    Item13G.IDENTITY_AND_BACKGROUND: (None, "ITEM 2"),
+    Item13G.SOURCE_OF_FUNDS: (None, "ITEM 3"),
+    Item13G.OWNERSHIP: (None, "ITEM 4"),
+    Item13G.OWNERSHIP_FIVE_PERCENT_OR_LESS: (None, "ITEM 5"),
+    Item13G.OWNERSHIP_ON_BEHALF_OF_ANOTHER: (None, "ITEM 6"),
+    Item13G.SUBSIDIARY_CLASSIFICATION: (None, "ITEM 7"),
+    Item13G.GROUP_MEMBERS: (None, "ITEM 8"),
+    Item13G.NOTICE_OF_DISSOLUTION: (None, "ITEM 9"),
+    Item13G.CERTIFICATION: (None, "ITEM 10"),
+}
+
+
 class Exhibit(BaseModel):
     """8-K exhibit entry."""
     exhibit_no: str = Field(..., description="Exhibit number (e.g., '99.1', '104')")
@@ -278,6 +355,7 @@ class Element(BaseModel):
     page_end: int = Field(..., description="Last page this element appears on")
     content_start_offset: Optional[int] = Field(None, description="Character offset where element starts in page content")
     content_end_offset: Optional[int] = Field(None, description="Character offset where element ends in page content")
+    tags: Optional[List[str]] = Field(None, description="XBRL concept tags found in this element (e.g., 'us-gaap:Revenue...')")
 
     model_config = {"frozen": False}
 

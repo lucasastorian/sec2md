@@ -1,7 +1,7 @@
 """Section extraction utilities for SEC filings."""
 
 from typing import List, Optional, Union
-from sec2md.models import Page, Section, FilingType, Item10K, Item10Q, ITEM_10K_MAPPING, ITEM_10Q_MAPPING
+from sec2md.models import Page, Section, FilingType, Item10K, Item10Q, Item13D, Item13G, ITEM_10K_MAPPING, ITEM_10Q_MAPPING, ITEM_13D_MAPPING, ITEM_13G_MAPPING
 from sec2md.section_extractor import SectionExtractor
 
 
@@ -39,7 +39,7 @@ def extract_sections(
 
 def get_section(
     sections: List[Section],
-    item: Union[Item10K, Item10Q, str],
+    item: Union[Item10K, Item10Q, Item13D, Item13G, str],
     filing_type: FilingType = "10-K"
 ) -> Optional[Section]:
     """
@@ -67,6 +67,14 @@ def get_section(
         if filing_type != "10-Q":
             raise ValueError(f"Item10Q enum requires filing_type='10-Q', got '{filing_type}'")
         target_part, target_item = ITEM_10Q_MAPPING[item]
+    elif isinstance(item, Item13D):
+        if filing_type != "SC 13D":
+            raise ValueError(f"Item13D enum requires filing_type='SC 13D', got '{filing_type}'")
+        target_part, target_item = ITEM_13D_MAPPING[item]
+    elif isinstance(item, Item13G):
+        if filing_type != "SC 13G":
+            raise ValueError(f"Item13G enum requires filing_type='SC 13G', got '{filing_type}'")
+        target_part, target_item = ITEM_13G_MAPPING[item]
     else:
         # String format - normalize it
         item_str = str(item).upper().strip()

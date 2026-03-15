@@ -148,6 +148,12 @@ class Chunk(BaseModel):
 
     @computed_field
     @property
+    def tags(self) -> List[str]:
+        """Distinct XBRL concept tags across all elements in this chunk."""
+        return list({t for e in self.elements if e.tags for t in e.tags})
+
+    @computed_field
+    @property
     def num_tokens(self) -> int:
         """Returns the total number of tokens in this chunk"""
         return sum(block.tokens for block in self.blocks)

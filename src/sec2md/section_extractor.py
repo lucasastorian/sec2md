@@ -58,7 +58,7 @@ FILING_STRUCTURES = {
 
 
 class SectionExtractor:
-    def __init__(self, pages: List[Any], filing_type: Optional[Literal["10-K", "10-Q", "20-F", "8-K"]] = None,
+    def __init__(self, pages: List[Any], filing_type: Optional[Literal["10-K", "10-Q", "20-F", "8-K", "SC 13D", "SC 13G"]] = None,
                  desired_items: Optional[set] = None, debug: bool = False):
         """Extract sections from SEC filings."""
         self.pages = pages
@@ -384,10 +384,144 @@ class SectionExtractor:
         self._log(f"DEBUG: Total sections extracted: {len(sections)}")
         return sections
 
+    def _get_13d_sections(self) -> List[Any]:
+        """Extract SC 13D / SC 13G sections."""
+        from sec2md.models import Section, Page, ITEM_13D_TITLES, ITEM_13G_TITLES
+
+        if self.filing_type == "SC 13G":
+            _VALID_ITEMS = {str(i) for i in range(1, 11)}
+            _TITLES = ITEM_13G_TITLES
+        else:
+            _VALID_ITEMS = {str(i) for i in range(1, 8)}
+            _TITLES = ITEM_13D_TITLES
+
+        _HARD_STOP_RE = re.compile(
+            r'^\s*(?:\*\*|__)?\s*SIGNATURE', re.IGNORECASE | re.MULTILINE
+        )
+
+        sections = []
+        current_item = None
+        current_item_title = None
+        current_pages: List[Page] = []
+
+        def flush_section():
+            nonlocal sections, current_item, current_item_title, current_pages
+            if current_pages and current_item:
+                sections.append(Section(
+                    part=None,
+                    item=current_item,
+                    item_title=current_item_title,
+                    pages=current_pages
+                ))
+                current_pages = []
+
+        for page in self.pages:
+            page_num = page.number
+            remaining_content = page.content
+
+            # Truncate content at SIGNATURE
+            hard_stop = _HARD_STOP_RE.search(remaining_content)
+            last_page = False
+            if hard_stop:
+                remaining_content = remaining_content[:hard_stop.start()].strip()
+                last_page = True
+                if not remaining_content:
+                    flush_section()
+                    break
+
+            while remaining_content:
+                item_m = None
+                first_idx = None
+
+                for m in ITEM_PATTERN.finditer(remaining_content):
+                    # Skip table rows
+                    line_start = remaining_content.rfind('\n', 0, m.start()) + 1
+                    line_end = remaining_content.find('\n', m.end())
+                    if line_end == -1:
+                        line_end = len(remaining_content)
+                    full_line = remaining_content[line_start:line_end].strip()
+
+                    if '|' in full_line:
+                        self._log(f"DEBUG: Page {page_num} skipping table row: {full_line[:60]}")
+                        continue
+
+                    item_num = m.group(2).upper()
+                    if item_num not in _VALID_ITEMS:
+                        self._log(f"DEBUG: Page {page_num} skipping non-13D item: {item_num}")
+                        continue
+
+                    # Skip sub-items like Item 1(a), Item 2(b) — treat as content
+                    title_check = (m.group(3) or "").strip()
+                    title_check = MD_EDGE.sub("", title_check)
+                    if re.match(r'^\([a-z]\)', title_check):
+                        # If same item number as current, treat as continuation
+                        if current_item == f"ITEM {item_num}":
+                            self._log(f"DEBUG: Page {page_num} skipping sub-item {item_num}({title_check[:3]})")
+                            continue
+                        # If different item, this is the first sub-item of a new item
+                        self._log(f"DEBUG: Page {page_num} found ITEM {item_num} (via sub-item)")
+
+                    item_m = m
+                    first_idx = m.start()
+                    self._log(f"DEBUG: Page {page_num} found ITEM {item_num} at position {first_idx}")
+                    break
+
+                if first_idx is None:
+                    if current_item and remaining_content.strip():
+                        current_pages.append(Page(
+                            number=page_num,
+                            content=remaining_content,
+                            elements=page.elements,
+                            text_blocks=page.text_blocks,
+                            display_page=page.display_page
+                        ))
+                    break
+
+                before = remaining_content[:first_idx].strip()
+                header_end = item_m.end()
+                after = remaining_content[header_end:].strip()
+
+                if current_item and before:
+                    current_pages.append(Page(
+                        number=page_num,
+                        content=before,
+                        elements=page.elements,
+                        text_blocks=page.text_blocks,
+                        display_page=page.display_page
+                    ))
+
+                flush_section()
+
+                item_num = item_m.group(2).upper()
+                title_inline = (item_m.group(3) or "").strip()
+                title_inline = MD_EDGE.sub("", title_inline)
+                current_item = f"ITEM {item_num}"
+                current_item_title = title_inline if title_inline else _TITLES.get(item_num)
+
+                if self.desired_items and item_num not in self.desired_items:
+                    self._log(f"DEBUG: Skipping ITEM {item_num} (not in desired_items)")
+                    current_item = None
+                    current_item_title = None
+                    remaining_content = after
+                    continue
+
+                remaining_content = after
+
+            if last_page:
+                flush_section()
+                break
+
+        flush_section()
+
+        self._log(f"DEBUG: Total 13D sections extracted: {len(sections)}")
+        return sections
+
     def get_sections(self) -> List[Any]:
         """Get sections from the filing."""
         if self.filing_type == "8-K":
             return self._get_8k_sections()
+        elif self.filing_type in ("SC 13D", "SC 13G"):
+            return self._get_13d_sections()
         else:
             return self._get_standard_sections()
 

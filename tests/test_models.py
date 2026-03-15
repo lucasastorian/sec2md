@@ -118,7 +118,7 @@ class TestFilingType:
     def test_all_types_present(self):
         from typing import get_args
         args = get_args(FilingType)
-        assert set(args) == {"10-K", "10-Q", "20-F", "8-K"}
+        assert set(args) == {"10-K", "10-Q", "20-F", "8-K", "SC 13D", "SC 13G"}
 
 
 class TestVersionConsistency:
