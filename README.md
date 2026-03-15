@@ -14,16 +14,9 @@ Transform messy SEC filings into clean, structured Markdown.
 
 ## The Problem
 
-SEC filings are the worst documents you'll ever feed to an LLM — 200 pages of nested HTML, XBRL tags, invisible elements, and tables-within-tables.
+SEC filings are the worst documents you'll ever feed to an LLM — 200 pages of nested HTML, XBRL tags, invisible elements, and tables-within-tables. Standard parsers break tables into garbled text, collapse sections into a single wall of prose, and lose the formatting cues that LLMs need to reason over structured content.
 
-When you throw this at a standard parser:
-
-- **Tables break** — Financial statements become garbled text. Your model hallucinates numbers.
-- **Pages vanish** — Can't cite sources. Can't trace answers back. Compliance says no.
-- **Sections blur** — Risk Factors and MD&A become one wall of text. Retrieval pulls the wrong context.
-- **Structure is lost** — Headers, emphasis, lists — the cues LLMs use to reason — gone.
-
-And even the converters that handle the HTML well still throw away **provenance**. You get clean text with no way to trace it back to where it came from in the original filing. For production RAG on regulated documents, that's a dealbreaker.
+But even the converters that handle the HTML well still throw away **provenance**. You get clean text with no way to trace an answer back to where it came from in the original filing. For production RAG on regulated documents, that's a dealbreaker.
 
 ## The Solution
 
@@ -39,7 +32,7 @@ pages = sec2md.parse_filing(
 # Tables intact. Pages tracked. Sections detected. Every element traceable.
 ```
 
-`sec2md` rebuilds SEC filings as clean, semantic Markdown — preserving the structure, tables, and pagination that make retrieval possible. But unlike generic converters, it also preserves the **full citation chain** from every piece of output back to the source HTML.
+`sec2md` rebuilds SEC filings as clean, semantic Markdown — preserving structure, tables, and pagination. Unlike generic converters, it also preserves the **full citation chain** from every piece of output back to the source HTML, and extracts **iXBRL tags** so you can filter by the accounting taxonomy itself.
 
 ---
 
@@ -47,22 +40,30 @@ pages = sec2md.parse_filing(
 
 sec2md works with any SEC filing served as HTML. For filings with standardized structure, it also extracts individual sections automatically:
 
-| Filing Type | Description | Section Extraction |
-|---|---|---|
-| **10-K** | Annual report | 18 items (ITEM 1–16), full PART/ITEM detection |
-| **10-Q** | Quarterly report | 11 items (Parts I & II) |
-| **8-K** | Current report (material events) | 41 items (1.01–9.01), exhibit parsing |
-| **20-F** | Foreign private issuer annual report | Items 1–19, 16A–16I |
-| **SC 13D** | Beneficial ownership (activist) | 7 items (Items 1–7) |
-| **SC 13G** | Beneficial ownership (passive) | 10 items (Items 1–10) |
-| **S-1, S-3, S-4, F-1** | Registration statements | Parsed as clean Markdown |
-| **424B** | Prospectuses | Parsed as clean Markdown |
-| **6-K** | Foreign private issuer current report | Parsed as clean Markdown |
-| **DEF 14A, DEFA14A** | Proxy materials | Parsed as clean Markdown |
-| **40-F** | Canadian cross-border annual report | Parsed as clean Markdown |
-| **N-CSR** | Fund/ETF shareholder reports | Parsed as clean Markdown |
-| **SC TO-T** | Tender offer statements | Parsed as clean Markdown |
-| **Exhibits, Attachments** | Any HTML exhibit or attachment | Parsed as clean Markdown |
+| Filing Type | Section Extraction |
+|---|---|
+| **10-K** | 18 items (ITEM 1–16), full PART/ITEM detection |
+| **10-Q** | 11 items (Parts I & II) |
+| **8-K** | 41 items (1.01–9.01), exhibit parsing |
+| **20-F** | Items 1–19, 16A–16I |
+| **SC 13D** | 7 items (Items 1–7) |
+| **SC 13G** | 10 items (Items 1–10) |
+
+All other filing types — S-1, S-3, S-4, F-1, 424B, 6-K, DEF 14A, DEFA14A, 40-F, N-CSR, SC TO-T, and any HTML exhibit or attachment — are parsed as clean Markdown with full traceability.
+
+## Complex Table Handling
+
+SEC tables are notoriously complex — rowspans, colspans, merged cells, currency symbols in separate columns. Some filings don't even use `<table>` tags, building tables from absolutely-positioned CSS divs instead.
+
+sec2md handles both:
+
+```markdown
+| Product Category | Revenue (millions) |
+|------------------|-------------------|
+| iPhone           | $200,583          |
+| Mac              | $29,357           |
+| iPad             | $28,300           |
+```
 
 ## Section-Aware Parsing
 
@@ -96,25 +97,9 @@ for chunk in chunks:
 
 You can also chunk individual sections or XBRL TextBlocks. Large tables are automatically split across chunks with headers preserved.
 
-## Complex Table Handling
+## Multimodal: Image Extraction
 
-SEC tables are notoriously complex — rowspans, colspans, merged cells, currency symbols in separate columns. Some filings don't even use `<table>` tags, building tables from absolutely-positioned CSS divs instead.
-
-sec2md handles both:
-
-```markdown
-| Product Category | Revenue (millions) |
-|------------------|-------------------|
-| iPhone           | $200,583          |
-| Mac              | $29,357           |
-| iPad             | $28,300           |
-```
-
-## Ready for Multimodal
-
-SEC filings aren't just text — they're full of charts, performance graphs, and segment breakdowns that never make it into your pipeline. Most parsers silently drop every `<img>` tag. Your model never sees the revenue trend chart that would have answered the question.
-
-sec2md extracts images as first-class elements — same page tracking, same element IDs, same citation chain as every paragraph and table:
+Charts, performance graphs, and segment breakdowns are extracted as first-class elements — same page tracking, same element IDs, same citation chain as every paragraph and table:
 
 ```python
 chunks = sec2md.chunk_pages(pages)
@@ -128,23 +113,28 @@ for chunk in chunks:
 pages = sec2md.parse_filing(url, user_agent="...", embed_images=True)
 ```
 
-Feed chunks with images to a vision model. Feed the rest to text. Every image stays traceable back to the source filing — same as everything else.
+Feed chunks with images to a vision model. Feed the rest to text. Every image stays traceable back to the source filing.
 
 ## Traceability
 
-This is the feature most Markdown converters don't have. Every paragraph, table, and heading gets a **stable element ID** that maps directly to a DOM node in the original filing HTML. From chunk to element to source — the chain is unbroken.
+Every paragraph, table, and heading gets a **stable element ID** that maps directly to a DOM node in the original filing HTML. From chunk to element to source — the chain is unbroken.
+
+The parser injects these IDs directly into the HTML via `parser.html()` — so every element in your Markdown output has a corresponding tagged node in the source. You can store that annotated HTML yourself, and given any chunk's `element_ids`, locate and highlight the exact source nodes in the original filing.
 
 ```python
 parser = sec2md.Parser(filing_html)
 pages = parser.get_pages()
 chunks = sec2md.chunk_pages(pages)
 
+# The annotated HTML has element IDs injected into the DOM
+annotated_html = parser.html()
+
 # See exactly where a chunk comes from in the original filing
 chunk = chunks[5]
-chunk.visualize(parser.html())
+chunk.visualize(annotated_html)
 
 # Or drill down to a single element
-chunk.elements[0].visualize(parser.html())
+chunk.elements[0].visualize(annotated_html)
 ```
 
 ![Traceability](examples/tracability.png)
@@ -152,19 +142,25 @@ chunk.elements[0].visualize(parser.html())
 
 When your LLM says "revenue was $394B" and compliance asks *show me* — you can point to the exact location in the filing. Not the chunk. Not the Markdown. The source.
 
----
+## iXBRL Tag Extraction
 
-## Works with edgartools
-
-Pair with [edgartools](https://github.com/dgunning/edgartools) for end-to-end filing pipelines:
+iXBRL filings embed structured financial facts directly in the HTML. sec2md extracts the XBRL concept names and attaches them to elements and chunks — giving you a metadata filter for retrieval. Instead of relying on semantic search alone, you can scope your query to only chunks tagged with the exact XBRL concepts you care about.
 
 ```python
-from edgar import Company
+pages = sec2md.parse_filing(url, user_agent="...")
+chunks = sec2md.chunk_pages(pages)
 
-company = Company("AAPL")
-filing = company.get_filings(form="10-K").latest()
-pages = sec2md.parse_filing(filing.html())
+# Store chunk.tags as metadata in your vector DB, then filter at query time:
+# "What was Apple's revenue?" + metadata filter: tags contains 'us-gaap:Revenue*'
+
+# Or filter in code — find the balance sheet
+[e for p in pages for e in (p.elements or []) if e.tags and 'us-gaap:Assets' in e.tags]
+
+# All revenue-tagged chunks
+[c for c in chunks if any('Revenue' in t for t in c.tags)]
 ```
+
+On a real Apple 10-K: 76 of 293 elements carry XBRL tags across 330 distinct concepts. The Income Statement table alone carries 15 tags, the Balance Sheet 32, Cash Flows 29. Cover page elements get `dei:*` tags, and notes get their TextBlock concept names.
 
 ---
 
@@ -177,6 +173,16 @@ pip install sec2md
 ## Getting Started
 
 Try the [Getting Started notebook](examples/getting_started.ipynb) — parse a real 10-K, extract sections, chunk for RAG, and visualize traceability in under a minute.
+
+### Works with edgartools
+
+```python
+from edgar import Company
+
+company = Company("AAPL")
+filing = company.get_filings(form="10-K").latest()
+pages = sec2md.parse_filing(filing.html())
+```
 
 ## Documentation
 
