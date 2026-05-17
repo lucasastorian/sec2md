@@ -1,4 +1,6 @@
-"""sec2md: Convert SEC filings to high-quality Markdown."""
+import logging
+logger = logging.getLogger(__name__)
+logger.debug(f"Loading sec2md from {__file__}")
 
 from sec2md.core import convert_to_markdown, parse_filing
 from sec2md.utils import flatten_note

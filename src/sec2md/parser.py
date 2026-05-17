@@ -294,7 +294,9 @@ class Parser:
                 return self._one_row_table_to_text(cells)
 
             self.includes_table = True
-            return TableParser(element).md().strip()
+            table_parser_obj = TableParser(element).md().strip()
+            logger.debug(f"Table processed with TableParser, md length: {len(table_parser_obj)}")
+            return table_parser_obj
 
         if element.name in {"ul", "ol"}:
             items = []
@@ -560,7 +562,8 @@ class Parser:
             self.current_text_block = None if ends_block else previous
 
     def _stream_pages(self, root: Union[Tag, NavigableString], page_num: int = 1) -> int:
-        """Walk the DOM once; split only on CSS break styles."""
+        """Walk the DOM once; split only on CSS break styles.
+        note: The Document Object Model (DOM) is a programming interface for HTML, XML and SVG documents. It provides a structured representation of the document as a tree. """
         if isinstance(root, Tag) and self._has_break_before(root):
             page_num += 1
 

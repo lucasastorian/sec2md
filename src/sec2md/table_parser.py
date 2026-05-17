@@ -34,7 +34,7 @@ class GridCell:
 
     @property
     def text(self) -> str:
-        return self.cell.text if not self.is_spanning else ""
+        return self.cell.text
 
     def __bool__(self) -> bool:
         return bool(self.text.strip())
@@ -55,7 +55,7 @@ class TableParser:
         """
         if not isinstance(table_element, Tag) or table_element.name != 'table':
             raise ValueError("table_element must be a table tag")
-
+        logger.debug("Initializing TableParser for table element")
         self.table_element = table_element
 
         self.cells = self._extract_cells()
@@ -69,6 +69,7 @@ class TableParser:
                 text = td.get_text(separator=" ", strip=True).replace('\xa0', ' ')
                 if not text:
                     if td.find('img'):
+                        logger.debug("Found image in cell, replacing with bullet")
                         text = '●'  # or '•' depending on your BULLETS set
                 rowspan = self._safe_parse_int(td.get('rowspan'))
                 colspan = self._safe_parse_int(td.get('colspan'))
@@ -81,9 +82,9 @@ class TableParser:
     def _safe_parse_int(value: str, default: int = 1) -> int:
         """Safely parse an integer value, returning default if parsing fails"""
         try:
-            if not value or not isinstance(value, str):
+            if not value or not isinstance(value, str): # if value is not a string or empty
                 return default
-            cleaned = ''.join(c for c in value if c.isdigit())
+            cleaned = ''.join(c for c in value if c.isdigit()) # only keep digits
             return int(cleaned) if cleaned else default
         except (ValueError, TypeError):
             return default
@@ -120,30 +121,58 @@ class TableParser:
                 col += cell.colspan
 
         grid = self._clean_grid(grid)
+        logger.debug(f"Grid cleaned: {len(grid)} rows x {len(grid[0]) if grid else 0} cols")
         grid = self._merge_grid(grid)
+        logger.debug(f"Grid merged: {len(grid)} rows x {len(grid[0]) if grid else 0} cols")
 
         return grid
 
     def _should_merge_cells(self, val1: Optional[GridCell], val2: Optional[GridCell]) -> bool:
         """Check if two cells should be merged based on the rules"""
-        # Handle empty cells
+        # Handle missing cells
         if not val1 or not val2:
+            logger.debug("Merging due to missing cell(s)")
             return True
 
         s1 = val1.text.strip()
         s2 = val2.text.strip()
 
-        if not s1 or not s2:
+        # UNIT CONFLICT CHECK: absolute priority
+        # Don't merge if one cell has $ and the other has %
+        if ('$' in s1 and '%' in s2) or ('%' in s1 and '$' in s2):
+            return False
+
+        # Spanning cells should always be allowed to merge with their source column
+        # UNLESS there was a unit conflict (checked above)
+        if val2.is_spanning:
+            return True
+
+        if not s1 or not s2: # at least one cell is empty
+            logger.debug(f"Merging due to empty cell: s1='{s1}', s2='{s2}'")
+            return True
+
+        if s1 == s2:
             return True
 
         if self.is_footnote(s2):
+            logger.debug(f"Merging due to footnote: {s2}")
             return True
 
         if s1 == '$':
+            # Don't merge dollar sign if the target cell already has a percentage
+            if '%' in s2:
+                return False
             return True
 
         if s2 == '%':
+            # Don't merge percentage sign if the source cell already has a dollar sign
+            if '$' in s1:
+                return False
             return True
+
+        if s1 == '(' or s2 == ')':
+            return True
+            #return False
 
         return False
 
@@ -161,7 +190,8 @@ class TableParser:
 
         rows_to_keep = [
             i for i, row in enumerate(grid)
-            if any(
+            # keep a row if cell is not empty
+            if any( 
                 cell is not None and cell.text.strip()
                 for cell in row
             )
@@ -198,15 +228,20 @@ class TableParser:
                 current_col = col
                 continue
 
-            cell_pairs = list(zip(current_col[1:], col[1:]))
-            should_merge = all(self._should_merge_cells(c1, c2) for c1, c2 in cell_pairs)
+            # Only use data rows (index 1+) for deciding whether to merge columns.
+            # This ensures headers don't accidentally prevent merging of related columns
+            # (like currency symbol and value) while also not forcing unrelated columns to merge.
+            should_merge = all(self._should_merge_cells(current_col[i], col[i]) for i in range(1, len(grid)))
 
             if should_merge:
-                merged = [current_col[0]]  # Keep header
-                for c1, c2 in cell_pairs:
-                    if not c1:
+                logger.debug(f"Merging column {col_idx} into current column")
+                merged = []
+                for c1, c2 in zip(current_col, col):
+                    if not c1 or not c1.text.strip():
                         merged.append(c2)
-                    elif not c2:
+                    elif not c2 or not c2.text.strip():
+                        merged.append(c1)
+                    elif c1.text.strip() == c2.text.strip():
                         merged.append(c1)
                     else:
                         text = f"{c1.text} {c2.text}".strip()
@@ -234,47 +269,66 @@ class TableParser:
 
     def _process_headers(self, matrix: List[List[str]]) -> tuple[List[str], List[List[str]]]:
         """
-        Process table headers with smart header fusion.
-
-        Returns:
-            Tuple of (headers, data_rows)
+        Process table headers with robust multi-row fusion.
         """
         if not matrix or len(matrix) < 1:
             return [], []
 
         nrows = len(matrix)
         ncols = len(matrix[0]) if matrix else 0
+        logger.debug(f"Processing headers for matrix: {nrows} rows x {ncols} cols")
 
-        if nrows < 2:
-            # Single row - treat as header with no data
-            return [self._normalize_text(v) for v in matrix[0]], []
-
-        # Get first two rows
-        row0 = [self._normalize_text(v) for v in matrix[0]]
-        row1 = [self._normalize_text(v) for v in matrix[1]]
-
-        # Check if we should fuse headers
-        nonempty_row1 = sum(1 for v in row1 if v)
-        many_blanks_in_row0 = sum(1 for v in row0 if v == "") >= max(2, ncols // 2)
-
-        if nonempty_row1 >= max(2, ncols // 2) and many_blanks_in_row0:
-            # Fuse the two header rows
-            fused = []
+        # Identify how many rows are headers
+        header_rows = 0
+        for i in range(min(5, nrows)): # check up to 5 rows
+            row = [self._normalize_text(v) for v in matrix[i]]
+            
+            # A row is likely a header if it's mostly non-numeric and has many blanks/dups
+            blanks_or_dups = sum(1 for j in range(ncols) if not row[j] or (j > 0 and row[j] == row[j-1]))
+            is_numeric = sum(1 for cell in row if re.search(r'\d', cell))
+            
+            # Heuristic: 
+            # - Row 0 is always a header
+            # - Row i is a header if it has very few numeric values (< 25% of columns)
+            #   or if it has many blanks/dups and few numeric values.
+            if i == 0 or is_numeric < max(1, ncols // 4) or (blanks_or_dups >= max(1, ncols // 3) and is_numeric < max(1, ncols // 2)):
+                header_rows = i + 1
+            else:
+                break
+        
+        logger.debug(f"Identified {header_rows} header rows")
+            
+        # Fuse the header rows
+        fused = [""] * ncols
+        for i in range(header_rows):
+            row = [self._normalize_text(v) for v in matrix[i]]
             for j in range(ncols):
-                top = row0[j] if j < len(row0) else ""
-                bot = row1[j] if j < len(row1) else ""
-                if top and bot:
-                    fused.append(f"{top} — {bot}")
-                elif top:
-                    fused.append(top)
-                elif bot:
-                    fused.append(bot)
-                else:
-                    fused.append("")
-            return fused, matrix[2:]
-        else:
-            # Use row0 as header, rest as data
-            return row0, matrix[1:]
+                text = row[j]
+                if text:
+                    if not fused[j]:
+                        fused[j] = text
+                    elif text not in fused[j]: # avoid duplication from spanning cells
+                        # Handle unit conflict (e.g., adding $ to a header that has % or "Percent")
+                        current = fused[j]
+                        has_percent = '%' in current or 'Percent' in current or 'percentage' in current.lower()
+                        has_dollar = '$' in current or 'Dollar' in current or 'dollar' in current.lower()
+                        
+                        if '$' in text and has_percent:
+                            # Strip percent markers
+                            current = current.replace('%', '').replace('Percentage', '').replace('percentage', '').replace('Percent', '').replace('percent', '').strip()
+                        elif '%' in text and has_dollar:
+                            # Strip dollar markers
+                            current = current.replace('$', '').replace('Dollar', '').replace('dollar', '').strip()
+                        
+                        if text not in current:
+                            fused[j] = f"{current} {text}".strip()
+                        else:
+                            fused[j] = current.strip()
+        
+        # Clean up any leftover duplicates and extra spaces
+        fused = [re.sub(r'\s+', ' ', f).strip() for f in fused]
+        
+        return fused, matrix[header_rows:]
 
     def _clean_empty_rows_and_cols(self, headers: List[str], data: List[List[str]]) -> tuple[List[str], List[List[str]]]:
         """Remove completely empty rows and columns"""
@@ -337,15 +391,20 @@ class TableParser:
         # Get the matrix
         matrix = self.to_matrix()
         if not matrix:
+            logger.debug("Table matrix is empty, skipping")
             return ""
 
         # Process headers
         headers, data = self._process_headers(matrix)
-
+        logger.debug(f"Headers identified: {headers}")
+        logger.debug(f"Data rows remaining: {len(data)}")
+        
         # Clean empty rows/columns
         headers, data = self._clean_empty_rows_and_cols(headers, data)
+        logger.debug(f"After cleaning: {len(headers)} cols, {len(data)} rows")
 
         if not headers and not data:
+            logger.debug("Table is empty after cleaning, skipping")
             return ""
 
         # Build markdown table
