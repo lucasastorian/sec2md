@@ -73,10 +73,25 @@ FILING_STRUCTURES = {
 }
 
 
+_NOT_KEY = re.compile(r'[\W_]+')
+
+
+def _key(text: str) -> str:
+    """Letters and digits only: text compared across markdown cleanup (emphasis, running headers)."""
+    return _NOT_KEY.sub('', text.casefold())
+
+
 def _slice(page: Page, content: str) -> Page:
-    """Part of a page: its own content, with the page's number, elements, text blocks and printed number."""
-    return Page(number=page.number, content=content, elements=page.elements,
-                text_blocks=page.text_blocks, display_page=page.display_page)
+    """Part of a page: its content, the elements (and XBRL notes) inside it, the page's numbers.
+    An element is inside when its start or end is: one straddling a section boundary goes with
+    both sections, and page furniture (running headers, page numbers) with neither."""
+    key = _key(content)
+    elements = [e for e in page.elements or [] if (k := _key(e.content)) and (k[:60] in key or k[-60:] in key)]
+    ids = {e.id for e in elements}
+    text_blocks = [tb.model_copy(update={"elements": [e for e in tb.elements if e.id in ids]})
+                   for tb in page.text_blocks or []]
+    return Page(number=page.number, content=content, elements=elements or None,
+                text_blocks=[tb for tb in text_blocks if tb.elements] or None, display_page=page.display_page)
 
 
 def _line_at(text: str, m: re.Match) -> str:

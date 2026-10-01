@@ -4,7 +4,7 @@ import pytest
 
 from sec2md.section_extractor import SectionExtractor, ITEM_PATTERN, ITEM_8K_PATTERN, PART_PATTERN
 from sec2md.sections import extract_sections, get_section
-from sec2md.models import Page, Section, Item10K, Item10Q, Item13D, Item13G
+from sec2md.models import Element, Page, Section, Item10K, Item10Q, Item13D, Item13G
 
 
 class TestItemPatternMatching:
@@ -139,6 +139,19 @@ class TestSectionExtractorStandard:
         # Should have at most 1 section for ITEM 7 (the real one with title)
         item7_sections = [s for s in sections if s.item == "ITEM 7"]
         assert len(item7_sections) <= 1
+
+
+class TestSectionPagesKeepTheirElements:
+    """Regression: a page split between two sections gave both slices all of the page's elements,
+    so chunking a section (chunk_section, chunk_pages on its pages) took in its neighbor's text."""
+
+    def test_each_slice_keeps_the_elements_inside_it(self):
+        blocks = ["**Item 1. Business**", "We make widgets.", "**Item 1A. Risk Factors**", "Widgets may fail."]
+        els = [Element(id=f"e{i}", content=b, kind="paragraph", page_start=1, page_end=1) for i, b in enumerate(blocks)]
+        pages = [Page(number=1, content="\n\n".join(blocks), elements=els)]
+        sections = SectionExtractor(pages, filing_type="10-K").get_sections()
+        assert {s.item: [e.id for p in s.pages for e in p.elements or []] for s in sections} == {
+            "ITEM 1": ["e0", "e1"], "ITEM 1A": ["e2", "e3"]}
 
 
 class TestSectionExtractor8K:
