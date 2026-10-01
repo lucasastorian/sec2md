@@ -1,6 +1,7 @@
 """Pages to sections: PART and ITEM headers for 10-K, 10-Q and 20-F; items for 8-K and Schedules 13D/13G."""
 from __future__ import annotations
 
+import functools
 import re
 from typing import List, Literal, Optional, Tuple
 
@@ -76,6 +77,7 @@ FILING_STRUCTURES = {
 _NOT_KEY = re.compile(r'[\W_]+')
 
 
+@functools.lru_cache(maxsize=4096)  # an element is matched against every slice of its page
 def _key(text: str) -> str:
     """Letters and digits only: text compared across markdown cleanup (emphasis, running headers)."""
     return _NOT_KEY.sub('', text.casefold())
@@ -151,7 +153,8 @@ class SectionExtractor:
         """Lines without running headers/footers and page numbers, emphasis markers stripped."""
         content = content.replace(NBSP, ' ').replace(NARROW_NBSP, ' ').replace(ZWSP, '')
         lines = [ln.rstrip() for ln in content.split('\n')]
-        return [MD_EDGE.sub('', ln) for ln in lines if not (HEADER_FOOTER_RE.match(ln) or PAGE_NUM_RE.match(ln))]
+        return [MD_EDGE.sub('', ln) if '**' in ln or '__' in ln else ln  # MD_EDGE needs one of them
+                for ln in lines if not (HEADER_FOOTER_RE.match(ln) or PAGE_NUM_RE.match(ln))]
 
     @staticmethod
     def _infer_part_for_item(filing_type: str, item_key: str) -> Optional[str]:
