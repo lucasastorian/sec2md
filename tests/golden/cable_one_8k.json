@@ -1,0 +1,53 @@
+{
+ "pages": 3,
+ "display_pages": [],
+ "elements": [
+  "sec2md-p1-t0-04f4aba7 text 0:85",
+  "sec2md-p1-t1-7df141c7 text 87:269 dei:DocumentType dei:DocumentPeriodEndDate",
+  "sec2md-p1-t2-25a43c2c table 271:538 dei:EntityRegistrantName dei:EntityIncorporationStateCountryCode dei:EntityFileNumber dei:EntityTaxIdentificationNumber",
+  "sec2md-p1-t10-d3193e1c table 540:662 dei:EntityAddressAddressLine1 dei:EntityAddressCityOrTown dei:EntityAddressStateOrProvince dei:EntityAddressPostalZipCode",
+  "sec2md-p1-p4-18a85aec paragraph 664:734 dei:CityAreaCode dei:LocalPhoneNumber",
+  "sec2md-p1-t5-ba0d98b7 table 736:1416 dei:WrittenCommunications dei:SolicitingMaterial dei:PreCommencementTenderOffer dei:PreCommencementIssuerTenderOffer",
+  "sec2md-p1-t6-b18bd45d table None:None dei:Security12bTitle dei:TradingSymbol dei:SecurityExchangeName",
+  "sec2md-p1-p7-ec7b5897 paragraph 1665:2182 dei:EntityEmergingGrowthCompany",
+  "sec2md-p2-t0-2112cb52 table 0:124",
+  "sec2md-p2-p1-75c32c46 paragraph 126:851",
+  "sec2md-p2-t2-37f82503 table 853:876",
+  "sec2md-p2-p3-a7e4305f paragraph 878:1001",
+  "sec2md-p3-t0-8471fc67 table 0:378",
+  "sec2md-p3-p1-f6586518 paragraph 380:404"
+ ],
+ "text_blocks": [],
+ "sections": [
+  {
+   "part": null,
+   "item": "ITEM 2.03",
+   "title": "Creation of a Direct Financial Obligation or an Obligation under an Off-Balance Sheet Arrangement of a Registrant.",
+   "pages": [
+    2,
+    2
+   ],
+   "tokens": 158,
+   "head": "On September 17, 2026 and September 18, 2026, Cable One, Inc",
+   "tail": "terms of the borrowing are governed by the Credit Agreement."
+  },
+  {
+   "part": null,
+   "item": "ITEM 8.01",
+   "title": "Other Events.",
+   "pages": [
+    2,
+    2
+   ],
+   "tokens": 31,
+   "head": "The information set forth in Item 2.03 of this Current Repor",
+   "tail": "n Form 8-K is incorporated by reference into this Item 8.01."
+  }
+ ],
+ "chunks": [
+  "0 p1-1 452t sec2md-p1-t0-04f4aba7..sec2md-p1-t5-ba0d98b7",
+  "1 p1-2 493t sec2md-p1-p7-ec7b5897..sec2md-p2-t2-37f82503",
+  "2 p2-3 208t sec2md-p2-p1-75c32c46..sec2md-p3-p1-f6586518"
+ ],
+ "lost_cells": 0
+}

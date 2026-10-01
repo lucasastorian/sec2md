@@ -1,0 +1,949 @@
+{
+ "pages": 59,
+ "display_pages": [
+  [
+   3,
+   1
+  ],
+  [
+   4,
+   2
+  ],
+  [
+   5,
+   3
+  ],
+  [
+   6,
+   4
+  ],
+  [
+   7,
+   5
+  ],
+  [
+   8,
+   6
+  ],
+  [
+   9,
+   7
+  ],
+  [
+   10,
+   8
+  ],
+  [
+   11,
+   9
+  ],
+  [
+   12,
+   10
+  ],
+  [
+   13,
+   11
+  ],
+  [
+   14,
+   12
+  ],
+  [
+   15,
+   13
+  ],
+  [
+   16,
+   14
+  ],
+  [
+   17,
+   15
+  ],
+  [
+   18,
+   16
+  ],
+  [
+   19,
+   17
+  ],
+  [
+   20,
+   18
+  ],
+  [
+   21,
+   19
+  ],
+  [
+   22,
+   20
+  ],
+  [
+   23,
+   21
+  ],
+  [
+   24,
+   22
+  ],
+  [
+   25,
+   23
+  ],
+  [
+   26,
+   24
+  ],
+  [
+   27,
+   25
+  ],
+  [
+   28,
+   26
+  ],
+  [
+   29,
+   27
+  ],
+  [
+   30,
+   28
+  ],
+  [
+   31,
+   29
+  ],
+  [
+   32,
+   30
+  ],
+  [
+   33,
+   31
+  ],
+  [
+   34,
+   32
+  ],
+  [
+   35,
+   33
+  ],
+  [
+   36,
+   34
+  ],
+  [
+   37,
+   35
+  ],
+  [
+   38,
+   36
+  ],
+  [
+   39,
+   37
+  ],
+  [
+   40,
+   38
+  ],
+  [
+   41,
+   39
+  ],
+  [
+   42,
+   40
+  ],
+  [
+   43,
+   41
+  ],
+  [
+   44,
+   42
+  ],
+  [
+   45,
+   43
+  ],
+  [
+   46,
+   44
+  ],
+  [
+   47,
+   45
+  ],
+  [
+   48,
+   46
+  ],
+  [
+   49,
+   47
+  ],
+  [
+   50,
+   48
+  ],
+  [
+   51,
+   49
+  ],
+  [
+   52,
+   50
+  ],
+  [
+   53,
+   51
+  ],
+  [
+   54,
+   52
+  ],
+  [
+   55,
+   53
+  ],
+  [
+   56,
+   54
+  ],
+  [
+   57,
+   55
+  ],
+  [
+   58,
+   56
+  ],
+  [
+   59,
+   57
+  ]
+ ],
+ "elements": [
+  "sec2md-p1-t0-04f4aba7 text 0:85",
+  "sec2md-p1-t1-4b7ee230 text 87:470 dei:DocumentType dei:DocumentPeriodEndDate dei:CurrentFiscalYearEndDate dei:EntityFileNumber",
+  "sec2md-p1-t2-6a9fb164 table 472:810 dei:EntityRegistrantName dei:EntityIncorporationStateCountryCode dei:EntityTaxIdentificationNumber dei:EntityAddressAddressLine1 dei:EntityAddressCityOrTown dei:EntityAddressStateOrProvince dei:EntityAddressPostalZipCode",
+  "sec2md-p1-t3-06076272 table 812:1620 dei:CityAreaCode dei:LocalPhoneNumber dei:Security12bTitle dei:TradingSymbol dei:SecurityExchangeName dei:NoTradingSymbolFlag",
+  "sec2md-p1-t4-64467a6e text 1622:2303",
+  "sec2md-p1-t5-a456690a text 2305:2986",
+  "sec2md-p1-t29-9fe29e37 table 2988:3169 dei:EntityFilerCategory dei:EntitySmallBusiness dei:EntityEmergingGrowthCompany",
+  "sec2md-p1-t7-03f13ee9 text 3171:3761",
+  "sec2md-p1-t8-5ff1da99 text 3763:4272",
+  "sec2md-p1-t9-113d7620 text 4274:4994 dei:EntityPublicFloat",
+  "sec2md-p1-t10-f7fbf9ea text 4996:5085 dei:EntityCommonStockSharesOutstanding",
+  "sec2md-p1-t11-4d98cc7e text 5087:5517",
+  "sec2md-p2-t0-aaed1b35 table 0:1626",
+  "sec2md-p3-t0-c73919f2 text 0:1541",
+  "sec2md-p3-t1-e9c72ded text 1543:1988",
+  "sec2md-p3-t2-036eb1e5 text 1990:2303",
+  "sec2md-p3-t3-dc438a80 text 2305:2905",
+  "sec2md-p3-t4-911834ba text 2907:3575",
+  "sec2md-p3-t5-03067298 text 3577:3640",
+  "sec2md-p4-t0-12b532d0 text 0:562",
+  "sec2md-p4-t1-8ddd81d5 text 564:1364",
+  "sec2md-p4-t2-d234f203 text 1366:1519",
+  "sec2md-p4-t3-a9bedb1b text 1521:2306",
+  "sec2md-p4-t4-26400963 text 2308:2955",
+  "sec2md-p4-t5-15bb1617 text 2957:3659",
+  "sec2md-p5-t0-2b2fafea text 0:728",
+  "sec2md-p5-t1-077a710a text 730:1933",
+  "sec2md-p5-t2-c9112020 text 1935:2504",
+  "sec2md-p5-t3-5ee73e1a text 2506:3119",
+  "sec2md-p5-t4-e0ab1bdb text 3121:3325",
+  "sec2md-p5-t5-7b696997 text 3327:3917",
+  "sec2md-p5-t6-260cd116 text 3919:4580",
+  "sec2md-p5-t7-bdac4477 text 4582:5201",
+  "sec2md-p5-t8-14f38283 text 5203:5723",
+  "sec2md-p6-t0-1b26e98a text 0:732",
+  "sec2md-p6-t1-a4701f6c text 734:1639",
+  "sec2md-p6-t2-42c894de text 1641:2243",
+  "sec2md-p6-t3-3ba25e23 text 2245:3032",
+  "sec2md-p6-t4-8a2a4fc6 text 3034:3581",
+  "sec2md-p7-t0-cbe138b3 text 0:1162",
+  "sec2md-p7-t1-682951b5 text 1164:1998",
+  "sec2md-p7-t2-9c439625 text 2000:2302",
+  "sec2md-p7-t3-21c522cb text 2304:3028",
+  "sec2md-p7-t4-60bf0d70 text 3030:3559",
+  "sec2md-p7-t5-12e38396 text 3561:4516",
+  "sec2md-p8-t0-2bbaa0a9 text 0:647",
+  "sec2md-p8-t1-a8e0c050 text 649:2597",
+  "sec2md-p8-t2-d66e6278 text 2599:3477",
+  "sec2md-p8-t3-46d6273b text 3479:4931",
+  "sec2md-p8-t4-454cf463 text 4933:5491",
+  "sec2md-p9-t0-17679a29 text 0:683",
+  "sec2md-p9-t1-27ab5102 text 685:1280",
+  "sec2md-p9-t2-0d52b056 text 1282:2066",
+  "sec2md-p9-t3-0e275a07 text 2068:2928",
+  "sec2md-p9-t4-8fb9d690 text 2930:3765",
+  "sec2md-p9-t5-66593195 text 3767:4105",
+  "sec2md-p9-t6-e68766c2 text 4107:5742",
+  "sec2md-p10-t0-8527cba8 text 0:1553",
+  "sec2md-p10-t1-ae697d29 text 1555:2338",
+  "sec2md-p10-t2-1a6a4952 text 2340:2917",
+  "sec2md-p10-t3-dc0853c5 text 2919:4710",
+  "sec2md-p10-t4-875ad464 text 4712:5939",
+  "sec2md-p11-t0-61c63cac text 0:2395",
+  "sec2md-p11-t1-f5f6bcdd text 2397:3588",
+  "sec2md-p11-t2-922c8cf5 text 3590:4142",
+  "sec2md-p11-t3-7990daac text 4144:5635",
+  "sec2md-p12-t0-96e91a84 text 0:589",
+  "sec2md-p12-t1-a8bae4e2 text 591:1303",
+  "sec2md-p12-t2-c7b823c0 text 1305:2322",
+  "sec2md-p12-t3-7c752ed8 text 2324:4026",
+  "sec2md-p12-t4-b09e8b4b text 4028:5293",
+  "sec2md-p12-t5-69d3b67c text 5295:5880",
+  "sec2md-p13-t0-157f4055 text 0:966",
+  "sec2md-p13-t1-55313b9f text 968:1497",
+  "sec2md-p13-t2-50170624 text 1499:2239",
+  "sec2md-p13-t3-51292135 text 2241:2843",
+  "sec2md-p13-t4-efdee705 text 2845:3999",
+  "sec2md-p13-t5-a699cda6 text 4001:4818",
+  "sec2md-p13-t6-76ea17bb text 4820:5511",
+  "sec2md-p14-t0-9a80ac61 text 0:1077",
+  "sec2md-p14-t1-29968ef7 text 1079:2664",
+  "sec2md-p14-t2-1925655e text 2666:4253",
+  "sec2md-p14-t3-a4a7508c text 4255:4948",
+  "sec2md-p15-t0-c77f5684 text 0:892",
+  "sec2md-p15-t1-df3dda6e text 894:1602",
+  "sec2md-p15-t2-62c362e5 text 1604:2290",
+  "sec2md-p15-t3-9b81d58f text 2292:3192",
+  "sec2md-p15-t4-7cce8e39 text 3194:4448",
+  "sec2md-p15-t5-189acd76 text 4450:5895",
+  "sec2md-p16-t0-8a39c4d0 text 0:818",
+  "sec2md-p16-t1-b3e9093d text 820:2571",
+  "sec2md-p16-t2-8eb8e02a text 2573:3292",
+  "sec2md-p16-t3-a62fb803 text 3294:4354",
+  "sec2md-p16-t4-a6498e07 text 4356:5395",
+  "sec2md-p16-t5-6423a286 text 5397:6099",
+  "sec2md-p17-t0-78ebbbdc text 0:701",
+  "sec2md-p17-t1-738ebe92 text 703:1738",
+  "sec2md-p17-t2-1753ae7d text 1740:2324",
+  "sec2md-p17-t3-cac295c9 text 2326:3271",
+  "sec2md-p17-t4-a82f7d77 text 3273:3945",
+  "sec2md-p17-t5-739bad5f text 3947:5476",
+  "sec2md-p17-t6-7bd3c49b text 5478:6282",
+  "sec2md-p18-t0-25f2fdcc text 0:582",
+  "sec2md-p18-t1-3e8402af text 584:1160",
+  "sec2md-p18-t2-65fa9ea3 text 1162:2053",
+  "sec2md-p18-t3-1092c03d text 2055:2808",
+  "sec2md-p18-t4-0ae46975 text 2810:4637",
+  "sec2md-p18-t5-bd99023e text 4639:5739",
+  "sec2md-p19-t0-bba48b56 text 0:682",
+  "sec2md-p19-t1-5ec79957 text 684:2137",
+  "sec2md-p19-t2-1deecdb2 text 2139:2184",
+  "sec2md-p19-t3-d80220fe text 2186:3184",
+  "sec2md-p19-t4-e0f642b6 text 3186:4116",
+  "sec2md-p19-t5-492e14e2 text 4118:4769",
+  "sec2md-p19-t6-0a5c7cc4 text 4771:4897",
+  "sec2md-p20-t0-362a43fd text 0:488",
+  "sec2md-p20-t1-d3901683 text 490:2063",
+  "sec2md-p20-t2-f01b34f4 text 2065:2861",
+  "sec2md-p20-t3-1492d361 text 2863:4167",
+  "sec2md-p20-t4-a593c53c text 4169:4848",
+  "sec2md-p20-t5-2639b54c text 4850:4902",
+  "sec2md-p21-t0-ea54d479 text 0:225",
+  "sec2md-p21-t1-f227e4e5 table 227:1301",
+  "sec2md-p21-t2-bb017131 text 1303:1943",
+  "sec2md-p22-t0-de2da56c text 0:535",
+  "sec2md-p22-t1-4beaac4e table 537:943",
+  "sec2md-p22-t2-3346fe4d text 945:967",
+  "sec2md-p23-t0-3ffea5cc text 0:682",
+  "sec2md-p23-t1-573eb89f text 684:1225",
+  "sec2md-p23-t2-d2acc33e text 1227:1442",
+  "sec2md-p23-t3-61ca780c text 1444:1862",
+  "sec2md-p23-t4-7a641252 text 1864:2125",
+  "sec2md-p24-t0-7b2d6260 table 0:584",
+  "sec2md-p24-t1-f0c38df3 text 586:1099",
+  "sec2md-p24-t2-308fdd97 text 1101:1630",
+  "sec2md-p25-t0-22aff996 table 0:585",
+  "sec2md-p25-t1-532fbc3b text 587:1124",
+  "sec2md-p25-t2-c6b0c910 text 1126:1428",
+  "sec2md-p26-t0-5a060ab5 table 0:371",
+  "sec2md-p26-t3-0179c75d table 373:566",
+  "sec2md-p26-t2-a1408556 text 568:1336",
+  "sec2md-p26-t3-14b70e11 table 1338:1939",
+  "sec2md-p26-t4-16f5ebc4 text 1941:2225",
+  "sec2md-p27-t0-c72bc264 table 0:405",
+  "sec2md-p27-t1-bacf3c8e text 407:909",
+  "sec2md-p27-t2-b2939fb5 text 911:1186",
+  "sec2md-p27-t3-014527be text 1188:2013",
+  "sec2md-p27-t4-c1491ebc text 2015:2534",
+  "sec2md-p27-t5-45698880 text 2536:3453",
+  "sec2md-p27-t6-98a345bd text 3455:3704",
+  "sec2md-p28-t0-04c518fb text 0:761",
+  "sec2md-p28-t1-95b0f51d text 763:1070",
+  "sec2md-p28-t2-79d9460c text 1072:1855",
+  "sec2md-p28-t3-485481ed text 1857:2520",
+  "sec2md-p28-t4-08821f6d text 2522:3424",
+  "sec2md-p28-t5-24ef0c56 text 3426:4308",
+  "sec2md-p28-t6-0a5b4848 text 4310:4853",
+  "sec2md-p29-t0-7852124d text 0:299",
+  "sec2md-p29-t1-7185eeb2 text 301:834",
+  "sec2md-p29-t2-0572ff1b table 836:1477",
+  "sec2md-p29-t3-9c8095bf text 1479:2285",
+  "sec2md-p29-t4-59a8929e text 2287:3075",
+  "sec2md-p30-t0-0c4d762c table 0:863",
+  "sec2md-p30-t1-a6d903c5 text 865:1158",
+  "sec2md-p31-t0-12e855e6 table 0:1407 us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax us-gaap:CostOfGoodsAndServicesSold us-gaap:GrossProfit us-gaap:ResearchAndDevelopmentExpense us-gaap:SellingGeneralAndAdministrativeExpense us-gaap:OperatingExpenses us-gaap:OperatingIncomeLoss us-gaap:NonoperatingIncomeExpense us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest us-gaap:IncomeTaxExpenseBenefit us-gaap:NetIncomeLoss us-gaap:EarningsPerShareBasic us-gaap:EarningsPerShareDiluted us-gaap:WeightedAverageNumberOfSharesOutstandingBasic us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding",
+  "sec2md-p31-t1-9b98b065 text 1409:1469",
+  "sec2md-p32-t0-7e9e742b table 0:1251 us-gaap:NetIncomeLoss us-gaap:OtherComprehensiveIncomeLossForeignCurrencyTransactionAndTranslationAdjustmentNetOfTax aapl:OtherComprehensiveIncomeLossDerivativeInstrumentGainLossbeforeReclassificationafterTax aapl:OtherComprehensiveIncomeLossDerivativeInstrumentGainLossReclassificationAfterTax aapl:OtherComprehensiveIncomeLossDerivativeInstrumentGainLossafterReclassificationandTax us-gaap:OtherComprehensiveIncomeUnrealizedHoldingGainLossOnSecuritiesArisingDuringPeriodNetOfTax us-gaap:OtherComprehensiveIncomeLossReclassificationAdjustmentFromAOCIForSaleOfSecuritiesNetOfTax us-gaap:OtherComprehensiveIncomeLossAvailableForSaleSecuritiesAdjustmentNetOfTax us-gaap:OtherComprehensiveIncomeLossNetOfTaxPortionAttributableToParent us-gaap:ComprehensiveIncomeNetOfTax",
+  "sec2md-p32-t1-9b98b065 text 1253:1313",
+  "sec2md-p33-t0-43c05c90 table 0:1864 us-gaap:CashAndCashEquivalentsAtCarryingValue us-gaap:MarketableSecuritiesCurrent us-gaap:AccountsReceivableNetCurrent us-gaap:NontradeReceivablesCurrent us-gaap:InventoryNet us-gaap:OtherAssetsCurrent us-gaap:AssetsCurrent us-gaap:MarketableSecuritiesNoncurrent us-gaap:PropertyPlantAndEquipmentNet us-gaap:OtherAssetsNoncurrent us-gaap:AssetsNoncurrent us-gaap:Assets us-gaap:AccountsPayableCurrent us-gaap:OtherLiabilitiesCurrent us-gaap:ContractWithCustomerLiabilityCurrent us-gaap:CommercialPaper us-gaap:LongTermDebtCurrent us-gaap:LiabilitiesCurrent us-gaap:LongTermDebtNoncurrent us-gaap:OtherLiabilitiesNoncurrent us-gaap:LiabilitiesNoncurrent us-gaap:Liabilities us-gaap:CommitmentsAndContingencies us-gaap:CommonStockParOrStatedValuePerShare us-gaap:CommonStockSharesAuthorized us-gaap:CommonStockSharesIssued us-gaap:CommonStockSharesOutstanding us-gaap:CommonStocksIncludingAdditionalPaidInCapital us-gaap:RetainedEarningsAccumulatedDeficit us-gaap:AccumulatedOtherComprehensiveIncomeLossNetOfTax us-gaap:StockholdersEquity us-gaap:LiabilitiesAndStockholdersEquity",
+  "sec2md-p33-t1-9b98b065 text 1866:1926",
+  "sec2md-p34-t0-b3480972 table 0:1555 us-gaap:StockholdersEquity us-gaap:StockIssuedDuringPeriodValueNewIssues us-gaap:AdjustmentsRelatedToTaxWithholdingForShareBasedCompensation us-gaap:AdjustmentsToAdditionalPaidInCapitalSharebasedCompensationRequisiteServicePeriodRecognitionValue us-gaap:NetIncomeLoss us-gaap:Dividends us-gaap:StockRepurchasedAndRetiredDuringPeriodValue us-gaap:OtherComprehensiveIncomeLossNetOfTaxPortionAttributableToParent us-gaap:CommonStockDividendsPerShareDeclared",
+  "sec2md-p34-t1-9b98b065 text 1557:1617",
+  "sec2md-p35-t0-c4d1c529 table 0:2640 us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalents us-gaap:NetIncomeLoss us-gaap:DepreciationDepletionAndAmortization us-gaap:ShareBasedCompensation us-gaap:OtherNoncashIncomeExpense us-gaap:IncreaseDecreaseInAccountsReceivable us-gaap:IncreaseDecreaseInOtherReceivables us-gaap:IncreaseDecreaseInInventories us-gaap:IncreaseDecreaseInOtherOperatingAssets us-gaap:IncreaseDecreaseInAccountsPayable us-gaap:IncreaseDecreaseInOtherOperatingLiabilities us-gaap:NetCashProvidedByUsedInOperatingActivities us-gaap:PaymentsToAcquireAvailableForSaleSecuritiesDebt us-gaap:ProceedsFromMaturitiesPrepaymentsAndCallsOfAvailableForSaleSecurities us-gaap:ProceedsFromSaleOfAvailableForSaleSecuritiesDebt us-gaap:PaymentsToAcquirePropertyPlantAndEquipment us-gaap:PaymentsForProceedsFromOtherInvestingActivities us-gaap:NetCashProvidedByUsedInInvestingActivities us-gaap:PaymentsRelatedToTaxWithholdingForShareBasedCompensation us-gaap:PaymentsOfDividends us-gaap:PaymentsForRepurchaseOfCommonStock us-gaap:ProceedsFromIssuanceOfLongTermDebt us-gaap:RepaymentsOfLongTermDebt us-gaap:ProceedsFromRepaymentsOfCommercialPaper us-gaap:ProceedsFromPaymentsForOtherFinancingActivities us-gaap:NetCashProvidedByUsedInFinancingActivities us-gaap:CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect us-gaap:IncomeTaxesPaidNet",
+  "sec2md-p35-t1-9b98b065 text 2642:2702",
+  "sec2md-p36-t0-e5bcc48e text 0:62",
+  "sec2md-p36-t1-a6adabdc text 64:119 us-gaap:BasisOfPresentationAndSignificantAccountingPoliciesTextBlock",
+  "sec2md-p36-t2-24fce6ff text 121:1204",
+  "sec2md-p36-t3-f7c8fe2e text 1206:1331",
+  "sec2md-p36-t4-3fcb6dcd text 1333:1504",
+  "sec2md-p36-t5-fa4231fc text 1506:1654",
+  "sec2md-p36-t6-2140afc6 text 1656:1766",
+  "sec2md-p36-t7-dc44ebc2 text 1768:1847",
+  "sec2md-p36-t8-d7c31c60 text 1849:1969",
+  "sec2md-p36-t9-16a730e7 text 1971:2116",
+  "sec2md-p36-t10-6ec2f5dc text 2118:2283",
+  "sec2md-p36-t11-1a6dc212 text 2285:2452",
+  "sec2md-p37-t0-eb29f9b5 text 0:724 us-gaap:RevenueFromContractWithCustomerTextBlock",
+  "sec2md-p37-t1-430e4d16 text 726:1910",
+  "sec2md-p37-t2-290053a3 text 1912:2995",
+  "sec2md-p37-t3-00e0762f text 2997:4260",
+  "sec2md-p37-t4-3553f194 table 4262:4711 us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+  "sec2md-p37-t5-762836d2 text 4713:5191 us-gaap:ContractWithCustomerLiabilityRevenueRecognized",
+  "sec2md-p38-t0-4fd20186 text 0:655 us-gaap:ContractWithCustomerLiability us-gaap:RevenueRemainingPerformanceObligationPercentage",
+  "sec2md-p38-t1-e6cd61af table 657:1340 us-gaap:EarningsPerShareTextBlock us-gaap:NetIncomeLoss us-gaap:WeightedAverageNumberOfSharesOutstandingBasic us-gaap:IncrementalCommonSharesAttributableToShareBasedPaymentArrangements us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding us-gaap:EarningsPerShareBasic us-gaap:EarningsPerShareDiluted",
+  "sec2md-p38-t2-c0cfc849 text 1342:1523 us-gaap:AntidilutiveSecuritiesExcludedFromComputationOfEarningsPerShareAmount",
+  "sec2md-p38-t3-53f2b894 table 1525:3165 us-gaap:FinancialInstrumentsDisclosureTextBlock us-gaap:Cash us-gaap:CashAndCashEquivalentsAtCarryingValue us-gaap:MarketableSecuritiesCurrent us-gaap:MarketableSecuritiesNoncurrent us-gaap:EquitySecuritiesFvNiCost aapl:EquitySecuritiesFVNIAccumulatedGrossUnrealizedGainBeforeTax aapl:EquitySecuritiesFVNIAccumulatedGrossUnrealizedLossBeforeTax us-gaap:EquitySecuritiesFvNiCurrentAndNoncurrent us-gaap:AvailableForSaleDebtSecuritiesAmortizedCostBasis us-gaap:AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedGainBeforeTax us-gaap:AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedLossBeforeTax us-gaap:AvailableForSaleSecuritiesDebtSecurities aapl:CashCashEquivalentsAndMarketableSecuritiesCost aapl:CashEquivalentsAndMarketableSecuritiesAccumulatedGrossUnrealizedGainBeforeTax aapl:CashEquivalentsAndMarketableSecuritiesAccumulatedGrossUnrealizedLossBeforeTax aapl:CashCashEquivalentsAndMarketableSecurities",
+  "sec2md-p39-t0-d896ddfa table 0:1369 us-gaap:Cash us-gaap:CashAndCashEquivalentsAtCarryingValue us-gaap:MarketableSecuritiesCurrent us-gaap:MarketableSecuritiesNoncurrent us-gaap:EquitySecuritiesFvNiCost aapl:EquitySecuritiesFVNIAccumulatedGrossUnrealizedGainBeforeTax aapl:EquitySecuritiesFVNIAccumulatedGrossUnrealizedLossBeforeTax us-gaap:EquitySecuritiesFvNiCurrentAndNoncurrent us-gaap:AvailableForSaleDebtSecuritiesAmortizedCostBasis us-gaap:AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedGainBeforeTax us-gaap:AvailableForSaleDebtSecuritiesAccumulatedGrossUnrealizedLossBeforeTax us-gaap:AvailableForSaleSecuritiesDebtSecurities aapl:CashCashEquivalentsAndMarketableSecuritiesCost aapl:CashEquivalentsAndMarketableSecuritiesAccumulatedGrossUnrealizedGainBeforeTax aapl:CashEquivalentsAndMarketableSecuritiesAccumulatedGrossUnrealizedLossBeforeTax aapl:CashCashEquivalentsAndMarketableSecurities",
+  "sec2md-p39-t1-aea3b14e text 1371:1683",
+  "sec2md-p39-t2-9209b9d1 text 1685:2338 us-gaap:RestrictedCashAndCashEquivalents us-gaap:DebtSecuritiesAvailableForSaleRestricted",
+  "sec2md-p39-t3-b7a08b8f text 2340:3019 aapl:DebtSecuritiesAvailableForSaleMaturityAllocatedAndSingleMaturityDateRollingAfterOneThroughFiveYearsPercentage aapl:DebtSecuritiesAvailableForSaleMaturityAllocatedAndSingleMaturityDateRollingAfterFiveThroughTenYearsPercentage aapl:DebtSecuritiesAvailableForSaleMaturityAllocatedAndSingleMaturityDateRollingAfterTenYearsPercentage",
+  "sec2md-p39-t4-ba3c3f63 text 3021:3536",
+  "sec2md-p39-t5-268a1467 text 3538:4133 us-gaap:MaximumLengthOfTimeForeignCurrencyCashFlowHedge",
+  "sec2md-p40-t0-f61feef1 text 0:845 us-gaap:MaximumLengthOfTimeForeignCurrencyCashFlowHedge",
+  "sec2md-p40-t1-be0e3431 table 847:1605 us-gaap:DerivativeNotionalAmount",
+  "sec2md-p40-t2-996dc123 table 1607:1971 us-gaap:HedgedAssetFairValueHedge us-gaap:HedgedLiabilityFairValueHedge",
+  "sec2md-p40-t3-cd1d5ef2 text 1973:3175 us-gaap:ConcentrationRiskPercentage1 aapl:NumberOfSignificantVendors",
+  "sec2md-p41-t0-d7ca9b50 table 0:613 us-gaap:PropertyPlantAndEquipmentDisclosureTextBlock us-gaap:PropertyPlantAndEquipmentGross us-gaap:AccumulatedDepreciationDepletionAndAmortizationPropertyPlantAndEquipment us-gaap:PropertyPlantAndEquipmentNet",
+  "sec2md-p41-t1-d2ff0882 text 615:761 us-gaap:Depreciation",
+  "sec2md-p41-t2-71af0fba text 763:961 us-gaap:AdditionalFinancialInformationDisclosureTextBlock",
+  "sec2md-p41-t3-4efa4212 table 963:1181 us-gaap:DeferredIncomeTaxAssetsNet us-gaap:OtherAssetsMiscellaneousNoncurrent us-gaap:OtherAssetsNoncurrent",
+  "sec2md-p41-t4-6ac8eab1 table 1183:1404 us-gaap:AccruedIncomeTaxesCurrent us-gaap:OtherAccruedLiabilitiesCurrent us-gaap:OtherLiabilitiesCurrent",
+  "sec2md-p41-t5-37842586 table 1406:1639 us-gaap:AccruedIncomeTaxesNoncurrent us-gaap:OtherAccruedLiabilitiesNoncurrent us-gaap:OtherLiabilitiesNoncurrent",
+  "sec2md-p41-t6-8ccda3a6 text 1641:2347 us-gaap:IncomeTaxDisclosureTextBlock aapl:IncomeTaxContingencyNumberOfSubsidiaries us-gaap:LossContingencyEstimateOfPossibleLoss",
+  "sec2md-p41-t7-5ee30474 text 2349:3098 us-gaap:AccruedIncomeTaxesCurrent aapl:TotalRestrictedCashCashEquivalentsAndAvailableForSaleDebtSecurities us-gaap:RestrictedCashAndCashEquivalents us-gaap:DebtSecuritiesAvailableForSaleRestricted",
+  "sec2md-p42-t0-a7f9c91a text 0:857 us-gaap:CurrentIncomeTaxExpenseBenefit us-gaap:CurrentForeignTaxExpenseBenefit us-gaap:CurrentFederalTaxExpenseBenefit us-gaap:UnrecognizedTaxBenefitsDecreasesResultingFromSettlementsWithTaxingAuthorities",
+  "sec2md-p42-t1-72b54f02 table 859:1530 us-gaap:CurrentFederalTaxExpenseBenefit us-gaap:DeferredFederalIncomeTaxExpenseBenefit us-gaap:FederalIncomeTaxExpenseBenefitContinuingOperations us-gaap:CurrentStateAndLocalTaxExpenseBenefit us-gaap:DeferredStateAndLocalIncomeTaxExpenseBenefit us-gaap:StateAndLocalIncomeTaxExpenseBenefitContinuingOperations us-gaap:CurrentForeignTaxExpenseBenefit us-gaap:DeferredForeignIncomeTaxExpenseBenefit us-gaap:ForeignIncomeTaxExpenseBenefitContinuingOperations us-gaap:IncomeTaxExpenseBenefit",
+  "sec2md-p42-t2-22e00fd2 table 1532:2511 us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesForeign us-gaap:EffectiveIncomeTaxRateReconciliationAtFederalStatutoryIncomeTaxRate us-gaap:IncomeTaxReconciliationIncomeTaxExpenseBenefitAtFederalStatutoryIncomeTaxRate us-gaap:IncomeTaxReconciliationStateAndLocalIncomeTaxes aapl:EffectiveIncomeTaxRateReconciliationImpactOfTheStateAidDecisionAmount us-gaap:IncomeTaxReconciliationForeignIncomeTaxRateDifferential us-gaap:IncomeTaxReconciliationTaxCreditsResearch us-gaap:EffectiveIncomeTaxRateReconciliationShareBasedCompensationExcessTaxBenefitAmount us-gaap:IncomeTaxReconciliationOtherAdjustments us-gaap:IncomeTaxExpenseBenefit us-gaap:EffectiveIncomeTaxRateContinuingOperations",
+  "sec2md-p43-t0-652eba64 table 0:1035 aapl:DeferredTaxAssetsCapitalizedResearchAndDevelopment us-gaap:DeferredTaxAssetsTaxCreditCarryforwards us-gaap:DeferredTaxAssetsTaxDeferredExpenseReservesAndAccruals us-gaap:DeferredTaxAssetsDeferredIncome aapl:DeferredTaxAssetsLeaseLiabilities us-gaap:DeferredTaxAssetsOtherComprehensiveLoss us-gaap:DeferredTaxAssetsOther us-gaap:DeferredTaxAssetsGross us-gaap:DeferredTaxAssetsValuationAllowance us-gaap:DeferredTaxAssetsNet us-gaap:DeferredTaxLiabilitiesPropertyPlantAndEquipment us-gaap:DeferredTaxLiabilitiesLeasingArrangements aapl:DeferredTaxLiabilitiesMinimumTaxonForeignEarnings us-gaap:DeferredTaxLiabilitiesOtherComprehensiveIncome us-gaap:DeferredTaxLiabilitiesOther us-gaap:DeferredIncomeTaxLiabilities us-gaap:DeferredTaxAssetsLiabilitiesNet",
+  "sec2md-p43-t1-7daab7c8 text 1037:1363 us-gaap:DeferredTaxAssetsTaxCreditCarryforwardsForeign us-gaap:DeferredTaxAssetsTaxCreditCarryforwardsResearch",
+  "sec2md-p43-t2-aa868537 text 1365:1935 us-gaap:UnrecognizedTaxBenefits us-gaap:UnrecognizedTaxBenefitsThatWouldImpactEffectiveTaxRate",
+  "sec2md-p43-t7-98f5de41 table 1937:2565 us-gaap:UnrecognizedTaxBenefits us-gaap:UnrecognizedTaxBenefitsIncreasesResultingFromPriorPeriodTaxPositions us-gaap:UnrecognizedTaxBenefitsDecreasesResultingFromPriorPeriodTaxPositions us-gaap:UnrecognizedTaxBenefitsIncreasesResultingFromCurrentPeriodTaxPositions us-gaap:UnrecognizedTaxBenefitsDecreasesResultingFromSettlementsWithTaxingAuthorities us-gaap:UnrecognizedTaxBenefitsReductionsResultingFromLapseOfApplicableStatuteOfLimitations",
+  "sec2md-p43-t4-aaaa6c07 text 2567:3183 us-gaap:DecreaseInUnrecognizedTaxBenefitsIsReasonablyPossible",
+  "sec2md-p44-t0-de5843d1 text 0:814 us-gaap:LesseeOperatingLeasesTextBlock us-gaap:LesseeFinanceLeasesTextBlock aapl:LesseeOperatingandFinanceLeaseTermofContract us-gaap:OperatingLeaseCost us-gaap:VariableLeaseCost",
+  "sec2md-p44-t1-285b3768 table 816:1975 us-gaap:OperatingLeasePayments aapl:RightofUseAssetsObtainedinExchangeforOperatingandFinanceLeaseLiabilities us-gaap:OperatingLeaseRightOfUseAsset us-gaap:FinanceLeaseRightOfUseAsset aapl:OperatingandFinanceLeaseRightofUseAsset us-gaap:OperatingLeaseLiabilityCurrent us-gaap:OperatingLeaseLiabilityNoncurrent us-gaap:FinanceLeaseLiabilityCurrent us-gaap:FinanceLeaseLiabilityNoncurrent aapl:OperatingandFinanceLeaseLiability",
+  "sec2md-p44-t2-7686c901 table 1977:2510 us-gaap:LesseeOperatingLeaseLiabilityPaymentsDueNextTwelveMonths us-gaap:FinanceLeaseLiabilityPaymentsDueNextTwelveMonths aapl:LesseeOperatingAndFinanceLeaseLiabilityToBePaidYearOne us-gaap:LesseeOperatingLeaseLiabilityPaymentsDueYearTwo us-gaap:FinanceLeaseLiabilityPaymentsDueYearTwo aapl:LesseeOperatingAndFinanceLeaseLiabilityToBePaidYearTwo us-gaap:LesseeOperatingLeaseLiabilityPaymentsDueYearThree us-gaap:FinanceLeaseLiabilityPaymentsDueYearThree aapl:LesseeOperatingAndFinanceLeaseLiabilityToBePaidYearThree us-gaap:LesseeOperatingLeaseLiabilityPaymentsDueYearFour us-gaap:FinanceLeaseLiabilityPaymentsDueYearFour aapl:LesseeOperatingAndFinanceLeaseLiabilityToBePaidYearFour us-gaap:LesseeOperatingLeaseLiabilityPaymentsDueYearFive us-gaap:FinanceLeaseLiabilityPaymentsDueYearFive aapl:LesseeOperatingAndFinanceLeaseLiabilityToBePaidYearFive us-gaap:LesseeOperatingLeaseLiabilityPaymentsDueAfterYearFive us-gaap:FinanceLeaseLiabilityPaymentsDueAfterYearFive aapl:LesseeOperatingAndFinanceLeaseLiabilityToBePaidAfterYearFive us-gaap:LesseeOperatingLeaseLiabilityPaymentsDue us-gaap:FinanceLeaseLiabilityPaymentsDue aapl:LesseeOperatingAndFinanceLeaseLiabilityToBePaid us-gaap:LesseeOperatingLeaseLiabilityUndiscountedExcessAmount us-gaap:FinanceLeaseLiabilityUndiscountedExcessAmount aapl:LesseeOperatingandFinanceLeaseLiabilityUndiscountedExcessAmount us-gaap:OperatingLeaseLiability us-gaap:FinanceLeaseLiability aapl:OperatingandFinanceLeaseLiability",
+  "sec2md-p44-t3-291313a9 text 2512:3058 aapl:OperatingandFinanceLeaseWeightedAverageRemainingLeaseTerm aapl:OperatingandFinanceLeaseWeightedAverageDiscountRatePercent",
+  "sec2md-p44-t4-460e6a73 text 3060:3360 us-gaap:UnrecordedUnconditionalPurchaseObligationBalanceSheetAmount aapl:LesseeOperatingAndFinanceLeaseLeaseNotYetCommencedTermOfContract",
+  "sec2md-p45-t0-fe1d539f text 0:781 us-gaap:DebtDisclosureTextBlock us-gaap:CommercialPaper us-gaap:DebtInstrumentTerm us-gaap:ShortTermDebtWeightedAverageInterestRate aapl:CommercialPaperCashFlowSummaryTableTextBlock",
+  "sec2md-p45-t3-8cfcfd35 table 783:1305 us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInThreeMonthsOrLess us-gaap:ProceedsFromShortTermDebtMaturingInMoreThanThreeMonths us-gaap:RepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths us-gaap:ProceedsFromRepaymentsOfShortTermDebtMaturingInMoreThanThreeMonths us-gaap:ProceedsFromRepaymentsOfCommercialPaper",
+  "sec2md-p45-t2-3c275d2b text 1307:1320",
+  "sec2md-p45-t3-bd67a925 table 1322:2304 us-gaap:ScheduleOfDebtInstrumentsTextBlock us-gaap:DebtInstrumentInterestRateStatedPercentage aapl:DebtInstrumentMaturityYearRangeStart aapl:DebtInstrumentMaturityYearRangeEnd us-gaap:DebtInstrumentCarryingAmount us-gaap:DebtInstrumentInterestRateEffectivePercentage us-gaap:DebtInstrumentUnamortizedDiscountPremiumAndDebtIssuanceCostsNet aapl:HedgeAccountingAdjustmentsRelatedToLongTermDebt us-gaap:LongTermDebt us-gaap:LongTermDebtCurrent us-gaap:LongTermDebtNoncurrent",
+  "sec2md-p45-t4-35da3215 text 2306:2918",
+  "sec2md-p45-t5-85fd7b6e table 2920:3198 us-gaap:LongTermDebtMaturitiesRepaymentsOfPrincipalInNextTwelveMonths us-gaap:LongTermDebtMaturitiesRepaymentsOfPrincipalInYearTwo us-gaap:LongTermDebtMaturitiesRepaymentsOfPrincipalInYearThree us-gaap:LongTermDebtMaturitiesRepaymentsOfPrincipalInYearFour us-gaap:LongTermDebtMaturitiesRepaymentsOfPrincipalInYearFive us-gaap:LongTermDebtMaturitiesRepaymentsOfPrincipalAfterYearFive us-gaap:DebtInstrumentCarryingAmount",
+  "sec2md-p46-t0-2e3062d7 text 0:165 us-gaap:LongTermDebtFairValue",
+  "sec2md-p46-t1-b16ef5a9 text 167:607 us-gaap:StockholdersEquityNoteDisclosureTextBlock us-gaap:StockRepurchasedAndRetiredDuringPeriodShares us-gaap:StockRepurchasedAndRetiredDuringPeriodValue",
+  "sec2md-p46-t2-74db0283 table 609:1131 us-gaap:CommonStockSharesOutstanding us-gaap:StockRepurchasedAndRetiredDuringPeriodShares aapl:StockIssuedDuringPeriodSharesSharebasedPaymentArrangementNetofSharesWithheldforTaxes",
+  "sec2md-p46-t3-8455fbaa text 1133:2010 us-gaap:DisclosureOfCompensationRelatedCostsShareBasedPaymentsTextBlock us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardAwardVestingPeriod1 aapl:ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsNumberOfSharesOfCommonStockIssuedPerUnitUponVesting us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardNumberOfSharesAuthorized",
+  "sec2md-p46-t4-afb00c11 text 2012:2540",
+  "sec2md-p47-t0-7073c573 table 0:913 us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsNonvestedNumber us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsNonvestedWeightedAverageGrantDateFairValue us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsGrantsInPeriod us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsGrantsInPeriodWeightedAverageGrantDateFairValue us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsVestedInPeriod us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsVestedInPeriodWeightedAverageGrantDateFairValue us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsForfeitedInPeriod us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsForfeituresWeightedAverageGrantDateFairValue us-gaap:SharebasedCompensationArrangementBySharebasedPaymentAwardEquityInstrumentsOtherThanOptionsAggregateIntrinsicValueNonvested",
+  "sec2md-p47-t1-073616bf text 915:1730 us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsVestedInPeriodTotalFairValue us-gaap:SharesPaidForTaxWithholdingForShareBasedCompensation us-gaap:PaymentsRelatedToTaxWithholdingForShareBasedCompensation",
+  "sec2md-p47-t2-5a09c8bc table 1732:2179 us-gaap:AllocatedShareBasedCompensationExpense us-gaap:EmployeeServiceShareBasedCompensationTaxBenefitFromCompensationExpense",
+  "sec2md-p47-t3-ddec29e2 text 2181:2379 us-gaap:EmployeeServiceShareBasedCompensationNonvestedAwardsTotalCompensationCostNotYetRecognized us-gaap:EmployeeServiceShareBasedCompensationNonvestedAwardsTotalCompensationCostNotYetRecognizedPeriodForRecognition1",
+  "sec2md-p47-t4-6827ab79 text 2381:2447 us-gaap:CommitmentsAndContingenciesDisclosureTextBlock",
+  "sec2md-p47-t5-a4e9d94e text 2449:2487",
+  "sec2md-p47-t6-a7f74e4f table 2489:3110 us-gaap:UnrecordedUnconditionalPurchaseObligationsDisclosureTextBlock us-gaap:UnrecordedUnconditionalPurchaseObligationBalanceOnFirstAnniversary us-gaap:UnrecordedUnconditionalPurchaseObligationBalanceOnSecondAnniversary us-gaap:UnrecordedUnconditionalPurchaseObligationBalanceOnThirdAnniversary us-gaap:UnrecordedUnconditionalPurchaseObligationBalanceOnFourthAnniversary us-gaap:UnrecordedUnconditionalPurchaseObligationBalanceOnFifthAnniversary us-gaap:UnrecordedUnconditionalPurchaseObligationDueAfterFiveYears us-gaap:UnrecordedUnconditionalPurchaseObligationBalanceSheetAmount",
+  "sec2md-p48-t0-1560155f text 0:547",
+  "sec2md-p48-t1-d5ea7407 text 549:1092",
+  "sec2md-p48-t2-5ee73e1a text 1094:1707",
+  "sec2md-p48-t3-adf0d963 text 1709:1895",
+  "sec2md-p48-t4-c52ae472 text 1897:2723 us-gaap:SegmentReportingDisclosureTextBlock",
+  "sec2md-p48-t5-f226e0f3 text 2725:3324",
+  "sec2md-p49-t0-0c138745 table 0:787 us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax us-gaap:OperatingIncomeLoss",
+  "sec2md-p49-t1-b649902d table 789:1276 us-gaap:OperatingIncomeLoss us-gaap:ResearchAndDevelopmentExpense us-gaap:OtherGeneralAndAdministrativeExpense",
+  "sec2md-p49-t2-4ae00da3 table 1278:1959 us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+  "sec2md-p49-t7-8ccabb1f table 1961:2175 us-gaap:NoncurrentAssets",
+  "sec2md-p49-t4-6881944e text 2177:2217",
+  "sec2md-p50-t0-62cfe557 text 0:121",
+  "sec2md-p50-t1-4ee60531 text 123:923",
+  "sec2md-p50-t2-6c435ebb text 925:1388",
+  "sec2md-p50-t3-12a4f8c3 text 1390:2723",
+  "sec2md-p50-t4-a1561f85 text 2725:3433",
+  "sec2md-p50-t10-97cf6054 table 3435:4301",
+  "sec2md-p51-t0-de0170a4 table 0:1318",
+  "sec2md-p51-t1-3dcf0f7e text 1320:1434 dei:AuditorName",
+  "sec2md-p52-t0-b3c72800 text 0:658",
+  "sec2md-p52-t1-15871f7e text 660:1165",
+  "sec2md-p52-t2-e3cfdbfd text 1167:1882",
+  "sec2md-p52-t3-dac8f13d text 1884:2562",
+  "sec2md-p52-t4-da3750ed text 2564:3732",
+  "sec2md-p52-t5-1e9a4af5 text 3734:4163",
+  "sec2md-p53-t0-2fc498c1 text 0:103",
+  "sec2md-p53-t1-8c2c5956 text 105:1022",
+  "sec2md-p53-t2-fec3995f text 1024:1573",
+  "sec2md-p53-t3-16cfc6b0 text 1575:2086",
+  "sec2md-p53-t4-2f819b63 text 2088:3088",
+  "sec2md-p53-t5-ca5daedc text 3090:4151",
+  "sec2md-p53-t6-f3c6688c text 4153:4603",
+  "sec2md-p54-t0-b6589f45 text 0:691 ecd:TrdArrAdoptionDate ecd:TrdArrIndName ecd:TrdArrIndTitle ecd:Rule10b51ArrAdoptedFlag ecd:NonRule10b51ArrAdoptedFlag ecd:Rule10b51ArrTrmntdFlag ecd:NonRule10b51ArrTrmntdFlag ecd:TrdArrExpirationDate",
+  "sec2md-p54-t1-1445a465 text 693:1360 ecd:TrdArrAdoptionDate ecd:TrdArrIndName ecd:TrdArrIndTitle ecd:Rule10b51ArrAdoptedFlag ecd:TrdArrSecuritiesAggAvailAmt ecd:TrdArrExpirationDate",
+  "sec2md-p54-t2-a1a9dcf7 text 1362:1459",
+  "sec2md-p54-t3-dbb37ad0 text 1461:2162 ecd:InsiderTrdPoliciesProcAdoptedFlag",
+  "sec2md-p54-t4-8d816f85 text 2164:2511",
+  "sec2md-p54-t5-ba276944 text 2513:3123",
+  "sec2md-p54-t6-a37e258b text 3125:3302",
+  "sec2md-p55-t0-839f6467 text 0:67",
+  "sec2md-p55-t1-48138e2f table 69:958",
+  "sec2md-p55-t2-0faf183a text 960:1007 dei:AuditorFirmId",
+  "sec2md-p55-t3-89dccc7e table 1009:3841",
+  "sec2md-p56-t0-8b500ac6 table 0:4604",
+  "sec2md-p57-t0-e962838d table 0:4084",
+  "sec2md-p58-t0-96909584 table 0:503",
+  "sec2md-p58-t1-31a8bf7e text 505:886",
+  "sec2md-p58-t2-43e74d76 text 888:925",
+  "sec2md-p59-t0-b0cf4846 table 0:398",
+  "sec2md-p59-t1-3fd22432 text 400:1041",
+  "sec2md-p59-t2-4f2af84c table 1043:2300"
+ ],
+ "text_blocks": [
+  "p36 us-gaap:BasisOfPresentationAndSignificantAccountingPoliciesTextBlock | Summary of Significant Accounting Policies | 11",
+  "p37 us-gaap:RevenueFromContractWithCustomerTextBlock | Revenue | 6",
+  "p38 us-gaap:RevenueFromContractWithCustomerTextBlock | Revenue | 1",
+  "p38 us-gaap:EarningsPerShareTextBlock | Earnings Per Share | 2",
+  "p38 us-gaap:FinancialInstrumentsDisclosureTextBlock | Financial Instruments | 1",
+  "p39 us-gaap:FinancialInstrumentsDisclosureTextBlock | Financial Instruments | 5",
+  "p39 us-gaap:FairValueMeasurementPolicyPolicyTextBlock | Fair Value Measurement Policy Policy | 1",
+  "p40 us-gaap:FinancialInstrumentsDisclosureTextBlock | Financial Instruments | 4",
+  "p41 us-gaap:PropertyPlantAndEquipmentDisclosureTextBlock | Property, Plant and Equipment | 2",
+  "p41 us-gaap:AdditionalFinancialInformationDisclosureTextBlock | Consolidated Financial Statement Details | 4",
+  "p41 us-gaap:IncomeTaxDisclosureTextBlock | Income Taxes | 2",
+  "p42 us-gaap:IncomeTaxDisclosureTextBlock | Income Taxes | 3",
+  "p43 us-gaap:IncomeTaxDisclosureTextBlock | Income Taxes | 5",
+  "p44 us-gaap:LesseeOperatingLeasesTextBlock | Leases | 5",
+  "p45 us-gaap:DebtDisclosureTextBlock | Debt | 3",
+  "p45 us-gaap:ScheduleOfDebtInstrumentsTextBlock | The following table provides a summary of the Company’s term debt as of September 28, 2024 and September 30, 2023: | 1",
+  "p46 us-gaap:DebtDisclosureTextBlock | Debt | 1",
+  "p46 us-gaap:StockholdersEquityNoteDisclosureTextBlock | Shareholders’ Equity | 2",
+  "p46 us-gaap:DisclosureOfCompensationRelatedCostsShareBasedPaymentsTextBlock | Share-Based Compensation | 2",
+  "p47 us-gaap:DisclosureOfCompensationRelatedCostsShareBasedPaymentsTextBlock | Share-Based Compensation | 4",
+  "p47 us-gaap:CommitmentsAndContingenciesDisclosureTextBlock | Commitments, Contingencies and Supply Concentrations | 2",
+  "p47 us-gaap:UnrecordedUnconditionalPurchaseObligationsDisclosureTextBlock | Future payments under unconditional purchase obligations with a remaining term in excess of one year as of September 28, 2024, are as follows (in millions): | 1",
+  "p48 us-gaap:CommitmentsAndContingenciesDisclosureTextBlock | Commitments, Contingencies and Supply Concentrations | 4",
+  "p48 us-gaap:SegmentReportingDisclosureTextBlock | Segment Information and Geographic Data | 2",
+  "p49 us-gaap:SegmentReportingDisclosureTextBlock | Segment Information and Geographic Data | 5"
+ ],
+ "sections": [
+  {
+   "part": "PART I",
+   "item": "ITEM 1",
+   "title": "Business",
+   "pages": [
+    3,
+    7
+   ],
+   "tokens": 2774,
+   "head": "\nItem 1. Business\n\nCompany Background\n\nThe Company designs, ",
+   "tail": "te URLs are intended to be inactive textual references only."
+  },
+  {
+   "part": "PART I",
+   "item": "ITEM 1A",
+   "title": "Risk Factors",
+   "pages": [
+    7,
+    19
+   ],
+   "tokens": 11511,
+   "head": "Item 1A. Risk Factors\n\nThe Company’s business, reputation, r",
+   "tail": "dverse impact on investor confidence and employee retention."
+  },
+  {
+   "part": "PART I",
+   "item": "ITEM 1B",
+   "title": "Unresolved Staff Comments",
+   "pages": [
+    19,
+    19
+   ],
+   "tokens": 12,
+   "head": "Item 1B. Unresolved Staff Comments\n\nNone.",
+   "tail": "Item 1B. Unresolved Staff Comments\n\nNone."
+  },
+  {
+   "part": "PART I",
+   "item": "ITEM 1C",
+   "title": "Cybersecurity",
+   "pages": [
+    19,
+    19
+   ],
+   "tokens": 453,
+   "head": "Item 1C. Cybersecurity\n\nThe Company’s management, led by its",
+   "tail": " Item 1A of this Form 10-K under the heading “Risk Factors.”"
+  },
+  {
+   "part": "PART I",
+   "item": "ITEM 2",
+   "title": "Properties",
+   "pages": [
+    20,
+    20
+   ],
+   "tokens": 98,
+   "head": "Item 2. Properties\n\nThe Company’s headquarters is located in",
+   "tail": " condition and are suitable for the conduct of its business."
+  },
+  {
+   "part": "PART I",
+   "item": "ITEM 3",
+   "title": "Legal Proceedings",
+   "pages": [
+    20,
+    20
+   ],
+   "tokens": 834,
+   "head": "Item 3. Legal Proceedings\n\n*Digital Markets Act Investigatio",
+   "tail": "hat reporting period could be materially adversely affected."
+  },
+  {
+   "part": "PART I",
+   "item": "ITEM 4",
+   "title": "Mine Safety Disclosures",
+   "pages": [
+    20,
+    20
+   ],
+   "tokens": 12,
+   "head": "Item 4. Mine Safety Disclosures\n\nNot applicable.",
+   "tail": "Item 4. Mine Safety Disclosures\n\nNot applicable."
+  },
+  {
+   "part": "PART II",
+   "item": "ITEM 5",
+   "title": "Market for Registrant’s Common Equity, Related Stockholder Matters and Issuer Purchases of Equity Securities",
+   "pages": [
+    21,
+    22
+   ],
+   "tokens": 776,
+   "head": "\nItem 5. Market for Registrant’s Common Equity, Related Stoc",
+   "tail": "ctor Index | $ 100 | $ 146 | $ 216 | $ 156 | $ 215 | $ 322 |"
+  },
+  {
+   "part": "PART II",
+   "item": "ITEM 6",
+   "title": "[Reserved]",
+   "pages": [
+    22,
+    22
+   ],
+   "tokens": 7,
+   "head": "Item 6. [Reserved]",
+   "tail": "Item 6. [Reserved]"
+  },
+  {
+   "part": "PART II",
+   "item": "ITEM 7",
+   "title": "Management’s Discussion and Analysis of Financial Condition and Results of Operations",
+   "pages": [
+    23,
+    28
+   ],
+   "tokens": 3808,
+   "head": "Item 7. Management’s Discussion and Analysis of Financial Co",
+   "tail": " on the Company’s financial condition and operating results."
+  },
+  {
+   "part": "PART II",
+   "item": "ITEM 7A",
+   "title": "Quantitative and Qualitative Disclosures About Market Risk",
+   "pages": [
+    29,
+    29
+   ],
+   "tokens": 602,
+   "head": "Item 7A. Quantitative and Qualitative Disclosures About Mark",
+   "tail": "e fair values of the Company’s foreign currency derivatives."
+  },
+  {
+   "part": "PART II",
+   "item": "ITEM 8",
+   "title": "Financial Statements and Supplementary Data",
+   "pages": [
+    30,
+    52
+   ],
+   "tokens": 16730,
+   "head": "Item 8. Financial Statements and Supplementary Data\n\n| Index",
+   "tail": "s/ Ernst & Young LLP\n\nSan Jose, California\n\nNovember 1, 2024"
+  },
+  {
+   "part": "PART II",
+   "item": "ITEM 9",
+   "title": "Changes in and Disagreements with Accountants on Accounting and Financial Disclosure",
+   "pages": [
+    53,
+    53
+   ],
+   "tokens": 21,
+   "head": "Item 9. Changes in and Disagreements with Accountants on Acc",
+   "tail": "th Accountants on Accounting and Financial Disclosure\n\nNone."
+  },
+  {
+   "part": "PART II",
+   "item": "ITEM 9A",
+   "title": "Controls and Procedures",
+   "pages": [
+    53,
+    53
+   ],
+   "tokens": 787,
+   "head": "Item 9A. Controls and Procedures\n\nEvaluation of Disclosure C",
+   "tail": "ct, the Company’s internal control over financial reporting."
+  },
+  {
+   "part": "PART II",
+   "item": "ITEM 9B",
+   "title": "Other Information",
+   "pages": [
+    54,
+    54
+   ],
+   "tokens": 310,
+   "head": "Item 9B. Other Information\n\nInsider Trading Arrangements\n\nOn",
+   "tail": " early termination in accordance with the terms of the plan."
+  },
+  {
+   "part": "PART II",
+   "item": "ITEM 9C",
+   "title": "Disclosure Regarding Foreign Jurisdictions that Prevent Inspections",
+   "pages": [
+    54,
+    54
+   ],
+   "tokens": 19,
+   "head": "Item 9C. Disclosure Regarding Foreign Jurisdictions that Pre",
+   "tail": "eign Jurisdictions that Prevent Inspections\n\nNot applicable."
+  },
+  {
+   "part": "PART III",
+   "item": "ITEM 10",
+   "title": "Directors, Executive Officers and Corporate Governance",
+   "pages": [
+    54,
+    54
+   ],
+   "tokens": 194,
+   "head": "Item 10. Directors, Executive Officers and Corporate Governa",
+   "tail": " Proxy Statement”), and is incorporated herein by reference."
+  },
+  {
+   "part": "PART III",
+   "item": "ITEM 11",
+   "title": "Executive Compensation",
+   "pages": [
+    54,
+    54
+   ],
+   "tokens": 31,
+   "head": "Item 11. Executive Compensation\n\nThe information required by",
+   "tail": "25 Proxy Statement, and is incorporated herein by reference."
+  },
+  {
+   "part": "PART III",
+   "item": "ITEM 12",
+   "title": "Security Ownership of Certain Beneficial Owners and Management and Related Stockholder Matters",
+   "pages": [
+    54,
+    54
+   ],
+   "tokens": 43,
+   "head": "Item 12. Security Ownership of Certain Beneficial Owners and",
+   "tail": "25 Proxy Statement, and is incorporated herein by reference."
+  },
+  {
+   "part": "PART III",
+   "item": "ITEM 13",
+   "title": "Certain Relationships and Related Transactions, and Director Independence",
+   "pages": [
+    54,
+    54
+   ],
+   "tokens": 38,
+   "head": "Item 13. Certain Relationships and Related Transactions, and",
+   "tail": "25 Proxy Statement, and is incorporated herein by reference."
+  },
+  {
+   "part": "PART III",
+   "item": "ITEM 14",
+   "title": "Principal Accountant Fees and Services",
+   "pages": [
+    54,
+    54
+   ],
+   "tokens": 35,
+   "head": "Item 14. Principal Accountant Fees and Services\n\nThe informa",
+   "tail": "25 Proxy Statement, and is incorporated herein by reference."
+  },
+  {
+   "part": "PART IV",
+   "item": "ITEM 15",
+   "title": "Exhibit and Financial Statement Schedules",
+   "pages": [
+    55,
+    58
+   ],
+   "tokens": 4495,
+   "head": "\nItem 15. Exhibit and Financial Statement Schedules\n\n(a) Doc",
+   "tail": "sh to the SEC, upon request, copies of any such instruments."
+  },
+  {
+   "part": "PART IV",
+   "item": "ITEM 16",
+   "title": "Form 10-K Summary",
+   "pages": [
+    58,
+    59
+   ],
+   "tokens": 670,
+   "head": "Item 16. Form 10-K Summary\n\nNone.\n\nSIGNATURES\n\nPursuant to t",
+   "tail": "er | Director | November 1, 2024 |\n| SUSAN L. WAGNER |  |  |"
+  }
+ ],
+ "chunks": [
+  "0 p1-1 350t sec2md-p1-t0-04f4aba7..sec2md-p1-t2-6a9fb164",
+  "1 p1-1 449t sec2md-p1-t1-4b7ee230..sec2md-p1-t4-64467a6e",
+  "2 p1-1 425t sec2md-p1-t4-64467a6e..sec2md-p1-t7-03f13ee9",
+  "3 p1-1 365t sec2md-p1-t8-5ff1da99..sec2md-p1-t11-4d98cc7e",
+  "4 p2-3 443t sec2md-p2-t0-aaed1b35..sec2md-p3-t0-c73919f2",
+  "5 p3-3 438t sec2md-p3-t0-c73919f2..sec2md-p3-t3-dc438a80",
+  "6 p3-4 409t sec2md-p3-t1-e9c72ded..sec2md-p4-t0-12b532d0",
+  "7 p4-4 401t sec2md-p4-t1-8ddd81d5..sec2md-p4-t4-26400963",
+  "8 p4-5 415t sec2md-p4-t4-26400963..sec2md-p5-t1-077a710a",
+  "9 p5-5 486t sec2md-p5-t1-077a710a..sec2md-p5-t6-260cd116",
+  "10 p5-6 378t sec2md-p5-t6-260cd116..sec2md-p6-t0-1b26e98a",
+  "11 p6-6 388t sec2md-p6-t0-1b26e98a..sec2md-p6-t3-3ba25e23",
+  "12 p6-7 396t sec2md-p6-t3-3ba25e23..sec2md-p7-t1-682951b5",
+  "13 p7-7 442t sec2md-p7-t0-cbe138b3..sec2md-p7-t4-60bf0d70",
+  "14 p7-8 393t sec2md-p7-t3-21c522cb..sec2md-p8-t1-a8e0c050",
+  "15 p8-8 370t sec2md-p8-t1-a8e0c050..sec2md-p8-t2-d66e6278",
+  "16 p8-8 444t sec2md-p8-t2-d66e6278..sec2md-p8-t4-454cf463",
+  "17 p9-9 410t sec2md-p9-t0-17679a29..sec2md-p9-t3-0e275a07",
+  "18 p9-9 386t sec2md-p9-t2-0d52b056..sec2md-p9-t6-e68766c2",
+  "19 p9-10 404t sec2md-p9-t5-66593195..sec2md-p10-t0-8527cba8",
+  "20 p10-10 475t sec2md-p10-t0-8527cba8..sec2md-p10-t3-dc0853c5",
+  "21 p10-10 408t sec2md-p10-t3-dc0853c5..sec2md-p10-t4-875ad464",
+  "22 p10-11 467t sec2md-p10-t4-875ad464..sec2md-p11-t0-61c63cac",
+  "23 p11-11 477t sec2md-p11-t0-61c63cac..sec2md-p11-t2-922c8cf5",
+  "24 p11-12 351t sec2md-p11-t3-7990daac..sec2md-p12-t0-96e91a84",
+  "25 p12-12 388t sec2md-p12-t1-a8bae4e2..sec2md-p12-t3-7c752ed8",
+  "26 p12-12 396t sec2md-p12-t3-7c752ed8..sec2md-p12-t4-b09e8b4b",
+  "27 p12-13 510t sec2md-p12-t4-b09e8b4b..sec2md-p13-t2-50170624",
+  "28 p13-13 381t sec2md-p13-t2-50170624..sec2md-p13-t4-efdee705",
+  "29 p13-14 499t sec2md-p13-t4-efdee705..sec2md-p14-t0-9a80ac61",
+  "30 p14-14 450t sec2md-p14-t0-9a80ac61..sec2md-p14-t2-1925655e",
+  "31 p14-15 383t sec2md-p14-t2-1925655e..sec2md-p15-t0-c77f5684",
+  "32 p15-15 323t sec2md-p15-t0-c77f5684..sec2md-p15-t3-9b81d58f",
+  "33 p15-15 452t sec2md-p15-t2-62c362e5..sec2md-p15-t5-189acd76",
+  "34 p15-16 418t sec2md-p15-t5-189acd76..sec2md-p16-t1-b3e9093d",
+  "35 p16-16 391t sec2md-p16-t1-b3e9093d..sec2md-p16-t3-a62fb803",
+  "36 p16-16 381t sec2md-p16-t3-a62fb803..sec2md-p16-t5-6423a286",
+  "37 p17-17 386t sec2md-p17-t0-78ebbbdc..sec2md-p17-t2-1753ae7d",
+  "38 p17-17 339t sec2md-p17-t1-738ebe92..sec2md-p17-t5-739bad5f",
+  "39 p17-18 447t sec2md-p17-t4-a82f7d77..sec2md-p18-t0-25f2fdcc",
+  "40 p17-18 440t sec2md-p17-t6-7bd3c49b..sec2md-p18-t3-1092c03d",
+  "41 p18-18 417t sec2md-p18-t2-65fa9ea3..sec2md-p18-t4-0ae46975",
+  "42 p18-19 512t sec2md-p18-t4-0ae46975..sec2md-p19-t1-5ec79957",
+  "43 p19-19 414t sec2md-p19-t1-5ec79957..sec2md-p19-t4-e0f642b6",
+  "44 p19-20 420t sec2md-p19-t3-d80220fe..sec2md-p20-t1-d3901683",
+  "45 p20-20 459t sec2md-p20-t0-362a43fd..sec2md-p20-t2-f01b34f4",
+  "46 p20-20 374t sec2md-p20-t2-f01b34f4..sec2md-p20-t4-a593c53c",
+  "47 p20-21 144t sec2md-p20-t3-1492d361..sec2md-p21-t0-ea54d479",
+  "48 p21-21 474t sec2md-p21-t0-ea54d479..sec2md-p21-t2-bb017131",
+  "49 p21-23 504t sec2md-p21-t2-bb017131..sec2md-p23-t0-3ffea5cc",
+  "50 p23-23 439t sec2md-p23-t0-3ffea5cc..sec2md-p23-t4-7a641252",
+  "51 p24-24 435t sec2md-p24-t0-7b2d6260..sec2md-p24-t2-308fdd97",
+  "52 p25-26 505t sec2md-p25-t0-22aff996..sec2md-p26-t0-5a060ab5",
+  "53 p26-26 475t sec2md-p26-t3-0179c75d..sec2md-p26-t4-16f5ebc4",
+  "54 p27-27 482t sec2md-p27-t0-c72bc264..sec2md-p27-t4-c1491ebc",
+  "55 p27-27 437t sec2md-p27-t3-014527be..sec2md-p27-t6-98a345bd",
+  "56 p27-28 417t sec2md-p27-t5-45698880..sec2md-p28-t2-79d9460c",
+  "57 p28-28 508t sec2md-p28-t2-79d9460c..sec2md-p28-t5-24ef0c56",
+  "58 p28-29 365t sec2md-p28-t5-24ef0c56..sec2md-p29-t1-7185eeb2",
+  "59 p29-29 512t sec2md-p29-t1-7185eeb2..sec2md-p29-t4-59a8929e",
+  "60 p29-30 304t sec2md-p29-t4-59a8929e..sec2md-p30-t1-a6d903c5",
+  "61 p31-31 461t sec2md-p31-t0-12e855e6..sec2md-p31-t1-9b98b065",
+  "62 p32-32 366t sec2md-p32-t0-7e9e742b..sec2md-p32-t1-9b98b065",
+  "63 p33-33 542t sec2md-p33-t0-43c05c90..sec2md-p33-t0-43c05c90",
+  "64 p33-34 490t sec2md-p33-t1-9b98b065..sec2md-p34-t1-9b98b065",
+  "65 p35-35 802t sec2md-p35-t0-c4d1c529..sec2md-p35-t0-c4d1c529",
+  "66 p35-37 494t sec2md-p35-t1-9b98b065..sec2md-p37-t0-eb29f9b5",
+  "67 p37-37 382t sec2md-p37-t0-eb29f9b5..sec2md-p37-t2-290053a3",
+  "68 p37-37 301t sec2md-p37-t2-290053a3..sec2md-p37-t3-00e0762f",
+  "69 p37-38 428t sec2md-p37-t4-3553f194..sec2md-p38-t0-4fd20186",
+  "70 p38-38 247t sec2md-p38-t1-e6cd61af..sec2md-p38-t2-c0cfc849",
+  "71 p38-38 563t sec2md-p38-t2-c0cfc849..sec2md-p38-t3-53f2b894",
+  "72 p39-39 467t sec2md-p39-t0-d896ddfa..sec2md-p39-t0-d896ddfa",
+  "73 p39-39 462t sec2md-p39-t1-aea3b14e..sec2md-p39-t4-ba3c3f63",
+  "74 p39-40 283t sec2md-p39-t3-b7a08b8f..sec2md-p40-t0-f61feef1",
+  "75 p40-40 483t sec2md-p40-t1-be0e3431..sec2md-p40-t3-cd1d5ef2",
+  "76 p40-41 393t sec2md-p40-t3-cd1d5ef2..sec2md-p41-t2-71af0fba",
+  "77 p41-41 505t sec2md-p41-t1-d2ff0882..sec2md-p41-t7-5ee30474",
+  "78 p41-42 358t sec2md-p41-t6-8ccda3a6..sec2md-p42-t0-a7f9c91a",
+  "79 p42-42 231t sec2md-p42-t1-72b54f02..sec2md-p42-t1-72b54f02",
+  "80 p42-42 311t sec2md-p42-t2-22e00fd2..sec2md-p42-t2-22e00fd2",
+  "81 p43-43 482t sec2md-p43-t0-652eba64..sec2md-p43-t2-aa868537",
+  "82 p43-44 394t sec2md-p43-t1-7daab7c8..sec2md-p44-t0-de5843d1",
+  "83 p43-44 239t sec2md-p43-t4-aaaa6c07..sec2md-p44-t0-de5843d1",
+  "84 p44-44 494t sec2md-p44-t1-285b3768..sec2md-p44-t2-7686c901",
+  "85 p44-45 373t sec2md-p44-t3-291313a9..sec2md-p45-t0-fe1d539f",
+  "86 p45-45 495t sec2md-p45-t3-8cfcfd35..sec2md-p45-t4-35da3215",
+  "87 p45-46 432t sec2md-p45-t4-35da3215..sec2md-p46-t1-b16ef5a9",
+  "88 p46-46 486t sec2md-p46-t1-b16ef5a9..sec2md-p46-t4-afb00c11",
+  "89 p46-47 438t sec2md-p46-t3-8455fbaa..sec2md-p47-t0-7073c573",
+  "90 p47-47 388t sec2md-p47-t1-073616bf..sec2md-p47-t5-a4e9d94e",
+  "91 p47-48 506t sec2md-p47-t4-6827ab79..sec2md-p48-t4-c52ae472",
+  "92 p48-48 287t sec2md-p48-t2-5ee73e1a..sec2md-p48-t5-f226e0f3",
+  "93 p49-49 409t sec2md-p49-t0-0c138745..sec2md-p49-t1-b649902d",
+  "94 p49-50 472t sec2md-p49-t2-4ae00da3..sec2md-p50-t1-4ee60531",
+  "95 p50-50 473t sec2md-p50-t1-4ee60531..sec2md-p50-t4-a1561f85",
+  "96 p50-50 398t sec2md-p50-t3-12a4f8c3..sec2md-p50-t10-97cf6054",
+  "97 p51-52 504t sec2md-p51-t0-de0170a4..sec2md-p52-t1-15871f7e",
+  "98 p52-52 277t sec2md-p52-t2-e3cfdbfd..sec2md-p52-t4-da3750ed",
+  "99 p52-53 306t sec2md-p52-t3-dac8f13d..sec2md-p53-t1-8c2c5956",
+  "100 p53-53 400t sec2md-p53-t1-8c2c5956..sec2md-p53-t4-2f819b63",
+  "101 p53-54 392t sec2md-p53-t4-2f819b63..sec2md-p54-t0-b6589f45",
+  "102 p54-54 396t sec2md-p54-t0-b6589f45..sec2md-p54-t3-dbb37ad0",
+  "103 p54-55 325t sec2md-p54-t1-1445a465..sec2md-p55-t0-839f6467",
+  "104 p55-55 268t sec2md-p55-t0-839f6467..sec2md-p55-t2-0faf183a",
+  "105 p55-55 935t sec2md-p55-t0-839f6467..sec2md-p55-t3-89dccc7e",
+  "106 p56-56 1627t sec2md-p56-t0-8b500ac6..sec2md-p56-t0-8b500ac6",
+  "107 p57-57 1227t sec2md-p57-t0-e962838d..sec2md-p57-t0-e962838d",
+  "108 p58-59 458t sec2md-p58-t0-96909584..sec2md-p59-t1-3fd22432",
+  "109 p59-59 362t sec2md-p59-t2-4f2af84c..sec2md-p59-t2-4f2af84c"
+ ],
+ "lost_cells": 15
+}

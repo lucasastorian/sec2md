@@ -30,9 +30,24 @@ Thank you for considering contributing to `sec2md`! This document provides guide
 
 ## Testing
 
-- Write tests for new features
-- Ensure all tests pass before submitting a PR
-- Aim for good test coverage
+`pytest` runs offline in a few seconds:
+
+- unit tests per module;
+- golden tests (`tests/test_golden.py`): seven real filings in `tests/fixtures/`, one per layout
+  family (listed in `tests/snapshot.py`), whose markdown and structure (elements, XBRL text blocks,
+  sections, chunks, table cells lost) must match `tests/golden/` byte for byte. After an intended
+  output change, run `python -m tests.snapshot` and let the reviewer read `git diff tests/golden`;
+- invariants every parse must keep (`tests/test_invariants.py`).
+
+A change to the parser is also measured on a larger corpus of filings (any directory of .html files):
+
+    python benchmarks/bench.py run -j 8 --corpus path/to/filings -o before.json
+    # ...the change...
+    python benchmarks/bench.py run -j 8 --corpus path/to/filings -o after.json
+    python benchmarks/bench.py compare before.json after.json
+
+A refactor leaves every output hash unchanged and says so; any other change is a behavior change to
+review (`run --dump DIR` writes the outputs for `diff -r`).
 
 ## Reporting Issues
 

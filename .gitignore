@@ -59,3 +59,8 @@ scripts/
 
 .claude
 
+
+# Local benchmark corpus and results (benchmarks/README.md)
+benchmarks/corpus/
+benchmarks/*.json
+benchmarks/out/

@@ -1,0 +1,20 @@
+{
+ "pages": 4,
+ "display_pages": [],
+ "elements": [
+  "sec2md-p1-t0-04f4aba7 text 0:85",
+  "sec2md-p1-t1-22330d1f text 87:320",
+  "sec2md-p1-t2-48ed4718 text 322:598",
+  "sec2md-p2-t0-74e82c22 text 0:388",
+  "sec2md-p3-t0-1bd1be17 table 0:388",
+  "sec2md-p3-p1-da4b9237 paragraph 390:391",
+  "sec2md-p4-t0-6897030b table 0:233",
+  "sec2md-p4-p1-77de68da paragraph 235:236"
+ ],
+ "text_blocks": [],
+ "sections": [],
+ "chunks": [
+  "0 p1-4 430t sec2md-p1-t0-04f4aba7..sec2md-p4-p1-77de68da"
+ ],
+ "lost_cells": 0
+}

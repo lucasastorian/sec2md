@@ -1,0 +1,40 @@
+{
+ "pages": 6,
+ "display_pages": [],
+ "elements": [
+  "sec2md-p1-t0-fdc42550 text 0:568",
+  "sec2md-p1-t1-79d4fa9d text 570:1124",
+  "sec2md-p1-t2-32c27ab7 text 1126:2115",
+  "sec2md-p1-t3-48cbac5e text 2117:2780",
+  "sec2md-p1-t4-6899807e text 2782:3340",
+  "sec2md-p1-t5-e27ba1ba text 3342:3671",
+  "sec2md-p2-t0-9172daec text 0:530",
+  "sec2md-p2-t1-250e8a35 text 532:696",
+  "sec2md-p2-t2-6388b3cb text 698:1769",
+  "sec2md-p2-t3-933af4aa text 1771:2567",
+  "sec2md-p2-t4-bd4e2448 text 2569:3325",
+  "sec2md-p2-t5-2f99c969 text 3327:3592",
+  "sec2md-p3-t0-de7af0aa text 0:1116",
+  "sec2md-p3-t1-895aff05 text 1118:1797",
+  "sec2md-p3-t2-3db6ad83 text 1799:3682",
+  "sec2md-p3-t3-c2d2fa84 text 3684:4604",
+  "sec2md-p4-t0-8aa75a2b text 0:565",
+  "sec2md-p4-t1-7bb7b54c text 567:633",
+  "sec2md-p5-t0-f8199fd9 table 0:2892",
+  "sec2md-p6-t0-cda12e5a table 0:2903"
+ ],
+ "text_blocks": [],
+ "sections": [],
+ "chunks": [
+  "0 p1-1 460t sec2md-p1-t0-fdc42550..sec2md-p1-t2-32c27ab7",
+  "1 p1-1 408t sec2md-p1-t2-32c27ab7..sec2md-p1-t5-e27ba1ba",
+  "2 p2-2 421t sec2md-p2-t0-9172daec..sec2md-p2-t2-6388b3cb",
+  "3 p2-2 501t sec2md-p2-t2-6388b3cb..sec2md-p2-t5-2f99c969",
+  "4 p3-3 429t sec2md-p3-t0-de7af0aa..sec2md-p3-t2-3db6ad83",
+  "5 p3-3 447t sec2md-p3-t1-895aff05..sec2md-p3-t2-3db6ad83",
+  "6 p3-4 329t sec2md-p3-t2-3db6ad83..sec2md-p4-t1-7bb7b54c",
+  "7 p5-5 850t sec2md-p5-t0-f8199fd9..sec2md-p5-t0-f8199fd9",
+  "8 p6-6 880t sec2md-p6-t0-cda12e5a..sec2md-p6-t0-cda12e5a"
+ ],
+ "lost_cells": 0
+}
