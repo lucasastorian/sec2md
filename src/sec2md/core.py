@@ -1,14 +1,14 @@
 """Core conversion functionality."""
 
-import re
 import base64
 import logging
-from typing import overload, List, Literal
+import re
+from typing import List, Literal, overload
 from urllib.parse import urljoin
 
-from sec2md.utils import is_url, fetch
-from sec2md.parser import Parser
 from sec2md.models import Page
+from sec2md.parser import Parser
+from sec2md.utils import fetch, is_url
 
 logger = logging.getLogger(__name__)
 
@@ -25,96 +25,55 @@ _MIME_TYPES = {
 
 
 def _embed_images(html: str, source_url: str, user_agent: str | None = None) -> str:
-    """Fetch images referenced in HTML and embed them as base64 data URIs.
-
-    Args:
-        html: HTML string with <img> tags containing relative or absolute URLs.
-        source_url: The URL the HTML was fetched from, used to resolve relative paths.
-        user_agent: Optional user agent for image requests.
-
-    Returns:
-        HTML with image src attributes replaced by data URIs where possible.
-    """
+    """Fetch the images the HTML references (relative to source_url) and inline them as base64
+    data URIs; an image that cannot be fetched keeps its URL."""
     import requests
 
     base_url = source_url.rsplit('/', 1)[0] + '/'
-
-    headers = {}
-    if user_agent:
-        headers["User-Agent"] = user_agent
+    headers = {"User-Agent": user_agent} if user_agent else {}
 
     def _replace_src(match: re.Match) -> str:
-        prefix = match.group(1)   # '<img ... src="'
-        src = match.group(2)      # the URL
-        suffix = match.group(3)   # closing quote
-
-        # Skip already-embedded data URIs
+        prefix, src, suffix = match.group(1), match.group(2), match.group(3)  # '<img ... src="', URL, quote
         if src.startswith('data:'):
             return match.group(0)
-
         abs_url = urljoin(base_url, src)
-
         try:
             resp = requests.get(abs_url, headers=headers, timeout=15)
             resp.raise_for_status()
         except Exception:
             logger.warning("Failed to fetch image: %s", abs_url)
             return match.group(0)
-
-        # Detect MIME type from extension
         ext = '.' + src.rsplit('.', 1)[-1].lower() if '.' in src else ''
-        mime = _MIME_TYPES.get(ext, 'image/png')
-
         encoded = base64.b64encode(resp.content).decode('ascii')
-        return f"{prefix}data:{mime};base64,{encoded}{suffix}"
+        return f"{prefix}data:{_MIME_TYPES.get(ext, 'image/png')};base64,{encoded}{suffix}"
 
-    return re.sub(
-        r'(<img[^>]+src=["\'])([^"\']+)(["\'])',
-        _replace_src,
-        html,
-        flags=re.IGNORECASE,
-    )
+    return re.sub(r'(<img[^>]+src=["\'])([^"\']+)(["\'])', _replace_src, html, flags=re.IGNORECASE)
 
 
-def _resolve_source(source: str | bytes, user_agent: str | None = None) -> str:
-    """Validate input and resolve to HTML string."""
+def _parser(source: str | bytes, user_agent: str | None, embed_images: bool) -> Parser:
+    """A Parser over HTML given as a string, bytes or a URL (fetched)."""
+    url = source if isinstance(source, str) and is_url(source) else None
     if isinstance(source, bytes):
-        if source.startswith(b'%PDF'):
-            raise ValueError(
-                "PDF content detected. This library only supports HTML input. "
-                "Please extract HTML from the filing first."
-            )
         source = source.decode('utf-8', errors='ignore')
-
-    if isinstance(source, str) and source.strip().startswith('%PDF'):
+    if source.lstrip().startswith('%PDF'):
         raise ValueError(
             "PDF content detected. This library only supports HTML input. "
             "Please extract HTML from the filing first."
         )
-
-    if is_url(source):
-        return fetch(source, user_agent=user_agent)
-    return source
-
-
-@overload
-def convert_to_markdown(
-    source: str | bytes,
-    *,
-    user_agent: str | None = None,
-    return_pages: bool = False,
-    embed_images: bool = False,
-) -> str: ...
+    html = fetch(source, user_agent=user_agent) if is_url(source) else source
+    if embed_images and url:
+        html = _embed_images(html, url, user_agent)
+    return Parser(html)
 
 
 @overload
-def convert_to_markdown(
-    source: str | bytes,
-    *,
-    user_agent: str | None = None,
-    return_pages: bool = True,
-    embed_images: bool = False,
-) -> List[Page]: ...
+def convert_to_markdown(source: str | bytes, *, user_agent: str | None = None,
+                        return_pages: Literal[False] = False, embed_images: bool = False) -> str: ...
+
+
+@overload
+def convert_to_markdown(source: str | bytes, *, user_agent: str | None = None,
+                        return_pages: Literal[True], embed_images: bool = False) -> List[Page]: ...
 
 
 def convert_to_markdown(
@@ -156,18 +115,11 @@ def convert_to_markdown(
         >>> filing = company.get_filings(form="10-K").latest()
         >>> md = convert_to_markdown(filing.html())
     """
-    source_url = source if isinstance(source, str) and is_url(source) else None
-    html = _resolve_source(source, user_agent=user_agent)
-
-    if embed_images and source_url:
-        html = _embed_images(html, source_url, user_agent)
-
-    parser = Parser(html)
-
+    parser = _parser(source, user_agent, embed_images)
     if return_pages:
         return parser.get_pages()
-    else:
-        return parser.markdown()
+    # Just the text: no citable elements to build
+    return "\n\n".join(page.content for page in parser.get_pages(include_elements=False) if page.content)
 
 
 def parse_filing(
@@ -213,11 +165,4 @@ def parse_filing(
         >>> page_dict = page.model_dump()  # Full serialization
         >>> essentials = page.model_dump(include={'number', 'content', 'elements'})
     """
-    source_url = source if isinstance(source, str) and is_url(source) else None
-    html = _resolve_source(source, user_agent=user_agent)
-
-    if embed_images and source_url:
-        html = _embed_images(html, source_url, user_agent)
-
-    parser = Parser(html)
-    return parser.get_pages(include_elements=include_elements)
+    return _parser(source, user_agent, embed_images).get_pages(include_elements=include_elements)

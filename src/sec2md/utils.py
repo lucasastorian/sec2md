@@ -14,6 +14,17 @@ def clean_text(text: str) -> str:
     return _ws.sub(" ", text).strip()
 
 
+_CSS_LENGTH = {prop: re.compile(rf"(?<![\w-]){prop}:\s*(\d+(?:\.\d+)?)(px|pt)") for prop in ("top", "left", "bottom")}
+
+
+def css_px(style: str, prop: str) -> Optional[float]:
+    """An inline style's top, left or bottom in px, pt converted (margin-top is not top)."""
+    m = _CSS_LENGTH[prop].search(style)
+    if m is None:
+        return None
+    return float(m.group(1)) * (4.0 / 3.0) if m.group(2) == "pt" else float(m.group(1))
+
+
 def iter_tags(node: Tag, names: Collection[str]) -> Iterator[Tag]:
     """Descendant tags named one of `names`, in document order: find_all(names) without
     bs4's per-tag filter machinery, which costs more than the walk itself."""

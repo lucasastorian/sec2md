@@ -4,6 +4,14 @@ from typing import List, Optional, Union
 from sec2md.models import Page, Section, FilingType, Item10K, Item10Q, Item13D, Item13G, ITEM_10K_MAPPING, ITEM_10Q_MAPPING, ITEM_13D_MAPPING, ITEM_13G_MAPPING
 from sec2md.section_extractor import SectionExtractor
 
+# item enum -> (the filing type it belongs to, enum -> (part, item))
+_ITEM_ENUMS = {
+    Item10K: ("10-K", ITEM_10K_MAPPING),
+    Item10Q: ("10-Q", ITEM_10Q_MAPPING),
+    Item13D: ("SC 13D", ITEM_13D_MAPPING),
+    Item13G: ("SC 13G", ITEM_13G_MAPPING),
+}
+
 
 def extract_sections(
     pages: List[Page],
@@ -58,35 +66,15 @@ def get_section(
         >>> risk = sec2md.get_section(sections, Item10K.RISK_FACTORS)
         >>> print(risk.markdown())
     """
-    # Map enum to (part, item) tuple
-    if isinstance(item, Item10K):
-        if filing_type != "10-K":
-            raise ValueError(f"Item10K enum requires filing_type='10-K', got '{filing_type}'")
-        target_part, target_item = ITEM_10K_MAPPING[item]
-    elif isinstance(item, Item10Q):
-        if filing_type != "10-Q":
-            raise ValueError(f"Item10Q enum requires filing_type='10-Q', got '{filing_type}'")
-        target_part, target_item = ITEM_10Q_MAPPING[item]
-    elif isinstance(item, Item13D):
-        if filing_type != "SC 13D":
-            raise ValueError(f"Item13D enum requires filing_type='SC 13D', got '{filing_type}'")
-        target_part, target_item = ITEM_13D_MAPPING[item]
-    elif isinstance(item, Item13G):
-        if filing_type != "SC 13G":
-            raise ValueError(f"Item13G enum requires filing_type='SC 13G', got '{filing_type}'")
-        target_part, target_item = ITEM_13G_MAPPING[item]
-    else:
-        # String format - normalize it
-        item_str = str(item).upper().strip()
-        if not item_str.startswith("ITEM"):
-            item_str = f"ITEM {item_str}"
-        target_item = item_str
-        target_part = None  # Match any part
+    if type(item) in _ITEM_ENUMS:
+        form, mapping = _ITEM_ENUMS[type(item)]
+        if filing_type != form:
+            raise ValueError(f"{type(item).__name__} enum requires filing_type='{form}', got '{filing_type}'")
+        target_part, target_item = mapping[item]
+    else:  # "ITEM 1A" or "1A", in any part
+        target_item = str(item).upper().strip()
+        if not target_item.startswith("ITEM"):
+            target_item = f"ITEM {target_item}"
+        target_part = None
 
-    # Find matching section
-    for section in sections:
-        if section.item == target_item:
-            if target_part is None or section.part == target_part:
-                return section
-
-    return None
+    return next((s for s in sections if s.item == target_item and target_part in (None, s.part)), None)

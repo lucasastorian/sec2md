@@ -1,21 +1,21 @@
+"""HTML <table> to a markdown table: spans laid out on a grid, layout columns ($, %, footnote
+markers, spacers) merged into their neighbors, empty rows and columns dropped."""
 from __future__ import annotations
 
 import re
-import logging
 from bs4 import Tag
 from dataclasses import dataclass
 from typing import List, Optional
 
 from sec2md.utils import iter_tags
 
-logger = logging.getLogger(__name__)
-
 BULLETS = {"•", "●", "◦", "–", "-", "—", "·", ""}
+_FOOTNOTE = re.compile(r'^\[[a-zA-Z0-9]+\]$')  # [1], [b]
 
 
 @dataclass
 class Cell:
-    """A single cell in a table, potentially containing XBRL data"""
+    """A table cell's text and spans."""
     text: str
     rowspan: int = 1
     colspan: int = 1
@@ -23,16 +23,12 @@ class Cell:
     def __bool__(self) -> bool:
         return bool(self.text.strip())
 
-    def __repr__(self) -> str:
-        return f"Cell(text={self.text!r}, rowspan={self.rowspan}, colspan={self.colspan})"
 
-
+@dataclass(eq=False)
 class GridCell:
-    """A cell in the final grid, possibly part of a spanning cell"""
-
-    def __init__(self, cell: Cell, is_spanning: bool = False):
-        self.cell = cell
-        self.is_spanning = is_spanning
+    """A grid position: a cell, or a position its span covers (which reads as empty)."""
+    cell: Cell
+    is_spanning: bool = False
 
     @property
     def text(self) -> str:
@@ -40,9 +36,6 @@ class GridCell:
 
     def __bool__(self) -> bool:
         return bool(self.text.strip())
-
-    def __repr__(self) -> str:
-        return f"GridCell(cell={self.cell!r}, is_spanning={self.is_spanning})"
 
 
 class TableParser:
@@ -150,9 +143,8 @@ class TableParser:
 
     @staticmethod
     def is_footnote(text: str) -> bool:
-        """Check if string is a number or letter within square brackets and nothing else, e.g., [1], [b]"""
-        pattern = r'^\[[a-zA-Z0-9]+\]$'
-        return bool(re.match(pattern, text))
+        """A footnote marker and nothing else: [1], [b]."""
+        return bool(_FOOTNOTE.match(text))
 
     @staticmethod
     def _clean_grid(grid: List[List[GridCell]]) -> List[List[GridCell]]:
@@ -362,14 +354,10 @@ class TableParser:
             lines.append("| " + " | ".join(escaped_headers) + " |")
             lines.append("| " + " | ".join(["---"] * len(headers)) + " |")
 
-        # Data rows
+        # Data rows, padded or cut to the header's width
         for row in data:
-            # Pad row to match header length
-            while len(row) < len(headers):
-                row.append("")
-            # Escape pipe characters
-            escaped_row = [str(cell).replace("|", "\\|") for cell in row[:len(headers)]]
-            lines.append("| " + " | ".join(escaped_row) + " |")
+            row = (row + [""] * len(headers))[:len(headers)]
+            lines.append("| " + " | ".join(str(cell).replace("|", "\\|") for cell in row) + " |")
 
         return "\n".join(lines)
 

@@ -14,7 +14,7 @@ from sec2md.absolute_table_parser import AbsolutelyPositionedTableParser
 from sec2md.element_builder import build_elements_for_pages, augment_html_with_ids, _HIGHLIGHT_SCRIPT
 from sec2md.models import Page
 from sec2md.table_parser import TableParser
-from sec2md.utils import median, clean_text, iter_tags
+from sec2md.utils import median, clean_text, css_px, iter_tags
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +27,6 @@ _css_decl = re.compile(r"^[a-zA-Z\-]+\s*:\s*[^;]+;\s*$")
 ITEM_HEADER_CELL_RE = re.compile(r"^\s*Item\s+([0-9IVX]+)\.\s*$", re.I)
 PART_HEADER_CELL_RE = re.compile(r"^\s*Part\s+([IVX]+)\s*$", re.I)
 _ABSOLUTE = re.compile(r"(?:^|[;{])position:absolute")
-_TOP = re.compile(r"(?<![\w-])top:\s*(\d+(?:\.\d+)?)(px|pt)")
-_BOTTOM = re.compile(r"(?<![\w-])bottom:\s*(\d+(?:\.\d+)?)(px|pt)")
 _LEFT_PX = re.compile(r"(?<![\w-])left:\s*(\d+(?:\.\d+)?)px")
 _PAGE_NUMBER_PATTERNS = [re.compile(p, re.I) for p in (r"\bPage\s+(\d{1,4})\b", r"\b(\d{1,4})\s*\|", r"\|\s*(\d{1,4})\b")]
 _PART_BREADCRUMB = re.compile(r"^(?:\*\*|__)?\s*PART\s+[IVXLC]+\s*(?:\*\*|__)?$", re.I)
@@ -55,19 +53,13 @@ def _breaks_after(style: str) -> bool:
 
 
 def _top_px(el: Tag) -> Optional[float]:
-    """Y position from top: (or bottom:, counted from 10000px), in px or pt (pt as px)."""
+    """Y position in px from top: (or bottom:, counted from 10000px)."""
     style = el.get("style", "")
-    m = _TOP.search(style)
-    if m:
-        v = float(m.group(1))
-        return v * (4.0 / 3.0) if m.group(2) == "pt" else v
-    m = _BOTTOM.search(style)
-    if m:
-        v = float(m.group(1))
-        if m.group(2) == "pt":
-            v *= 4.0 / 3.0
-        return 10000.0 - v
-    return None
+    top = css_px(style, "top")
+    if top is not None:
+        return top
+    bottom = css_px(style, "bottom")
+    return None if bottom is None else 10000.0 - bottom
 
 
 def _plausible_page_number(num: int, min_val: int = 1) -> bool:

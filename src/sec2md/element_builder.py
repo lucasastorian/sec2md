@@ -66,57 +66,28 @@ def build_elements_for_pages(
         blocks_with_nodes = _group_segments_into_blocks(segments, page_num)
         merged_blocks = _merge_small_blocks(blocks_with_nodes, page_num, min_chars=min_chars)
 
-        elements = []
-        text_block_map: Dict[str, List[str]] = {}
-
+        elements: List[Element] = []
+        notes: Dict[str, Tuple[Any, List[Element]]] = {}  # TextBlock name -> (its first info, its elements)
         for element, nodes, text_block_info in merged_blocks:
             element.tags = _extract_xbrl_tags(nodes)
             elements.append(element)
             block_nodes_map[element.id] = nodes
-
             if text_block_info:
-                tb_name = text_block_info.name
-                if tb_name not in text_block_map:
-                    text_block_map[tb_name] = []
-                text_block_map[tb_name].append(element.id)
+                notes.setdefault(text_block_info.name, (text_block_info, []))[1].append(element)
 
-        # Compute content offsets
-        page_content = page.content
-        current_offset = 0
+        # Where each element sits in the page content, searched from where the previous one ended
+        offset = 0
         for element in elements:
-            search_text = element.content[:min(100, len(element.content))]
-            idx = page_content.find(search_text, current_offset)
-
+            idx = page.content.find(element.content[:100], offset)
             if idx >= 0:
                 element.content_start_offset = idx
-                element.content_end_offset = idx + len(element.content)
-                current_offset = element.content_end_offset
+                element.content_end_offset = offset = idx + len(element.content)
             else:
-                element.content_start_offset = None
-                element.content_end_offset = None
+                element.content_start_offset = element.content_end_offset = None
 
         page_elements[page_num] = elements
-
-        # Build TextBlock objects
-        seen_names = {}
-        for element, nodes, text_block_info in merged_blocks:
-            if text_block_info and text_block_info.name not in seen_names:
-                seen_names[text_block_info.name] = text_block_info
-
-        element_map = {elem.id: elem for elem in elements}
-        text_blocks = []
-
-        for tb_name, tb_info in seen_names.items():
-            element_ids = text_block_map.get(tb_name, [])
-            if element_ids:
-                tb_elements = [element_map[eid] for eid in element_ids if eid in element_map]
-                text_blocks.append(TextBlock(
-                    name=tb_name,
-                    title=tb_info.title,
-                    elements=tb_elements
-                ))
-
-        page_text_blocks[page_num] = text_blocks
+        page_text_blocks[page_num] = [TextBlock(name=name, title=info.title, elements=els)
+                                      for name, (info, els) in notes.items()]
 
     result = []
     for page in pages:
@@ -370,15 +341,7 @@ def _merge_small_blocks(
         current_chars = 0
 
     for i, (element, nodes, text_block) in enumerate(blocks_with_nodes):
-        text_block_changed = False
-        if current_text_block is not None or text_block is not None:
-            if current_text_block is None and text_block is not None:
-                text_block_changed = True
-            elif current_text_block is not None and text_block is None:
-                text_block_changed = True
-            elif current_text_block is not None and text_block is not None:
-                text_block_changed = current_text_block.name != text_block.name
-
+        text_block_changed = getattr(current_text_block, "name", None) != getattr(text_block, "name", None)
         if text_block_changed and current_elements:
             flush(len(merged))
 
