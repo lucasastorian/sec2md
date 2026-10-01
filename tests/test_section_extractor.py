@@ -2,7 +2,7 @@
 
 import pytest
 
-from sec2md.section_extractor import SectionExtractor, ITEM_PATTERN, PART_PATTERN
+from sec2md.section_extractor import SectionExtractor, ITEM_PATTERN, ITEM_8K_PATTERN, PART_PATTERN
 from sec2md.sections import extract_sections, get_section
 from sec2md.models import Page, Section, Item10K, Item10Q, Item13D, Item13G
 
@@ -185,7 +185,7 @@ class TestSectionExtractor8K:
     def test_8k_items_separated_by_blank_line(self):
         """Regression: 8-K regex must not consume newlines between items."""
         text = "ITEM 5.02  Officer change\n\nITEM 8.01  Other events"
-        matches = list(SectionExtractor._ITEM_8K_RE.finditer(text))
+        matches = list(ITEM_8K_PATTERN.finditer(text))
         assert len(matches) == 2
         assert matches[0].group(2) == "5.02"
         assert matches[1].group(2) == "8.01"

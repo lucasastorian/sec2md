@@ -1,7 +1,10 @@
+"""Pages to sections: PART and ITEM headers for 10-K, 10-Q and 20-F; items for 8-K and Schedules 13D/13G."""
 from __future__ import annotations
 
 import re
-from typing import List, Optional, Literal, Any
+from typing import List, Literal, Optional, Tuple
+
+from sec2md.models import Exhibit, Page, Section, ITEM_8K_TITLES, ITEM_13D_TITLES, ITEM_13G_TITLES
 
 LEAD_WRAP = r'(?:\*\*|__)?\s*(?:</?[^>]+>\s*)*'
 
@@ -13,6 +16,10 @@ ITEM_PATTERN = re.compile(
     rf'^\s*{LEAD_WRAP}(ITEM)\s+(\d{{1,2}}[A-Z]?)\.?[ \t]*(?:[:.\-–—][ \t]*)?(.*)',
     re.IGNORECASE | re.MULTILINE
 )
+ITEM_8K_PATTERN = re.compile(
+    rf'^\s*{LEAD_WRAP}(ITEM)\s+([1-9]\.\d{{2}}[A-Z]?)\.?[ \t]*(?:[:.\-–—][ \t]*)?(.*)$',
+    re.IGNORECASE | re.MULTILINE
+)
 
 HEADER_FOOTER_RE = re.compile(
     r'^\s*(?:[A-Z][A-Za-z0-9 .,&\-]+)?\s*\|\s*\d{4}\s+Form\s+10-[KQ]\s*\|\s*\d+\s*$'
@@ -20,14 +27,23 @@ HEADER_FOOTER_RE = re.compile(
 PAGE_NUM_RE = re.compile(r'^\s*Page\s+\d+\s*(?:of\s+\d+)?\s*$|^\s*\d+\s*$', re.IGNORECASE)
 MD_EDGE = re.compile(r'^\s*(?:\*\*|__)\s*|\s*(?:\*\*|__)\s*$')
 
-NBSP, NARROW_NBSP, ZWSP = '\u00A0', '\u202F', '\u200B'
+NBSP, NARROW_NBSP, ZWSP = ' ', ' ', '​'
 
 DOT_LEAD_RE = re.compile(r'^.*\.{3,}\s*\d{1,4}\s*$', re.M)  # "... 123"
 ITEM_ROWS_RE = re.compile(r'^\s*ITEM\s+\d{1,2}[A-Z]?\.?\b', re.I | re.M)
+TABLE_ITEM_RE = re.compile(r'\|\s*ITEM\s+\d{1,2}[A-Z]?\.?\s*\|', re.I)  # | ITEM 1A. | Risk Factors | 12 |
 ITEM_BREADCRUMB_TITLE_RE = re.compile(
     r'^[,\s]*(\d{1,2}[A-Z]?)(\s*,\s*\d{1,2}[A-Z]?)*\s*$',
     re.IGNORECASE
 )
+SIGNATURE_RE = re.compile(r'^\s*(?:\*\*|__)?\s*SIGNATURE', re.IGNORECASE | re.MULTILINE)
+EXHIBITS_HEADER_RE = re.compile(r'^\s*\(?d\)?\s*Exhibits\b.*$', re.IGNORECASE | re.MULTILINE)
+EXHIBIT_ROW_RES = [  # exhibit-number | description, as a pipe table, spaced columns, or raw HTML rows
+    re.compile(r'^\s*\|?\s*([0-9]{1,4}(?:\.[0-9A-Za-z]+)?)\s*\|\s*(.+?)\s*\|?\s*$', re.MULTILINE),
+    re.compile(r'^\s*([0-9]{1,4}(?:\.[0-9A-Za-z]+)?)\s{2,}(.+?)\s*$', re.MULTILINE),
+    re.compile(r'<tr[^>]*>\s*<t[dh][^>]*>\s*([^<]+?)\s*</t[dh]>\s*<t[dh][^>]*>\s*([^<]+?)\s*</t[dh]>\s*</tr>',
+               re.IGNORECASE | re.DOTALL),
+]
 
 FILING_STRUCTURES = {
     "10-K": {
@@ -57,8 +73,35 @@ FILING_STRUCTURES = {
 }
 
 
+def _slice(page: Page, content: str) -> Page:
+    """Part of a page: its own content, with the page's number, elements, text blocks and printed number."""
+    return Page(number=page.number, content=content, elements=page.elements,
+                text_blocks=page.text_blocks, display_page=page.display_page)
+
+
+def _line_at(text: str, m: re.Match) -> str:
+    """The whole line a match is on."""
+    start = text.rfind('\n', 0, m.start()) + 1
+    end = text.find('\n', m.end())
+    return text[start:end if end != -1 else len(text)].strip()
+
+
+def _part_key(text: str) -> str:
+    return re.sub(r'\s+', ' ', text.upper().strip())
+
+
+def _clean_item_title(title: str) -> str:
+    return re.sub(r'\s+', ' ', re.sub(r'^\s*[:.\-–—]\s*', '', title)).strip()
+
+
+def _is_item_title(title: str) -> bool:
+    """A real header's title, not a breadcrumb's ('ITEM 2, 3, 4' repeated at a page top)."""
+    return bool(title) and not ITEM_BREADCRUMB_TITLE_RE.match(title)
+
+
 class SectionExtractor:
-    def __init__(self, pages: List[Any], filing_type: Optional[Literal["10-K", "10-Q", "20-F", "8-K", "SC 13D", "SC 13G"]] = None,
+    def __init__(self, pages: List[Page],
+                 filing_type: Optional[Literal["10-K", "10-Q", "20-F", "8-K", "SC 13D", "SC 13G"]] = None,
                  desired_items: Optional[set] = None, debug: bool = False):
         """Extract sections from SEC filings."""
         self.pages = pages
@@ -66,118 +109,175 @@ class SectionExtractor:
         self.structure = FILING_STRUCTURES.get(filing_type) if filing_type else None
         self.desired_items = desired_items
         self.debug = debug
-        self._toc_locked = False
 
     def _log(self, msg: str):
         if self.debug:
             print(msg)
 
-    @staticmethod
-    def _normalize_section_key(part: Optional[str], item_num: Optional[str]) -> tuple[Optional[str], Optional[str]]:
-        part_key = re.sub(r'\s+', ' ', part.upper().strip()) if part else None
-        item_key = f"ITEM {item_num.upper()}" if item_num else None
-        return part_key, item_key
+    def get_sections(self) -> List[Section]:
+        """Get sections from the filing."""
+        if self.filing_type in ("8-K", "SC 13D", "SC 13G"):
+            return self._get_item_sections()
+        return self._get_standard_sections()
+
+    def get_section(self, part: str, item: Optional[str] = None) -> Optional[Section]:
+        """Get a specific section by part and item."""
+        part_normalized = _part_key(part)
+        item_normalized = _part_key(item) if item else None
+        for section in self.get_sections():
+            if section.part == part_normalized and (item_normalized is None or section.item == item_normalized):
+                return section
+        return None
+
+    # -- 10-K, 10-Q, 20-F -------------------------------------------------------------------------
 
     @staticmethod
-    def _normalize_section(text: str) -> str:
-        return re.sub(r'\s+', ' ', text.upper().strip())
-
-    def _clean_lines(self, content: str) -> List[str]:
-        """Remove headers, footers, and page navigation."""
+    def _clean_lines(content: str) -> List[str]:
+        """Lines without running headers/footers and page numbers, emphasis markers stripped."""
         content = content.replace(NBSP, ' ').replace(NARROW_NBSP, ' ').replace(ZWSP, '')
         lines = [ln.rstrip() for ln in content.split('\n')]
-        content_str = '\n'.join(lines)
+        return [MD_EDGE.sub('', ln) for ln in lines if not (HEADER_FOOTER_RE.match(ln) or PAGE_NUM_RE.match(ln))]
 
-        # TODO: Breadcrumb removal - some filings have "PART II\n\nItem 7" on every page
-        # as navigation breadcrumbs, but removing them here breaks section detection for
-        # filings that use this pattern as actual section headers (e.g., MSFT 10-K).
-        # Solution: Handle breadcrumb removal during HTML parsing stage instead of here.
-
-        # COMMENTED OUT - breaks section detection for some filings
-        # content_str = re.sub(
-        #     r'^\s*PART\s+[IVXLC]+\s*$\n+^\s*Item\s+\d{1,2}[A-Z]?\s*$\n+',
-        #     '',
-        #     content_str,
-        #     flags=re.MULTILINE
-        # )
-        #
-        # lines_list = content_str.split('\n')
-        # filtered_lines = []
-        # for line in lines_list:
-        #     if re.match(r'^\s*Item\s+\d{1,2}[A-Z]?(?:\s*,\s*\d{1,2}[A-Z]?)*\s*$', line, re.IGNORECASE):
-        #         continue
-        #     filtered_lines.append(line)
-        # content_str = '\n'.join(filtered_lines)
-
-        lines = content_str.split('\n')
-
-        out = []
-        for ln in lines:
-            if HEADER_FOOTER_RE.match(ln) or PAGE_NUM_RE.match(ln):
-                continue
-            ln = MD_EDGE.sub('', ln)
-            out.append(ln)
-        return out
-
-    def _infer_part_for_item(self, filing_type: str, item_key: str) -> Optional[str]:
-        """Infer PART from ITEM number (10-K only)."""
+    @staticmethod
+    def _infer_part_for_item(filing_type: str, item_key: str) -> Optional[str]:
+        """The PART a 10-K item belongs to."""
         m = re.match(r'ITEM\s+(\d{1,2})', item_key)
-        if not m:
+        if not m or filing_type != "10-K":
             return None
         num = int(m.group(1))
-        if filing_type == "10-K":
-            if 1 <= num <= 4:
-                return "PART I"
-            elif 5 <= num <= 9:
-                return "PART II"
-            elif 10 <= num <= 14:
-                return "PART III"
-            elif 15 <= num <= 16:
-                return "PART IV"
+        for part, (lo, hi) in (("PART I", (1, 4)), ("PART II", (5, 9)), ("PART III", (10, 14)), ("PART IV", (15, 16))):
+            if lo <= num <= hi:
+                return part
         return None
 
     @staticmethod
-    def _clean_item_title(title: str) -> str:
-        title = re.sub(r'^\s*[:.\-–—]\s*', '', title)
-        title = re.sub(r'\s+', ' ', title).strip()
-        return title
-
-    def _is_toc(self, content: str, page_num: int = 1) -> bool:
-        """Detect table of contents pages."""
-        if self._toc_locked or page_num > 5:
+    def _is_toc(content: str, page_num: int = 1) -> bool:
+        """A table of contents page (only looked for in the first five pages)."""
+        if page_num > 5:
             return False
-
-        # Check for traditional TOC patterns (dot leaders, plain ITEM rows)
-        item_hits = len(ITEM_ROWS_RE.findall(content))
-        leader_hits = len(DOT_LEAD_RE.findall(content))
-        if (item_hits >= 3) or (leader_hits >= 3):
+        if len(ITEM_ROWS_RE.findall(content)) >= 3 or len(DOT_LEAD_RE.findall(content)) >= 3:
             return True
+        table_item_hits = len(TABLE_ITEM_RE.findall(content))
+        return table_item_hits >= 3 or (
+            table_item_hits >= 2 and re.search(r'TABLE\s+OF\s+CONTENTS', content, re.IGNORECASE) is not None)
 
-        # Check for table-based TOCs (modern filings)
-        # Look for markdown tables with ITEM entries and page numbers
-        # Pattern: | ITEM X. | TITLE | PAGE |
-        table_item_pattern = re.compile(r'\|\s*ITEM\s+\d{1,2}[A-Z]?\.?\s*\|', re.IGNORECASE)
-        table_item_hits = len(table_item_pattern.findall(content))
-        if table_item_hits >= 3:
-            return True
+    def _get_standard_sections(self) -> List[Section]:
+        """10-K/10-Q/20-F: a section per PART and ITEM header, split inside pages."""
+        sections: List[Section] = []
+        part = item = title = None
+        pages: List[Page] = []
 
-        # Also check for "TABLE OF CONTENTS" header
-        if re.search(r'TABLE\s+OF\s+CONTENTS', content, re.IGNORECASE) and table_item_hits >= 2:
-            return True
+        def flush():
+            nonlocal pages
+            if pages:
+                sections.append(Section(part=part, item=item, item_title=title, pages=pages))
+                pages = []
 
-        return False
-    _ITEM_8K_RE = re.compile(
-        rf'^\s*{LEAD_WRAP}(ITEM)\s+([1-9]\.\d{{2}}[A-Z]?)\.?[ \t]*(?:[:.\-–—][ \t]*)?(.*)$',
-        re.IGNORECASE | re.MULTILINE
-    )
-    _HARD_STOP_8K_RE = re.compile(r'^\s*(SIGNATURES|EXHIBIT\s+INDEX)\b', re.IGNORECASE | re.MULTILINE)
-    _PROMOTE_ITEM_8K_RE = re.compile(r'(?<!\n)(\s)(ITEM\s+[1-9]\.\d{2}[A-Z]?\s*[.:–—-])', re.IGNORECASE)
-    _PIPE_ROW_RE = re.compile(r'^\s*\|?\s*([0-9]{1,4}(?:\.[0-9A-Za-z]+)?)\s*\|\s*(.+?)\s*\|?\s*$', re.MULTILINE)
-    _SPACE_ROW_RE = re.compile(r'^\s*([0-9]{1,4}(?:\.[0-9A-Za-z]+)?)\s{2,}(.+?)\s*$', re.MULTILINE)
-    _HTML_ROW_RE = re.compile(
-        r'<tr[^>]*>\s*<t[dh][^>]*>\s*([^<]+?)\s*</t[dh]>\s*<t[dh][^>]*>\s*([^<]+?)\s*</t[dh]>\s*</tr>',
-        re.IGNORECASE | re.DOTALL
-    )
+        def open_item(m: re.Match) -> None:
+            nonlocal part, item, title
+            raw_title = (m.group(3) or "").strip()
+            title = _clean_item_title(raw_title) if raw_title else None
+            if part is None and self.filing_type:
+                part = self._infer_part_for_item(self.filing_type, f"ITEM {m.group(2).upper()}") or part
+            item = f"ITEM {m.group(2).upper()}"
+
+        for page in self.pages:
+            if self._is_toc(page.content, page.number):
+                self._log(f"DEBUG: Page {page.number} detected as TOC, skipping")
+                continue
+            joined = "\n".join(self._clean_lines(page.content))
+            if not joined.strip():
+                continue
+
+            # The page's first header: a PART, or an ITEM before it (not an inline "Part II, Item 7"
+            # reference, not a breadcrumb)
+            part_m = next(PART_PATTERN.finditer(joined), None)
+            first_idx = part_m.start() if part_m else None
+            item_m = None
+            for m in ITEM_PATTERN.finditer(joined):
+                if first_idx is not None and m.start() >= first_idx:
+                    break
+                if re.search(r'\bPart\s+[IVXLC]+', joined[max(0, m.start() - 30):m.start()], re.IGNORECASE):
+                    continue
+                if not _is_item_title((m.group(3) or "").strip()):
+                    continue
+                item_m, first_idx = m, m.start()
+                break
+
+            if first_idx is None:
+                if (part or item) and joined.strip():
+                    pages.append(_slice(page, joined))
+                continue
+
+            before, after = joined[:first_idx].strip(), joined[first_idx:].strip()
+            if (part or item) and before:
+                pages.append(_slice(page, before))
+            flush()
+            if item_m:
+                open_item(item_m)
+            else:
+                part, item, title = _part_key(part_m.group(1)), None, None
+
+            if not after:
+                continue
+            pages.append(_slice(page, after))
+
+            if not item_m:
+                # A PART header with its first ITEM on the same page: the section starts at the ITEM
+                first_item = next((m for m in ITEM_PATTERN.finditer(after)
+                                   if _is_item_title((m.group(3) or "").strip())), None)
+                if first_item:
+                    after = after[first_item.start():]
+                    pages[-1] = _slice(page, after)
+                    raw_title = (first_item.group(3) or "").strip()
+                    title = _clean_item_title(raw_title) if raw_title else None
+                    item = f"ITEM {first_item.group(2).upper()}"
+
+            # Further headers on the same page
+            tail = after
+            while True:
+                next_part = next((m for m in PART_PATTERN.finditer(tail) if m.start() > 0), None)
+                next_idx = next_part.start() if next_part else None
+                next_item = None
+                for m in ITEM_PATTERN.finditer(tail):
+                    if m.start() > 0 and (next_idx is None or m.start() < next_idx) \
+                            and _is_item_title((m.group(3) or "").strip()):
+                        next_item, next_idx = m, m.start()
+                        break
+                if next_idx is None:
+                    break
+                before_seg, after_seg = tail[:next_idx].strip(), tail[next_idx:].strip()
+                if before_seg:
+                    pages[-1] = _slice(page, before_seg)
+                flush()
+                if next_item:
+                    open_item(next_item)
+                else:
+                    part, item, title = _part_key(next_part.group(1)), None, None
+                pages.append(_slice(page, after_seg))
+                tail = after_seg
+
+        flush()
+
+        # Drop the near-empty stubs of PART headers
+        sections = [s for s in sections if s.item is not None or sum(len(p.content.strip()) for p in s.pages) > 80]
+
+        if self.structure and sections:
+            valid = []
+            for s in sections:
+                inferred = self._infer_part_for_item(self.filing_type, s.item) if s.item else None
+                if inferred and inferred != s.part:
+                    s = Section(part=inferred, item=s.item, item_title=s.item_title, pages=s.pages)
+                if s.part in self.structure and (s.item is None or s.item in self.structure.get(s.part, [])):
+                    valid.append(s)
+                else:
+                    self._log(f"DEBUG: Dropped section - Part: {s.part}, Item: {s.item}")
+            sections = valid
+
+        self._log(f"DEBUG: Total sections: {len(sections)}")
+        return sections
+
+    # -- 8-K, Schedules 13D and 13G ---------------------------------------------------------------
 
     @staticmethod
     def _normalize_8k_item_code(code: str) -> str:
@@ -187,596 +287,100 @@ class SectionExtractor:
         if not m:
             return code
         major, minor, suffix = m.groups()
-        minor = f"{int(minor):02d}"
-        return f"{major}.{minor}{suffix}"
+        return f"{major}.{int(minor):02d}{suffix}"
 
-    def _clean_8k_text(self, text: str) -> str:
-        """Clean 8-K text and normalize whitespace."""
-        text = text.replace(NBSP, " ").replace(NARROW_NBSP, " ").replace(ZWSP, "")
-        text = self._PROMOTE_ITEM_8K_RE.sub(r'\n\2', text)
-
-        header_footer_8k = re.compile(
-            r'^\s*(Form\s+8\-K|Page\s+\d+(?:\s+of\s+\d+)?|UNITED\s+STATES\s+SECURITIES\s+AND\s+EXCHANGE\s+COMMISSION)\b',
-            re.IGNORECASE
-        )
-
-        lines: List[str] = []
-        for ln in text.splitlines():
-            t = ln.strip()
-            if header_footer_8k.match(t):
-                continue
-            t = MD_EDGE.sub("", t)
-            if re.fullmatch(r'\|\s*-{3,}\s*\|\s*-{3,}\s*\|?', t):
-                continue
-            lines.append(t)
-
-        out: List[str] = []
-        prev_blank = False
-        for ln in lines:
-            blank = (ln == "")
-            if blank and prev_blank:
-                continue
-            out.append(ln)
-            prev_blank = blank
-
-        return "\n".join(out).strip()
-
-    def _parse_exhibits(self, block: str) -> List[Any]:
-        """Parse exhibit table from 9.01 section."""
-        from sec2md.models import Exhibit
-        rows: List[Exhibit] = []
-
-        for m in self._PIPE_ROW_RE.finditer(block):
-            left, right = m.group(1).strip(), m.group(2).strip()
-            if not re.match(r'^\d', left):
-                continue
-            if left.startswith('---') or right.startswith('---'):
-                continue
-            rows.append(Exhibit(exhibit_no=left, description=right))
-        if rows:
-            return rows
-
-        for m in self._SPACE_ROW_RE.finditer(block):
-            left, right = m.group(1).strip(), m.group(2).strip()
-            if not re.match(r'^\d', left):
-                continue
-            rows.append(Exhibit(exhibit_no=left, description=right))
-        if rows:
-            return rows
-
-        for m in self._HTML_ROW_RE.finditer(block):
-            left, right = m.group(1).strip(), m.group(2).strip()
-            if not re.match(r'^\d', left):
-                continue
-            rows.append(Exhibit(exhibit_no=left, description=right))
-
-        return rows
-
-    def _slice_8k_body(self, doc: str, start_after: int, next_item_start: int) -> str:
-        """Slice body text up to earliest hard stop."""
-        mstop = self._HARD_STOP_8K_RE.search(doc, pos=start_after, endpos=next_item_start)
-        end = mstop.start() if mstop else next_item_start
-        return doc[start_after:end].strip()
-
-    def _is_8k_boilerplate_page(self, page_content: str, page_num: int) -> bool:
-        """Detect cover, TOC, and signature pages."""
-        if page_num == 1:
+    @staticmethod
+    def _is_8k_boilerplate_page(page_content: str, page_num: int) -> bool:
+        """Cover, table of contents and signature pages."""
+        if page_num == 1 or re.search(r'TABLE OF CONTENTS', page_content, re.IGNORECASE):
             return True
-
-        if re.search(r'TABLE OF CONTENTS', page_content, re.IGNORECASE):
+        if len(re.findall(r'ITEM\s+[1-9]\.\d{2}.*?\|\s*\d+\s*\|', page_content, re.IGNORECASE)) >= 2:
             return True
+        return bool(re.search(r'\*\*SIGNATURES\*\*', page_content)
+                    and re.search(r'Pursuant to the requirements', page_content, re.IGNORECASE))
 
-        item_with_page_count = len(re.findall(r'ITEM\s+[1-9]\.\d{2}.*?\|\s*\d+\s*\|', page_content, re.IGNORECASE))
-        if item_with_page_count >= 2:
-            return True
+    @staticmethod
+    def _parse_exhibits(block: str) -> List[Exhibit]:
+        """The exhibit table of an Item 9.01: number | description rows."""
+        for pattern in EXHIBIT_ROW_RES:
+            rows = []
+            for m in pattern.finditer(block):
+                left, right = m.group(1).strip(), m.group(2).strip()
+                if not re.match(r'^\d', left) or (pattern is EXHIBIT_ROW_RES[0] and right.startswith('---')):
+                    continue
+                rows.append(Exhibit(exhibit_no=left, description=right))
+            if rows:
+                return rows
+        return []
 
-        if re.search(r'\*\*SIGNATURES\*\*', page_content) and \
-           re.search(r'Pursuant to the requirements', page_content, re.IGNORECASE):
-            return True
+    def _find_item_header(self, content: str, current_item: Optional[str]) -> Optional[Tuple[re.Match, str]]:
+        """The first item header in the content and its item code. Table rows are not headers; in a
+        schedule, an item outside the form or a sub-item ('Item 1(a)') of the current item is content."""
+        if self.filing_type == "8-K":
+            for m in ITEM_8K_PATTERN.finditer(content):
+                if '|' not in _line_at(content, m):
+                    return m, self._normalize_8k_item_code(m.group(2))
+            return None
+        valid_items = {str(i) for i in range(1, 11 if self.filing_type == "SC 13G" else 8)}
+        for m in ITEM_PATTERN.finditer(content):
+            code = m.group(2).upper()
+            if '|' in _line_at(content, m) or code not in valid_items:
+                continue
+            if re.match(r'^\([a-z]\)', MD_EDGE.sub("", (m.group(3) or "").strip())) and current_item == f"ITEM {code}":
+                continue
+            return m, code
+        return None
 
-        return False
+    def _get_item_sections(self) -> List[Section]:
+        """8-K, SC 13D, SC 13G: a section per item header, split inside pages. 8-K cover, contents and
+        signature pages are skipped; a schedule ends at its signature."""
+        is_8k = self.filing_type == "8-K"
+        titles = ITEM_8K_TITLES if is_8k else ITEM_13G_TITLES if self.filing_type == "SC 13G" else ITEM_13D_TITLES
+        sections: List[Section] = []
+        item = title = None
+        pages: List[Page] = []
 
-    def _get_8k_sections(self) -> List[Any]:
-        """Extract 8-K sections."""
-        from sec2md.models import Section, Page, ITEM_8K_TITLES
-
-        sections = []
-        current_item = None
-        current_item_title = None
-        current_pages: List[Page] = []
-
-        def flush_section():
-            nonlocal sections, current_item, current_item_title, current_pages
-            if current_pages and current_item:
+        def flush():
+            nonlocal pages
+            if pages and item:
                 exhibits = None
-                if current_item.startswith("ITEM 9.01"):
-                    content = "\n".join(p.content for p in current_pages)
-                    md = re.search(r'^\s*\(?d\)?\s*Exhibits\b.*$', content, re.IGNORECASE | re.MULTILINE)
-                    ex_block = content[md.end():].strip() if md else content
-                    parsed_exhibits = self._parse_exhibits(ex_block)
-                    exhibits = parsed_exhibits if parsed_exhibits else None
-
-                sections.append(Section(
-                    part=None,
-                    item=current_item,
-                    item_title=current_item_title,
-                    pages=current_pages,
-                    exhibits=exhibits
-                ))
-                current_pages = []
+                if item.startswith("ITEM 9.01"):
+                    content = "\n".join(p.content for p in pages)
+                    header = EXHIBITS_HEADER_RE.search(content)
+                    exhibits = self._parse_exhibits(content[header.end():].strip() if header else content) or None
+                sections.append(Section(part=None, item=item, item_title=title, pages=pages, exhibits=exhibits))
+                pages = []
 
         for page in self.pages:
-            page_num = page.number
-            remaining_content = page.content
-
-            if self._is_8k_boilerplate_page(remaining_content, page_num):
-                self._log(f"DEBUG: Page {page_num} is boilerplate, skipping")
-                continue
-
-            while remaining_content:
-                item_m = None
-                first_idx = None
-
-                for m in self._ITEM_8K_RE.finditer(remaining_content):
-                    line_start = remaining_content.rfind('\n', 0, m.start()) + 1
-                    line_end = remaining_content.find('\n', m.end())
-                    if line_end == -1:
-                        line_end = len(remaining_content)
-                    full_line = remaining_content[line_start:line_end].strip()
-
-                    if '|' in full_line:
-                        self._log(f"DEBUG: Page {page_num} skipping table row: {full_line[:60]}")
-                        continue
-
-                    code = self._normalize_8k_item_code(m.group(2))
-                    title_inline = (m.group(3) or "").strip()
-                    title_inline = MD_EDGE.sub("", title_inline)
-
-                    item_m = m
-                    first_idx = m.start()
-                    self._log(f"DEBUG: Page {page_num} found ITEM {code} at position {first_idx}")
-                    break
-
-                if first_idx is None:
-                    if current_item and remaining_content.strip():
-                        current_pages.append(Page(
-                            number=page_num,
-                            content=remaining_content,
-                            elements=page.elements,
-                            text_blocks=page.text_blocks,
-                            display_page=page.display_page
-                        ))
-                    break
-
-                before = remaining_content[:first_idx].strip()
-                # Use header end position to skip past header and avoid infinite loop
-                header_end = item_m.end()
-                after = remaining_content[header_end:].strip()
-
-                if current_item and before:
-                    current_pages.append(Page(
-                        number=page_num,
-                        content=before,
-                        elements=page.elements,
-                        text_blocks=page.text_blocks,
-                        display_page=page.display_page
-                    ))
-
-                flush_section()
-
-                code = self._normalize_8k_item_code(item_m.group(2))
-                title_inline = (item_m.group(3) or "").strip()
-                title_inline = MD_EDGE.sub("", title_inline)
-                current_item = f"ITEM {code}"
-                current_item_title = title_inline if title_inline else ITEM_8K_TITLES.get(code)
-
-                if self.desired_items and code not in self.desired_items:
-                    self._log(f"DEBUG: Skipping ITEM {code} (not in desired_items)")
-                    current_item = None
-                    current_item_title = None
-                    remaining_content = after
-                    continue
-
-                remaining_content = after
-
-        flush_section()
-
-        self._log(f"DEBUG: Total sections extracted: {len(sections)}")
-        return sections
-
-    def _get_13d_sections(self) -> List[Any]:
-        """Extract SC 13D / SC 13G sections."""
-        from sec2md.models import Section, Page, ITEM_13D_TITLES, ITEM_13G_TITLES
-
-        if self.filing_type == "SC 13G":
-            _VALID_ITEMS = {str(i) for i in range(1, 11)}
-            _TITLES = ITEM_13G_TITLES
-        else:
-            _VALID_ITEMS = {str(i) for i in range(1, 8)}
-            _TITLES = ITEM_13D_TITLES
-
-        _HARD_STOP_RE = re.compile(
-            r'^\s*(?:\*\*|__)?\s*SIGNATURE', re.IGNORECASE | re.MULTILINE
-        )
-
-        sections = []
-        current_item = None
-        current_item_title = None
-        current_pages: List[Page] = []
-
-        def flush_section():
-            nonlocal sections, current_item, current_item_title, current_pages
-            if current_pages and current_item:
-                sections.append(Section(
-                    part=None,
-                    item=current_item,
-                    item_title=current_item_title,
-                    pages=current_pages
-                ))
-                current_pages = []
-
-        for page in self.pages:
-            page_num = page.number
-            remaining_content = page.content
-
-            # Truncate content at SIGNATURE
-            hard_stop = _HARD_STOP_RE.search(remaining_content)
+            content = page.content
             last_page = False
-            if hard_stop:
-                remaining_content = remaining_content[:hard_stop.start()].strip()
-                last_page = True
-                if not remaining_content:
-                    flush_section()
-                    break
-
-            while remaining_content:
-                item_m = None
-                first_idx = None
-
-                for m in ITEM_PATTERN.finditer(remaining_content):
-                    # Skip table rows
-                    line_start = remaining_content.rfind('\n', 0, m.start()) + 1
-                    line_end = remaining_content.find('\n', m.end())
-                    if line_end == -1:
-                        line_end = len(remaining_content)
-                    full_line = remaining_content[line_start:line_end].strip()
-
-                    if '|' in full_line:
-                        self._log(f"DEBUG: Page {page_num} skipping table row: {full_line[:60]}")
-                        continue
-
-                    item_num = m.group(2).upper()
-                    if item_num not in _VALID_ITEMS:
-                        self._log(f"DEBUG: Page {page_num} skipping non-13D item: {item_num}")
-                        continue
-
-                    # Skip sub-items like Item 1(a), Item 2(b) — treat as content
-                    title_check = (m.group(3) or "").strip()
-                    title_check = MD_EDGE.sub("", title_check)
-                    if re.match(r'^\([a-z]\)', title_check):
-                        # If same item number as current, treat as continuation
-                        if current_item == f"ITEM {item_num}":
-                            self._log(f"DEBUG: Page {page_num} skipping sub-item {item_num}({title_check[:3]})")
-                            continue
-                        # If different item, this is the first sub-item of a new item
-                        self._log(f"DEBUG: Page {page_num} found ITEM {item_num} (via sub-item)")
-
-                    item_m = m
-                    first_idx = m.start()
-                    self._log(f"DEBUG: Page {page_num} found ITEM {item_num} at position {first_idx}")
-                    break
-
-                if first_idx is None:
-                    if current_item and remaining_content.strip():
-                        current_pages.append(Page(
-                            number=page_num,
-                            content=remaining_content,
-                            elements=page.elements,
-                            text_blocks=page.text_blocks,
-                            display_page=page.display_page
-                        ))
-                    break
-
-                before = remaining_content[:first_idx].strip()
-                header_end = item_m.end()
-                after = remaining_content[header_end:].strip()
-
-                if current_item and before:
-                    current_pages.append(Page(
-                        number=page_num,
-                        content=before,
-                        elements=page.elements,
-                        text_blocks=page.text_blocks,
-                        display_page=page.display_page
-                    ))
-
-                flush_section()
-
-                item_num = item_m.group(2).upper()
-                title_inline = (item_m.group(3) or "").strip()
-                title_inline = MD_EDGE.sub("", title_inline)
-                current_item = f"ITEM {item_num}"
-                current_item_title = title_inline if title_inline else _TITLES.get(item_num)
-
-                if self.desired_items and item_num not in self.desired_items:
-                    self._log(f"DEBUG: Skipping ITEM {item_num} (not in desired_items)")
-                    current_item = None
-                    current_item_title = None
-                    remaining_content = after
+            if is_8k:
+                if self._is_8k_boilerplate_page(content, page.number):
+                    self._log(f"DEBUG: Page {page.number} is boilerplate, skipping")
                     continue
+            elif signature := SIGNATURE_RE.search(content):
+                content, last_page = content[:signature.start()].strip(), True
+                if not content:
+                    break
 
-                remaining_content = after
+            while content:
+                header = self._find_item_header(content, item)
+                if header is None:
+                    if item and content.strip():
+                        pages.append(_slice(page, content))
+                    break
+                m, code = header
+                before, content = content[:m.start()].strip(), content[m.end():].strip()
+                if item and before:
+                    pages.append(_slice(page, before))
+                flush()
+                item, title = f"ITEM {code}", MD_EDGE.sub("", (m.group(3) or "").strip()) or titles.get(code)
+                if self.desired_items and code not in self.desired_items:
+                    item = title = None
 
             if last_page:
-                flush_section()
                 break
 
-        flush_section()
-
-        self._log(f"DEBUG: Total 13D sections extracted: {len(sections)}")
+        flush()
+        self._log(f"DEBUG: Total sections: {len(sections)}")
         return sections
-
-    def get_sections(self) -> List[Any]:
-        """Get sections from the filing."""
-        if self.filing_type == "8-K":
-            return self._get_8k_sections()
-        elif self.filing_type in ("SC 13D", "SC 13G"):
-            return self._get_13d_sections()
-        else:
-            return self._get_standard_sections()
-
-    def _get_standard_sections(self) -> List[Any]:
-        """Extract 10-K/10-Q/20-F sections."""
-        from sec2md.models import Section, Page
-
-        sections = []
-        current_part = None
-        current_item = None
-        current_item_title = None
-        current_pages: List[Page] = []
-
-        def flush_section():
-            nonlocal sections, current_part, current_item, current_item_title, current_pages
-            if current_pages:
-                sections.append(Section(
-                    part=current_part,
-                    item=current_item,
-                    item_title=current_item_title,
-                    pages=current_pages
-                ))
-                current_pages = []
-
-        for page in self.pages:
-            page_num = page.number
-            content = page.content
-
-            if self._is_toc(content, page_num):
-                self._log(f"DEBUG: Page {page_num} detected as TOC, skipping")
-                continue
-
-            lines = self._clean_lines(content)
-            joined = "\n".join(lines)
-
-            if not joined.strip():
-                self._log(f"DEBUG: Page {page_num} is empty after cleaning")
-                continue
-
-            part_m = None
-            item_m = None
-            first_idx = None
-            first_kind = None
-
-            for m in PART_PATTERN.finditer(joined):
-                part_m = m
-                first_idx = m.start()
-                first_kind = 'part'
-                self._log(f"DEBUG: Page {page_num} found PART at position {first_idx}: {m.group(1)}")
-                break
-
-            for m in ITEM_PATTERN.finditer(joined):
-                if first_idx is None or m.start() < first_idx:
-                    context_start = max(0, m.start() - 30)
-                    context = joined[context_start:m.start()]
-                    if re.search(r'\bPart\s+[IVXLC]+', context, re.IGNORECASE):
-                        self._log(f"DEBUG: Page {page_num} skipping inline reference at {m.start()}")
-                        continue
-
-                    title = (m.group(3) or "").strip()
-                    if not title or ITEM_BREADCRUMB_TITLE_RE.match(title):
-                        self._log(f"DEBUG: Page {page_num} skipping breadcrumb ITEM {m.group(2)} with title '{title}'")
-                        continue
-
-                    item_m = m
-                    first_idx = m.start()
-                    first_kind = 'item'
-                    self._log(f"DEBUG: Page {page_num} found ITEM at position {first_idx}: ITEM {m.group(2)}")
-                break
-
-            if first_kind is None:
-                self._log(f"DEBUG: Page {page_num} - no header found. In section: {current_part or current_item}")
-                if current_part or current_item:
-                    if joined.strip():
-                        current_pages.append(Page(
-                            number=page_num,
-                            content=joined,
-                            elements=page.elements,
-                            text_blocks=page.text_blocks,
-                            display_page=page.display_page
-                        ))
-                continue
-
-            before = joined[:first_idx].strip()
-            after = joined[first_idx:].strip()
-
-            if (current_part or current_item) and before:
-                current_pages.append(Page(
-                    number=page_num,
-                    content=before,
-                    elements=page.elements,
-                    text_blocks=page.text_blocks,
-                    display_page=page.display_page
-                ))
-
-            flush_section()
-
-            if first_kind == 'part' and part_m:
-                part_text = part_m.group(1)
-                current_part, _ = self._normalize_section_key(part_text, None)
-                current_item = None
-                current_item_title = None
-            elif first_kind == 'item' and item_m:
-                item_num = item_m.group(2)
-                title = (item_m.group(3) or "").strip()
-                current_item_title = self._clean_item_title(title) if title else None
-                if current_part is None and self.filing_type:
-                    inferred = self._infer_part_for_item(self.filing_type, f"ITEM {item_num.upper()}")
-                    if inferred:
-                        current_part = inferred
-                        self._log(f"DEBUG: Inferred {inferred} at detection time for ITEM {item_num}")
-                _, current_item = self._normalize_section_key(current_part, item_num)
-
-            if after:
-                current_pages.append(Page(
-                    number=page_num,
-                    content=after,
-                    elements=page.elements,
-                    text_blocks=page.text_blocks,
-                    display_page=page.display_page
-                ))
-
-                if first_kind == 'part' and part_m:
-                    item_after = None
-                    for m in ITEM_PATTERN.finditer(after):
-                        title_after = (m.group(3) or "").strip()
-                        if not title_after or ITEM_BREADCRUMB_TITLE_RE.match(title_after):
-                            self._log(f"DEBUG: Page {page_num} skipping breadcrumb ITEM {m.group(2)} after PART with title '{title_after}'")
-                            continue
-                        item_after = m
-                        break
-                    if item_after:
-                        start = item_after.start()
-                        after = after[start:]
-                        current_pages[-1] = Page(
-                            number=page_num,
-                            content=after,
-                            elements=page.elements,
-                            text_blocks=page.text_blocks,
-                            display_page=page.display_page
-                        )
-                        item_num = item_after.group(2)
-                        title = (item_after.group(3) or "").strip()
-                        current_item_title = self._clean_item_title(title) if title else None
-                        _, current_item = self._normalize_section_key(current_part, item_num)
-                        self._log(f"DEBUG: Page {page_num} - promoted PART to ITEM {item_num} (intra-page)")
-
-                tail = after
-                while True:
-                    next_kind, next_idx, next_part_m, next_item_m = None, None, None, None
-
-                    for m in PART_PATTERN.finditer(tail):
-                        if m.start() > 0:
-                            next_kind, next_idx, next_part_m = 'part', m.start(), m
-                            break
-                    for m in ITEM_PATTERN.finditer(tail):
-                        if m.start() > 0 and (next_idx is None or m.start() < next_idx):
-                            title_tail = (m.group(3) or "").strip()
-                            if not title_tail or ITEM_BREADCRUMB_TITLE_RE.match(title_tail):
-                                self._log(f"DEBUG: Page {page_num} skipping breadcrumb ITEM {m.group(2)} in tail with title '{title_tail}'")
-                                continue
-                            next_kind, next_idx, next_item_m = 'item', m.start(), m
-
-                    if next_idx is None:
-                        break
-
-                    before_seg = tail[:next_idx].strip()
-                    after_seg = tail[next_idx:].strip()
-
-                    if before_seg:
-                        current_pages[-1] = Page(
-                            number=page_num,
-                            content=before_seg,
-                            elements=page.elements,
-                            text_blocks=page.text_blocks,
-                            display_page=page.display_page
-                        )
-                    flush_section()
-
-                    if next_kind == 'part' and next_part_m:
-                        current_part, _ = self._normalize_section_key(next_part_m.group(1), None)
-                        current_item = None
-                        current_item_title = None
-                        self._log(f"DEBUG: Page {page_num} - intra-page PART transition to {current_part}")
-                    elif next_kind == 'item' and next_item_m:
-                        item_num = next_item_m.group(2)
-                        title = (next_item_m.group(3) or "").strip()
-                        current_item_title = self._clean_item_title(title) if title else None
-                        if current_part is None and self.filing_type:
-                            inferred = self._infer_part_for_item(self.filing_type, f"ITEM {item_num.upper()}")
-                            if inferred:
-                                current_part = inferred
-                                self._log(f"DEBUG: Inferred {inferred} at detection time for ITEM {item_num}")
-                        _, current_item = self._normalize_section_key(current_part, item_num)
-                        self._log(f"DEBUG: Page {page_num} - intra-page ITEM transition to {current_item}")
-
-                    current_pages.append(Page(
-                        number=page_num,
-                        content=after_seg,
-                        elements=page.elements,
-                        text_blocks=page.text_blocks,
-                        display_page=page.display_page
-                    ))
-                    tail = after_seg
-
-        flush_section()
-
-        self._log(f"DEBUG: Total sections before validation: {len(sections)}")
-        for s in sections:
-            self._log(f"  - Part: {s.part}, Item: {s.item}, Pages: {len(s.pages)}, Start: {s.pages[0].number if s.pages else 0}")
-
-        def _section_text_len(s):
-            return sum(len(p.content.strip()) for p in s.pages)
-
-        sections = [s for s in sections if s.item is not None or _section_text_len(s) > 80]
-        self._log(f"DEBUG: Sections after dropping empty PART stubs: {len(sections)}")
-
-        if self.structure and sections:
-            self._log(f"DEBUG: Validating against structure: {self.filing_type}")
-            fixed = []
-            for s in sections:
-                part = s.part
-                item = s.item
-
-                # If part is missing or inconsistent with canonical mapping, try to infer it from the item.
-                if item and self.filing_type:
-                    inferred = self._infer_part_for_item(self.filing_type, item)
-                    if inferred and inferred != part:
-                        self._log(f"DEBUG: Rewriting part from {part} to {inferred} for {item}")
-                        s = Section(
-                            part=inferred,
-                            item=s.item,
-                            item_title=s.item_title,
-                            pages=s.pages
-                        )
-                        part = inferred
-
-                if (part in self.structure) and (item is None or item in self.structure.get(part, [])):
-                    fixed.append(s)
-                else:
-                    self._log(f"DEBUG: Dropped section - Part: {part}, Item: {item}")
-
-            sections = fixed
-            self._log(f"DEBUG: Sections after validation: {len(sections)}")
-
-        return sections
-
-    def get_section(self, part: str, item: Optional[str] = None):
-        """Get a specific section by part and item."""
-        part_normalized = self._normalize_section(part)
-        item_normalized = self._normalize_section(item) if item else None
-        sections = self.get_sections()
-
-        for section in sections:
-            if section.part == part_normalized:
-                if item_normalized is None or section.item == item_normalized:
-                    return section
-        return None
