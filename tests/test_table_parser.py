@@ -186,3 +186,18 @@ class TestNoCellIsDropped:
             <tr><td>Total</td><td>Remaining authorization</td></tr>
             <tr><td>112,260</td><td></td></tr></table>""")
         assert "Remaining authorization" in md
+
+
+class TestNestedTables:
+    """Regression: a table read the rows and cells of tables nested in it as its own, so a career
+    history nested in an officer's cell came out three times and pushed the columns out of line."""
+
+    def test_nested_table_text_stays_in_its_cell(self):
+        html = """<table>
+          <tr><td>Name</td><td>Career</td><td>Shares</td></tr>
+          <tr><td>Tanaka</td><td><table><tr><td>2008</td><td>Joined</td></tr>
+                                        <tr><td>2024</td><td>CEO</td></tr></table></td><td>10,610</td></tr>
+        </table>"""
+        md = TableParser(BeautifulSoup(html, "lxml").find("table")).to_markdown()
+        assert md.splitlines() == ["| Name | Career | Shares |", "| --- | --- | --- |",
+                                   "| Tanaka | 2008 Joined 2024 CEO | 10,610 |"]

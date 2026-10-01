@@ -15,7 +15,7 @@ from sec2md.absolute_table_parser import AbsolutelyPositionedTableParser
 from sec2md.element_builder import build_elements_for_pages, augment_html_with_ids, _HIGHLIGHT_SCRIPT
 from sec2md.models import Page
 from sec2md.table_parser import TableParser
-from sec2md.utils import median, clean_text, css_px, iter_tags
+from sec2md.utils import median, clean_text, css_px, own_tags
 
 logger = logging.getLogger(__name__)
 
@@ -248,9 +248,9 @@ class Parser:
     def _effective_rows(self, table: Tag, limit: int = 2) -> list[list[Tag]]:
         """The first `limit` rows that have text: enough to tell a one-row table (rendered as text)."""
         rows = []
-        for tr in iter_tags(table, ("tr",)):
+        for tr in own_tags(table, ("tr",), table):
             cells = ([c for c in tr.children if isinstance(c, Tag) and c.name in ("td", "th")]
-                     or list(iter_tags(tr, ("td", "th"))))
+                     or list(own_tags(tr, ("td", "th"), table)))
             if any(clean_text(c.get_text(" ", strip=True)) for c in cells):
                 rows.append(cells)
                 if len(rows) == limit:

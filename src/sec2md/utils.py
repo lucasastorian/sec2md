@@ -33,6 +33,17 @@ def iter_tags(node: Tag, names: Collection[str]) -> Iterator[Tag]:
             yield d
 
 
+def own_tags(node: Tag, names: Collection[str], table: Tag) -> Iterator[Tag]:
+    """iter_tags(node, names) without the rows/cells of tables nested in `table`: a nested
+    table's text stays inside the cell that holds it."""
+    for tag in iter_tags(node, names):
+        parent = tag.parent
+        while parent is not None and parent.name != "table":
+            parent = parent.parent
+        if parent is table:
+            yield tag
+
+
 @functools.lru_cache(maxsize=None)
 def _encoding():
     """tiktoken's cl100k_base, or None: not installed, or its BPE file cannot be fetched (offline)."""

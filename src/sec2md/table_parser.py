@@ -7,7 +7,7 @@ from bs4 import Tag
 from dataclasses import dataclass
 from typing import List, Optional
 
-from sec2md.utils import iter_tags
+from sec2md.utils import iter_tags, own_tags
 
 BULLETS = {"•", "●", "◦", "–", "-", "—", "·", ""}
 _FOOTNOTE = re.compile(r'^\[[a-zA-Z0-9]+\]$')  # [1], [b]
@@ -58,9 +58,10 @@ class TableParser:
 
     def _extract_cells(self) -> List[List[Cell]]:
         rows = []
-        for tr in iter_tags(self.table_element, ("tr",)):
+        table = self.table_element
+        for tr in own_tags(table, ("tr",), table):
             row = []
-            for td in iter_tags(tr, ("td", "th")):
+            for td in own_tags(tr, ("td", "th"), table):
                 text = td.get_text(separator=" ", strip=True).replace('\xa0', ' ')
                 if not text and next(iter_tags(td, ("img",)), None) is not None:
                     text = '●'  # an image-only cell is a bullet
