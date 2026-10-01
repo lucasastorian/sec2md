@@ -11,15 +11,15 @@ Purchases of Equity Securities by the Issuer and Affiliated Purchasers
 
 Share repurchase activity during the three months ended September 28, 2024 was as follows (in millions, except number of shares, which are reflected in thousands, and per-share amounts):
 
-| Periods | Total Number of Shares Purchased | Average Price Paid Per Share | Total Number of Shares Purchased as Part of Publicly Announced Plans or Programs |
-| --- | --- | --- | --- |
-| June 30, 2024 to August 3, 2024: |  |  |  |
-| Open market and privately negotiated purchases | 35,697 | $ 224.11 | 35,697 |
-| August 4, 2024 to August 31, 2024: |  |  |  |
-| Open market and privately negotiated purchases | 42,910 | $ 221.39 | 42,910 |
-| September 1, 2024 to September 28, 2024: |  |  |  |
-| Open market and privately negotiated purchases | 33,653 | $ 222.86 | 33,653 |
-| Total | 112,260 |  | $ 89,074 |
+| Periods | Total Number of Shares Purchased | Average Price Paid Per Share | Total Number of Shares Purchased as Part of Publicly Announced Plans or Programs | Approximate Dollar Value of Shares That May Yet Be Purchased Under the Plans or Programs (1) |
+| --- | --- | --- | --- | --- |
+| June 30, 2024 to August 3, 2024: |  |  |  |  |
+| Open market and privately negotiated purchases | 35,697 | $ 224.11 | 35,697 |  |
+| August 4, 2024 to August 31, 2024: |  |  |  |  |
+| Open market and privately negotiated purchases | 42,910 | $ 221.39 | 42,910 |  |
+| September 1, 2024 to September 28, 2024: |  |  |  |  |
+| Open market and privately negotiated purchases | 33,653 | $ 222.86 | 33,653 |  |
+| Total | 112,260 |  |  | $ 89,074 |
 
 (1) As of September 28, 2024, the Company was authorized by the Board to purchase up to $110 billion of the Company’s common stock under a share repurchase program announced on May 2, 2024, of which $20.9 billion had been utilized. During the fourth quarter of 2024, the Company also utilized the final $4.1 billion under its previous repurchase program, which was authorized in May 2023. The programs do not obligate the Company to acquire a minimum amount of shares. Under the programs, shares may be repurchased in privately negotiated or open market transactions, including under plans complying with Rule 10b5-1 under the Exchange Act.
 

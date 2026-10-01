@@ -550,15 +550,15 @@ As of October 18, 2024, there were 23,301 shareholders of record.
 
 Share repurchase activity during the three months ended September 28, 2024 was as follows (in millions, except number of shares, which are reflected in thousands, and per-share amounts):
 
-| Periods | Total Number of Shares Purchased | Average Price Paid Per Share | Total Number of Shares Purchased as Part of Publicly Announced Plans or Programs |
-| --- | --- | --- | --- |
-| June 30, 2024 to August 3, 2024: |  |  |  |
-| Open market and privately negotiated purchases | 35,697 | $ 224.11 | 35,697 |
-| August 4, 2024 to August 31, 2024: |  |  |  |
-| Open market and privately negotiated purchases | 42,910 | $ 221.39 | 42,910 |
-| September 1, 2024 to September 28, 2024: |  |  |  |
-| Open market and privately negotiated purchases | 33,653 | $ 222.86 | 33,653 |
-| Total | 112,260 |  | $ 89,074 |
+| Periods | Total Number of Shares Purchased | Average Price Paid Per Share | Total Number of Shares Purchased as Part of Publicly Announced Plans or Programs | Approximate Dollar Value of Shares That May Yet Be Purchased Under the Plans or Programs (1) |
+| --- | --- | --- | --- | --- |
+| June 30, 2024 to August 3, 2024: |  |  |  |  |
+| Open market and privately negotiated purchases | 35,697 | $ 224.11 | 35,697 |  |
+| August 4, 2024 to August 31, 2024: |  |  |  |  |
+| Open market and privately negotiated purchases | 42,910 | $ 221.39 | 42,910 |  |
+| September 1, 2024 to September 28, 2024: |  |  |  |  |
+| Open market and privately negotiated purchases | 33,653 | $ 222.86 | 33,653 |  |
+| Total | 112,260 |  |  | $ 89,074 |
 
 (1) As of September 28, 2024, the Company was authorized by the Board to purchase up to $110 billion of the Company’s common stock under a share repurchase program announced on May 2, 2024, of which $20.9 billion had been utilized. During the fourth quarter of 2024, the Company also utilized the final $4.1 billion under its previous repurchase program, which was authorized in May 2023. The programs do not obligate the Company to acquire a minimum amount of shares. Under the programs, shares may be repurchased in privately negotiated or open market transactions, including under plans complying with Rule 10b5-1 under the Exchange Act.
 
@@ -1443,7 +1443,7 @@ The effective interest rates for the Notes include the interest on the Notes, am
 
 The future principal payments for the Company’s Notes as of September 28, 2024, are as follows (in millions):
 
-| 2025 | $ |
+| 2025 | $ 10,930 |
 | --- | --- |
 | 2026 | 12,342 |
 | 2027 | 9,936 |
@@ -1520,7 +1520,7 @@ As of September 28, 2024, the total unrecognized compensation cost related to ou
 
 The Company has entered into certain off–balance sheet commitments that require the future purchase of goods or services (“unconditional purchase obligations”). The Company’s unconditional purchase obligations primarily consist of supplier arrangements, licensed intellectual property and content, and distribution rights. Future payments under unconditional purchase obligations with a remaining term in excess of one year as of September 28, 2024, are as follows (in millions):
 
-| 2025 | $ |
+| 2025 | $ 3,206 |
 | --- | --- |
 | 2026 | 2,440 |
 | 2027 | 1,156 |
@@ -1824,10 +1824,10 @@ All financial statement schedules have been omitted, since the required informat
 | 32.1*** | Section 1350 Certifications of Chief Executive Officer and Chief Financial Officer. |  |  |  |
 | 97.1*, ** | Rule 10D-1 Reco very Pol icy |  |  |  |
 
-| Exhibit Number | Exhibit Description |
-| --- | --- |
-| 101** | Inline XBRL Document Set for the consolidated financial statements and accompanying notes in Part II, Item 8, “Financial Statements and Supplementary Data” of this Annual Report on Form 10-K. |
-| 104** | Inline XBRL for the cover page of this Annual Report on Form 10-K, included in the Exhibit 101 Inline XBRL Document Set. |
+| Exhibit Number | Exhibit Description | Incorporated by Reference — Form | Exhibit | Filing Date/ Period End Date |
+| --- | --- | --- | --- | --- |
+| 101** | Inline XBRL Document Set for the consolidated financial statements and accompanying notes in Part II, Item 8, “Financial Statements and Supplementary Data” of this Annual Report on Form 10-K. |  |  |  |
+| 104** | Inline XBRL for the cover page of this Annual Report on Form 10-K, included in the Exhibit 101 Inline XBRL Document Set. |  |  |  |
 
 * Indicates management contract or compensatory plan or arrangement.
 
@@ -1845,11 +1845,11 @@ None.
 
 Pursuant to the requirements of Section 13 or 15(d) of the Securities Exchange Act of 1934, the Registrant has duly caused this report to be signed on its behalf by the undersigned, thereunto duly authorized.
 
-| Date: November 1, 2024 |  |
-| --- | --- |
-| By: | /s/ Luca Maestri |
-|  | Luca Maestri |
-|  | Senior Vice President, Chief Financial Officer |
+| Date: November 1, 2024 | Apple Inc. |  |
+| --- | --- | --- |
+|  | By: | /s/ Luca Maestri |
+|  |  | Luca Maestri |
+|  |  | Senior Vice President, Chief Financial Officer |
 
 **Power of Attorney**
 

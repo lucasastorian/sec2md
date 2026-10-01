@@ -198,11 +198,14 @@ class TableParser:
                 current_col = col
                 continue
 
-            cell_pairs = list(zip(current_col[1:], col[1:]))
+            # Every row decides, the first (header) row included: skipping it merged columns that
+            # each had header text and kept only the left header, dropping the right one's text
+            # (and, where the first row is data, its values).
+            cell_pairs = list(zip(current_col, col))
             should_merge = all(self._should_merge_cells(c1, c2) for c1, c2 in cell_pairs)
 
             if should_merge:
-                merged = [current_col[0]]  # Keep header
+                merged = []
                 for c1, c2 in cell_pairs:
                     if not c1:
                         merged.append(c2)
@@ -289,8 +292,9 @@ class TableParser:
         if not cleaned_data:
             return headers, []
 
-        # Identify empty columns
-        cols_with_content = set()
+        # Identify empty columns (a column with header text is not empty, even when its body
+        # is: rowspan-covered cells read as empty)
+        cols_with_content = {j for j, h in enumerate(headers) if self._normalize_text(h)}
         for row in cleaned_data:
             for j, cell in enumerate(row):
                 if j < ncols and self._normalize_text(cell):

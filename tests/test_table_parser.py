@@ -156,3 +156,33 @@ class TestTableParserValidation:
         soup = BeautifulSoup("<div>Not a table</div>", "lxml")
         with pytest.raises(ValueError, match="table tag"):
             TableParser(soup.find("div"))
+
+
+class TestNoCellIsDropped:
+    """Column merging must never discard text: every non-empty cell reaches the markdown."""
+
+    def _md(self, html):
+        from bs4 import BeautifulSoup
+        return TableParser(BeautifulSoup(html, "lxml").find("table")).md()
+
+    def test_rowspan_label_value_pairs_survive(self):
+        # DART disclosure layout: label/value pairs spanning two rows, then a two-row tail.
+        md = self._md("""<table>
+            <tr><td rowspan="2">Company</td><td rowspan="2">Samsung</td><td rowspan="2">Code</td>
+                <td rowspan="2">005930</td><td>tel</td><td>02-2255-9000</td></tr>
+            <tr><td>(fax)</td><td>02-2255-6164</td></tr></table>""")
+        for text in ("Company", "Samsung", "Code", "005930", "tel", "02-2255-9000", "(fax)", "02-2255-6164"):
+            assert text in md
+
+    def test_first_row_value_after_dollar_sign_is_kept(self):
+        # Apple 10-K term-debt maturities: the first row is data, not a header.
+        md = self._md("""<table>
+            <tr><td>2025</td><td>$</td><td>10,930</td></tr>
+            <tr><td>2026</td><td></td><td>12,342</td></tr></table>""")
+        assert "$ 10,930" in md and "12,342" in md
+
+    def test_distinct_headers_are_not_merged(self):
+        md = self._md("""<table>
+            <tr><td>Total</td><td>Remaining authorization</td></tr>
+            <tr><td>112,260</td><td></td></tr></table>""")
+        assert "Remaining authorization" in md

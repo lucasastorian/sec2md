@@ -605,7 +605,7 @@ The effective interest rates for the Notes include the interest on the Notes, am
 
 The future principal payments for the Company’s Notes as of September 28, 2024, are as follows (in millions):
 
-| 2025 | $ |
+| 2025 | $ 10,930 |
 | --- | --- |
 | 2026 | 12,342 |
 | 2027 | 9,936 |
@@ -682,7 +682,7 @@ Unconditional Purchase Obligations
 
 The Company has entered into certain off–balance sheet commitments that require the future purchase of goods or services (“unconditional purchase obligations”). The Company’s unconditional purchase obligations primarily consist of supplier arrangements, licensed intellectual property and content, and distribution rights. Future payments under unconditional purchase obligations with a remaining term in excess of one year as of September 28, 2024, are as follows (in millions):
 
-| 2025 | $ |
+| 2025 | $ 3,206 |
 | --- | --- |
 | 2026 | 2,440 |
 | 2027 | 1,156 |

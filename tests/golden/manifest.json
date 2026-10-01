@@ -87,8 +87,8 @@
         21,
         22
       ],
-      "tokens": 739,
-      "chars": 2738
+      "tokens": 776,
+      "chars": 2860
     },
     {
       "item": "ITEM 6",
@@ -131,8 +131,8 @@
         30,
         52
       ],
-      "tokens": 16722,
-      "chars": 64511
+      "tokens": 16730,
+      "chars": 64524
     },
     {
       "item": "ITEM 9",
@@ -241,8 +241,8 @@
         55,
         58
       ],
-      "tokens": 4461,
-      "chars": 13272
+      "tokens": 4495,
+      "chars": 13384
     },
     {
       "item": "ITEM 16",
@@ -252,8 +252,8 @@
         58,
         59
       ],
-      "tokens": 658,
-      "chars": 2299
+      "tokens": 670,
+      "chars": 2327
     }
   ],
   "chunk_count": 110,
