@@ -13,7 +13,7 @@ from sec2md.absolute_table_parser import AbsolutelyPositionedTableParser
 from sec2md.utils import median, clean_text
 from sec2md.table_parser import TableParser
 from sec2md.models import Page, Element
-from sec2md.element_builder import build_elements_for_pages, augment_html_with_ids
+from sec2md.element_builder import build_elements_for_pages, augment_html_with_ids, _HIGHLIGHT_SCRIPT
 
 BLOCK_TAGS = {"div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "table", "br", "hr", "ul", "ol", "li"}
 BOLD_TAGS = {"b", "strong"}
@@ -871,6 +871,14 @@ class Parser:
             if page.elements:
                 page_elements[page.number] = page.elements
         augment_html_with_ids(page_elements, block_nodes_map)
+
+        # Inject highlight-on-hash script into the HTML
+        script_tag = BeautifulSoup(_HIGHLIGHT_SCRIPT, 'html.parser')
+        if self.soup.body:
+            self.soup.body.append(script_tag)
+        else:
+            self.soup.append(script_tag)
+
         return result
 
     def markdown(self) -> str:

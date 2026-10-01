@@ -132,6 +132,38 @@ def build_elements_for_pages(
     return result, block_nodes_map
 
 
+_HIGHLIGHT_SCRIPT = """\
+<script id="sec2md-highlight">
+(function() {
+  function highlight() {
+    var hash = location.hash.slice(1);
+    if (!hash) return;
+    document.querySelectorAll('[data-sec2md-hl]').forEach(function(el) {
+      el.style.backgroundColor = '';
+      el.removeAttribute('data-sec2md-hl');
+    });
+    var ids = hash.split(',');
+    var first = null;
+    ids.forEach(function(id) {
+      document.querySelectorAll('[data-sec2md-block="' + id + '"]').forEach(function(el) {
+        el.style.backgroundColor = '#FFFF00';
+        el.setAttribute('data-sec2md-hl', '1');
+        var children = el.querySelectorAll('*');
+        for (var i = 0; i < children.length; i++) {
+          children[i].style.backgroundColor = '#FFFF00';
+          children[i].setAttribute('data-sec2md-hl', '1');
+        }
+        if (!first) first = el;
+      });
+    });
+    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  window.addEventListener('hashchange', highlight);
+  window.addEventListener('DOMContentLoaded', highlight);
+})();
+</script>"""
+
+
 def augment_html_with_ids(
     page_elements: Dict[int, List[Element]],
     block_nodes_map: Dict[str, List[Tag]],
