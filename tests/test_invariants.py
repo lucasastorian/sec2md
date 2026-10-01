@@ -44,12 +44,13 @@ def test_markdown_is_the_pages_joined(fixture):
     assert sec2md.convert_to_markdown(load_html(fixture)) == "\n\n".join(p.content for p in pages if p.content)
 
 
-@pytest.mark.xfail(strict=True, reason="the highlight <script> injected into the soup is read as page text next time")
-def test_get_pages_twice_gives_the_same_pages(fixture):
+def test_get_pages_twice_gives_the_same_pages_and_html(fixture):
     parser = Parser(load_html(fixture))
     first = [(p.content, [e.id for e in p.elements or []]) for p in parser.get_pages()]
+    html = parser.html()
     second = [(p.content, [e.id for e in p.elements or []]) for p in parser.get_pages()]
-    assert first == second
+    same_pages, same_html = first == second, parser.html() == html  # no assert diff of MBs of HTML
+    assert same_pages and same_html
 
 
 def test_chunks_cite_real_elements(fixture):

@@ -154,15 +154,17 @@ def augment_html_with_ids(
             first_node = nodes[0]
 
             if page_num not in seen_pages:
-                if 'id' in first_node.attrs:
-                    existing_classes = first_node.get('class', [])
-                    if isinstance(existing_classes, str):
-                        existing_classes = existing_classes.split()
-                    existing_classes.append(f"page-{page_num}")
-                    first_node['class'] = existing_classes
-                else:
-                    first_node['id'] = f"page-{page_num}"
+                # The page's first node is its anchor: id="page-N", or the class when it has an id
                 seen_pages.add(page_num)
+                marker = f"page-{page_num}"
+                if 'id' not in first_node.attrs:
+                    first_node['id'] = marker
+                elif first_node['id'] != marker:
+                    classes = first_node.get('class', [])
+                    if isinstance(classes, str):
+                        classes = classes.split()
+                    if marker not in classes:
+                        first_node['class'] = classes + [marker]
 
             if 'id' not in first_node.attrs:
                 first_node['id'] = element.id
@@ -174,6 +176,14 @@ def augment_html_with_ids(
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
+def _add_nodes(nodes: List[Tag], new: List[Tag]) -> None:
+    """Append the nodes not in the list yet, by identity: Tag == compares whole subtrees, so of
+    two identical spans (the two '☐' of 'Yes ☐ No ☐') only the first was kept and annotated."""
+    for node in new:
+        if not any(node is n for n in nodes):
+            nodes.append(node)
+
 
 def _is_bold_header(element: Element) -> bool:
     """Check if element is a bold header (section boundary marker)."""
@@ -273,8 +283,8 @@ def _group_segments_into_blocks(
                 continue
 
         current_block_segments.append(content)
-        if node is not None and node not in current_block_nodes:
-            current_block_nodes.append(node)
+        if node is not None:
+            _add_nodes(current_block_nodes, [node])
         if text_block is not None:
             current_text_block = text_block
 
@@ -350,7 +360,7 @@ def _merge_small_blocks(
         if element.kind == 'table':
             if current_elements and current_chars < min_chars:
                 current_elements.append(element)
-                current_nodes.extend([n for n in nodes if n not in current_nodes])
+                _add_nodes(current_nodes, nodes)
                 flush(len(merged))
             else:
                 flush(len(merged))
@@ -368,7 +378,7 @@ def _merge_small_blocks(
                 flush(len(merged))
 
         current_elements.append(element)
-        current_nodes.extend([n for n in nodes if n not in current_nodes])
+        _add_nodes(current_nodes, nodes)
         current_chars += element.char_count
 
         should_flush = False

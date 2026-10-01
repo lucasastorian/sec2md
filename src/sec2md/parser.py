@@ -8,7 +8,8 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
 
 from bs4 import BeautifulSoup
-from bs4.element import Comment, Declaration, Doctype, NavigableString, ProcessingInstruction, Tag
+from bs4.element import (Comment, Declaration, Doctype, NavigableString, ProcessingInstruction, Script,
+                         Stylesheet, Tag, TemplateString)
 
 from sec2md.absolute_table_parser import AbsolutelyPositionedTableParser
 from sec2md.element_builder import build_elements_for_pages, augment_html_with_ids, _HIGHLIGHT_SCRIPT
@@ -22,6 +23,7 @@ BLOCK_TAGS = {"div", "p", "h1", "h2", "h3", "h4", "h5", "h6", "table", "br", "hr
 BOLD_TAGS = {"b", "strong"}
 ITALIC_TAGS = {"i", "em"}
 NOT_CONTENT = (Comment, Declaration, Doctype, ProcessingInstruction)
+NOT_TEXT = (Script, Stylesheet, TemplateString)  # the strings of <script>, <style>, <template>
 
 _css_decl = re.compile(r"^[a-zA-Z\-]+\s*:\s*[^;]+;\s*$")
 ITEM_HEADER_CELL_RE = re.compile(r"^\s*Item\s+([0-9IVX]+)\.\s*$", re.I)
@@ -152,7 +154,7 @@ class Parser:
         """Sibling spans of the same emphasis read as one: '**a** **b**' -> '**a b**'."""
         if not (isinstance(last_source, Tag) and isinstance(current_source, Tag)):
             return None
-        if last_source.parent != current_source.parent:
+        if last_source.parent is not current_source.parent:
             return None
 
         last_stripped = last_text.rstrip()
@@ -198,6 +200,8 @@ class Parser:
 
     @staticmethod
     def _process_text_node(node: NavigableString) -> str:
+        if isinstance(node, NOT_TEXT):
+            return ""
         text = clean_text(str(node))
         return "" if text and _css_decl.match(text) else text
 
@@ -645,9 +649,9 @@ class Parser:
     def _add_elements_to_pages(self, pages: List[Page]) -> List[Page]:
         result, block_nodes_map = build_elements_for_pages(pages, self.page_segments)
         augment_html_with_ids({page.number: page.elements for page in result if page.elements}, block_nodes_map)
-        # The highlight-on-hash script, so html() opens at a cited element
-        script_tag = BeautifulSoup(_HIGHLIGHT_SCRIPT, "html.parser")
-        (self.soup.body or self.soup).append(script_tag)
+        # The highlight-on-hash script, so html() opens at a cited element (once)
+        if self.soup.find("script", id="sec2md-highlight") is None:
+            (self.soup.body or self.soup).append(BeautifulSoup(_HIGHLIGHT_SCRIPT, "html.parser"))
         return result
 
     def markdown(self) -> str:
