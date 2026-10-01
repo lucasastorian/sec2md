@@ -1,12 +1,8 @@
-from typing import List, Optional, Tuple, Dict, TYPE_CHECKING
+from typing import List, Optional, Tuple, Dict
 from pydantic import BaseModel, Field, computed_field
 
 from sec2md.chunker.blocks import BaseBlock
-
-if TYPE_CHECKING:
-    from sec2md.models import Element
-else:
-    Element = 'Element'  # Forward reference for Pydantic
+from sec2md.models import Element
 
 
 class Chunk(BaseModel):
@@ -14,7 +10,7 @@ class Chunk(BaseModel):
 
     blocks: List[BaseBlock] = Field(..., description="List of markdown blocks in this chunk")
     header: Optional[str] = Field(None, description="Optional header for embedding context")
-    elements: List['Element'] = Field(default_factory=list, description="Element objects for citation")
+    elements: List[Element] = Field(default_factory=list, description="Element objects for citation")
     vector: Optional[List[float]] = Field(None, description="Vector embedding for this chunk")
     display_page_map: Optional[Dict[int, int]] = Field(None, description="Maps page number to original display_page from filing")
     index: Optional[int] = Field(None, description="Sequential index of this chunk (0-based)")
@@ -142,7 +138,7 @@ class Chunk(BaseModel):
 
     @computed_field
     @property
-    def images(self) -> List['Element']:
+    def images(self) -> List[Element]:
         """Returns list of image elements in this chunk"""
         return [e for e in self.elements if e.kind == "image"]
 

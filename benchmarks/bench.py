@@ -59,9 +59,16 @@ def _render(pages, sections, chunks) -> dict[str, str]:
     secs = [json.dumps([s.part, s.item, s.item_title, list(s.page_range),
                         [x.model_dump() for x in s.exhibits or []], s.markdown()], ensure_ascii=False)
             for s in sections or []]
-    chs = [json.dumps([c.index, c.page_range, c.display_page_range, c.element_ids, c.content], ensure_ascii=False)
-           for c in chunks]
-    return {"md": md, "elements": "\n".join(elements), "sections": "\n".join(secs), "chunks": "\n".join(chs)}
+    def render(chunks):
+        return [json.dumps([c.index, c.page_range, c.display_page_range, c.element_ids, c.content], ensure_ascii=False)
+                for c in chunks]
+    # beyond whole pages: each section's chunks, each XBRL note's chunks
+    section_chunks = [line for s in sections or [] for line in render(sec2md.chunk_section(s))]
+    note_chunks = [line for tb in sec2md.merge_text_blocks(pages)
+                   for line in [tb.name] + render(sec2md.chunk_text_block(tb))]
+    return {"md": md, "elements": "\n".join(elements), "sections": "\n".join(secs),
+            "chunks": "\n".join(render(chunks)), "section_chunks": "\n".join(section_chunks),
+            "note_chunks": "\n".join(note_chunks)}
 
 
 def _lost_cells(html: str) -> tuple[int, int]:
