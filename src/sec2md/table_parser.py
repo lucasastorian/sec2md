@@ -6,6 +6,8 @@ from bs4 import Tag
 from dataclasses import dataclass
 from typing import List, Optional
 
+from sec2md.utils import iter_tags
+
 logger = logging.getLogger(__name__)
 
 BULLETS = {"•", "●", "◦", "–", "-", "—", "·", ""}
@@ -63,13 +65,12 @@ class TableParser:
 
     def _extract_cells(self) -> List[List[Cell]]:
         rows = []
-        for tr in self.table_element.find_all('tr'):
+        for tr in iter_tags(self.table_element, ("tr",)):
             row = []
-            for td in tr.find_all(['td', 'th']):
+            for td in iter_tags(tr, ("td", "th")):
                 text = td.get_text(separator=" ", strip=True).replace('\xa0', ' ')
-                if not text:
-                    if td.find('img'):
-                        text = '●'  # or '•' depending on your BULLETS set
+                if not text and next(iter_tags(td, ("img",)), None) is not None:
+                    text = '●'  # an image-only cell is a bullet
                 rowspan = self._safe_parse_int(td.get('rowspan'))
                 colspan = self._safe_parse_int(td.get('colspan'))
                 row.append(Cell(text=text, rowspan=rowspan, colspan=colspan))

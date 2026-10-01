@@ -6,29 +6,17 @@ from enum import Enum
 from typing import List, Optional, Literal, Tuple
 from pydantic import BaseModel, Field, field_validator, computed_field
 
-try:
-    import tiktoken
-    TIKTOKEN_AVAILABLE = True
-except ImportError:
-    TIKTOKEN_AVAILABLE = False
-
-try:
-    from IPython.display import display, Markdown as IPythonMarkdown
-    IPYTHON_AVAILABLE = True
-except ImportError:
-    IPYTHON_AVAILABLE = False
+from sec2md.utils import count_tokens
 
 
-def _count_tokens(text: str) -> int:
-    """Count tokens in text using tiktoken if available, else char/4 heuristic."""
-    if TIKTOKEN_AVAILABLE:
-        try:
-            encoding = tiktoken.get_encoding("cl100k_base")
-            return len(encoding.encode(text))
-        except Exception:
-            return max(1, len(text) // 4)
-    else:
-        return max(1, len(text) // 4)
+def _show(markdown: str, plain: str) -> None:
+    """Render markdown in Jupyter/IPython, else print the plain version."""
+    try:
+        from IPython.display import display, Markdown
+    except ImportError:
+        print(plain)
+        return
+    display(Markdown(markdown))
 
 
 # Type alias for filing types
@@ -369,7 +357,7 @@ class Element(BaseModel):
     @property
     def tokens(self) -> int:
         """Token count of this element."""
-        return _count_tokens(self.content)
+        return count_tokens(self.content)
 
     def visualize(self, html: str) -> str:
         """
@@ -406,7 +394,7 @@ class Page(BaseModel):
     @property
     def tokens(self) -> int:
         """Total number of tokens on this page."""
-        return _count_tokens(self.content)
+        return count_tokens(self.content)
 
     @computed_field
     @property
@@ -420,11 +408,7 @@ class Page(BaseModel):
 
         Renders as Markdown in Jupyter/IPython, plain text in console.
         """
-        if IPYTHON_AVAILABLE:
-            display(IPythonMarkdown(self.content))
-        else:
-            print(f"=== Page {self.number} ({self.tokens} tokens) ===")
-            print(self.content)
+        _show(self.content, f"=== Page {self.number} ({self.tokens} tokens) ===\n{self.content}")
 
     def __str__(self) -> str:
         return self.content
@@ -500,13 +484,8 @@ class Section(BaseModel):
         Renders as Markdown in Jupyter/IPython, plain text in console.
         """
         content = self.markdown()
-
-        if IPYTHON_AVAILABLE:
-            display(IPythonMarkdown(content))
-        else:
-            header = f"{self.item}: {self.item_title}"
-            print(f"=== {header} ({self.tokens} tokens, pages {self.page_range[0]}-{self.page_range[1]}) ===")
-            print(content)
+        header = f"{self.item}: {self.item_title}"
+        _show(content, f"=== {header} ({self.tokens} tokens, pages {self.page_range[0]}-{self.page_range[1]}) ===\n{content}")
 
     def __str__(self) -> str:
         return self.markdown()

@@ -13,6 +13,7 @@ from typing import List, Dict, Optional, Tuple, Any
 from bs4.element import Tag
 
 from sec2md.models import Page, Element, TextBlock
+from sec2md.utils import iter_tags
 
 # iXBRL tag names used for fact extraction
 _XBRL_FACT_TAGS = {'ix:nonfraction', 'nonfraction', 'ix:nonnumeric', 'nonnumeric'}
@@ -25,7 +26,7 @@ def _extract_xbrl_tags(nodes: List[Tag]) -> Optional[List[str]]:
     for node in nodes:
         if not isinstance(node, Tag):
             continue
-        for el in node.find_all(_XBRL_FACT_TAGS):
+        for el in iter_tags(node, _XBRL_FACT_TAGS):
             name = el.get('name', '')
             if name and name not in seen:
                 seen.add(name)

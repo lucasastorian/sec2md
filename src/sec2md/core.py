@@ -6,8 +6,6 @@ import logging
 from typing import overload, List, Literal
 from urllib.parse import urljoin
 
-import requests
-
 from sec2md.utils import is_url, fetch
 from sec2md.parser import Parser
 from sec2md.models import Page
@@ -37,6 +35,8 @@ def _embed_images(html: str, source_url: str, user_agent: str | None = None) -> 
     Returns:
         HTML with image src attributes replaced by data URIs where possible.
     """
+    import requests
+
     base_url = source_url.rsplit('/', 1)[0] + '/'
 
     headers = {}

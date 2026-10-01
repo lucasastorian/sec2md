@@ -4,7 +4,7 @@ import re
 
 import pytest
 
-from sec2md.parser import Parser
+from sec2md.parser import Parser, _is_absolute, _style, _top_px
 from sec2md.absolute_table_parser import AbsolutelyPositionedTableParser
 from sec2md.models import Page
 
@@ -259,13 +259,13 @@ class TestPrintLayout:
     properties, normal-flow bodies beside positioned bands, per-page containers."""
 
     def test_custom_property_is_not_absolute_positioning(self):
-        assert not Parser._is_absolutely_positioned(_tag('<div style="--position:absolute">x</div>'))
-        assert Parser._is_absolutely_positioned(_tag('<div style="left:0;position: absolute">x</div>'))
-        assert Parser._is_absolutely_positioned(_tag('<div style="position:absolute">x</div>'))
+        assert not _is_absolute(_style(_tag('<div style="--position:absolute">x</div>')))
+        assert _is_absolute(_style(_tag('<div style="left:0;position: absolute">x</div>')))
+        assert _is_absolute(_style(_tag('<div style="position:absolute">x</div>')))
 
     def test_top_in_pt_is_normalized_to_px(self):
-        assert Parser._extract_top_px(_tag('<div style="top:72pt">x</div>')) == pytest.approx(96.0)
-        assert Parser._extract_top_px(_tag('<div style="top:96px">x</div>')) == 96.0
+        assert _top_px(_tag('<div style="top:72pt">x</div>')) == pytest.approx(96.0)
+        assert _top_px(_tag('<div style="top:96px">x</div>')) == 96.0
 
     def test_normal_flow_body_beside_positioned_bands_is_kept(self):
         html = """<html><body><div>
@@ -285,7 +285,7 @@ class TestPrintLayout:
         assert [p.content.strip() for p in pages] == ["First page text", "Second page text"]
 
     def test_margin_top_is_not_top(self):
-        assert Parser._extract_top_px(_tag('<div style="margin-top:0pt;position:absolute;top:72pt">x</div>')) == pytest.approx(96.0)
+        assert _top_px(_tag('<div style="margin-top:0pt;position:absolute;top:72pt">x</div>')) == pytest.approx(96.0)
 
 
 class TestHtmlComments:

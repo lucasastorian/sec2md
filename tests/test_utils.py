@@ -1,6 +1,28 @@
 """Tests for utility functions (utils.py)."""
 
-from sec2md.utils import is_url, is_edgar_url, flatten_note
+from unittest.mock import patch
+
+from sec2md.utils import count_tokens, flatten_note, is_edgar_url, is_url
+
+
+class TestCountTokens:
+    def test_counts_tokens(self):
+        assert count_tokens("hello world") == 2
+
+    def test_chars_over_four_when_tiktoken_cannot_load(self):
+        """Offline, tiktoken cannot fetch its BPE file on first use: count, don't fail."""
+        count_tokens.cache_clear()
+        try:
+            with patch("sec2md.utils._encoding", return_value=None):
+                assert count_tokens("forty characters of text, give or take!!") == 10
+                assert count_tokens("hi") == 1
+        finally:
+            count_tokens.cache_clear()
+
+    def test_chars_over_four_when_encoding_raises(self):
+        """tiktoken refuses text holding a special token."""
+        text = "<|endoftext|> appears in a filing"
+        assert count_tokens(text) == len(text) // 4
 
 
 class TestIsUrl:

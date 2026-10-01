@@ -1,6 +1,5 @@
 """Tests for the chunking system (chunker.py, blocks.py, chunk.py, chunking.py)."""
 
-from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -52,15 +51,6 @@ class TestEstimateTokens:
         short = estimate_tokens("hi")
         long = estimate_tokens("This is a much longer text with many more words in it")
         assert long > short
-
-    def test_fallback_on_tiktoken_error(self):
-        """Regression: tiktoken runtime errors must not crash estimate_tokens."""
-        mock_tiktoken = MagicMock()
-        mock_tiktoken.get_encoding.side_effect = ConnectionError("offline")
-        with patch.dict("sys.modules", {"tiktoken": mock_tiktoken}):
-            with patch("sec2md.chunker.blocks.TIKTOKEN_AVAILABLE", True):
-                result = estimate_tokens("hello world")
-                assert result == max(1, len("hello world") // 4)
 
 
 class TestTextBlock:

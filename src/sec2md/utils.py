@@ -1,10 +1,10 @@
 """Utility functions."""
 
+import functools
 import re
-import requests
-from typing import List, Optional
+from typing import Collection, Iterator, List, Optional
 from urllib.parse import urlparse
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 _ws = re.compile(r"\s+")
 
@@ -12,6 +12,37 @@ _ws = re.compile(r"\s+")
 def clean_text(text: str) -> str:
     text = text.replace("\u200b", "").replace("\ufeff", "").replace("\xa0", " ")
     return _ws.sub(" ", text).strip()
+
+
+def iter_tags(node: Tag, names: Collection[str]) -> Iterator[Tag]:
+    """Descendant tags named one of `names`, in document order: find_all(names) without
+    bs4's per-tag filter machinery, which costs more than the walk itself."""
+    for d in node.descendants:
+        if isinstance(d, Tag) and d.name in names:
+            yield d
+
+
+@functools.lru_cache(maxsize=None)
+def _encoding():
+    """tiktoken's cl100k_base, or None: not installed, or its BPE file cannot be fetched (offline)."""
+    try:
+        import tiktoken
+        return tiktoken.get_encoding("cl100k_base")
+    except Exception:
+        return None
+
+
+@functools.lru_cache(maxsize=8192)
+def count_tokens(text: str) -> int:
+    """Tokens in text: tiktoken cl100k_base when available, else chars/4 (at least 1).
+    Cached: chunking counts the same sentences and blocks several times."""
+    encoding = _encoding()
+    if encoding is not None:
+        try:
+            return len(encoding.encode(text))
+        except Exception:  # e.g. a disallowed special token in the text
+            pass
+    return max(1, len(text) // 4)
 
 
 NUMERIC_RE = re.compile(r"""
@@ -78,6 +109,8 @@ def fetch(url: str, user_agent: str | None = None) -> str:
             "SEC EDGAR requires a User-Agent header. "
             "Pass user_agent='YourName your@email.com'"
         )
+
+    import requests
 
     headers = {}
     if user_agent:

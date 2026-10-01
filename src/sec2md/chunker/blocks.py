@@ -2,37 +2,15 @@ import re
 from typing import List, Optional
 from pydantic import BaseModel, Field, computed_field
 
-try:
-    import tiktoken
-    TIKTOKEN_AVAILABLE = True
-except ImportError:
-    TIKTOKEN_AVAILABLE = False
+from sec2md.utils import count_tokens as estimate_tokens  # the chunker's public name for it
 
-
-def estimate_tokens(text: str) -> int:
-    """
-    Calculate token count for text.
-
-    Uses tiktoken with cl100k_base encoding (gpt-3.5-turbo/gpt-4) if available.
-    Falls back to character/4 heuristic if tiktoken is not installed.
-    """
-    if TIKTOKEN_AVAILABLE:
-        try:
-            encoding = tiktoken.get_encoding("cl100k_base")
-            return len(encoding.encode(text))
-        except Exception:
-            return max(1, len(text) // 4)
-    else:
-        # Fallback: simple heuristic
-        return max(1, len(text) // 4)
+_SENTENCE_END = re.compile(r'(?<=[.!?])\s+(?=[A-Z])')
+_WS = re.compile(r'\s+')
 
 
 def split_sentences(text: str) -> List[str]:
-    """Simple regex-based sentence splitter"""
-    # Split on .!? followed by whitespace and capital letter or end of string
-    # Handles common abbreviations like Mr., Dr., Inc., etc.
-    sentences = re.split(r'(?<=[.!?])\s+(?=[A-Z])', text)
-    return [s.strip() for s in sentences if s.strip()]
+    """Split on .!? followed by whitespace and a capital letter."""
+    return [s.strip() for s in _SENTENCE_END.split(text) if s.strip()]
 
 
 class BaseBlock(BaseModel):
@@ -96,7 +74,7 @@ class TableBlock(BaseBlock):
                 continue
 
             parts = line.split('|')
-            cleaned_parts = [re.sub(r'\s+', ' ', part.strip()) for part in parts]
+            cleaned_parts = [_WS.sub(' ', part.strip()) for part in parts]
             cleaned_line = '|'.join(cleaned_parts)
 
             if i == 1:

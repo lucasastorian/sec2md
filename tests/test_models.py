@@ -1,6 +1,5 @@
 """Tests for data models (models.py)."""
 
-from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -8,22 +7,7 @@ from sec2md.models import (
     Page, Section, Element, TextBlock,
     Item10K, Item10Q, Item8K, FilingType,
     ITEM_10K_MAPPING, ITEM_10Q_MAPPING, ITEM_8K_TITLES,
-    _count_tokens,
 )
-
-
-class TestCountTokens:
-    def test_returns_positive_for_text(self):
-        assert _count_tokens("hello world") >= 1
-
-    def test_fallback_on_tiktoken_error(self):
-        """Regression: tiktoken runtime errors must not crash token counting."""
-        mock_tiktoken = MagicMock()
-        mock_tiktoken.get_encoding.side_effect = ConnectionError("offline")
-        with patch.dict("sys.modules", {"tiktoken": mock_tiktoken}):
-            with patch("sec2md.models.TIKTOKEN_AVAILABLE", True):
-                result = _count_tokens("hello world")
-                assert result == max(1, len("hello world") // 4)
 
 
 class TestElement:
