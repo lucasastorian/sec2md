@@ -60,12 +60,11 @@ def parse(name: str):
 
 def lost_cells(html: str) -> int:
     """Non-trivial cell texts of visible tables (2+ rows) missing from the table's markdown."""
-    from bs4 import BeautifulSoup
 
     norm = lambda t: re.sub(r"\s+", " ", t.replace("\xa0", " ").replace("|", " ").replace("**", "")).strip()  # | escaped, ** bold in md
     trivial = {"", "$", "%", "(", ")", "•", "●", "◦", "▪", "·", "-", "–", "—"}
     lost = 0
-    for t in BeautifulSoup(html, "lxml").find_all("table"):
+    for t in Parser(html).soup.find_all("table"):
         hidden = any("display:none" in (a.get("style") or "").replace(" ", "").lower() for a in t.parents)
         if t.find_parent("table") or hidden or len(t.find_all("tr")) < 2:
             continue

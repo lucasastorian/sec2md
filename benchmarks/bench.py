@@ -73,12 +73,11 @@ def _render(pages, sections, chunks) -> dict[str, str]:
 
 def _lost_cells(html: str) -> tuple[int, int]:
     """(tables, cells lost): a visible table's non-trivial cell text missing from its markdown."""
-    from bs4 import BeautifulSoup
     from sec2md.table_parser import TableParser
 
     norm = lambda t: re.sub(r"\s+", " ", t.replace("\xa0", " ").replace("|", " ").replace("**", "")).strip()  # | escaped, ** bold in md
     tables = lost = 0
-    for t in BeautifulSoup(html, "lxml").find_all("table"):
+    for t in Parser(html).soup.find_all("table"):
         if t.find_parent("table") or any("display:none" in (a.get("style") or "").replace(" ", "").lower()
                                          for a in t.parents if hasattr(a, "get")):
             continue

@@ -26,6 +26,7 @@ NOT_CONTENT = (Comment, Declaration, Doctype, ProcessingInstruction)
 NOT_TEXT = (Script, Stylesheet, TemplateString)  # the strings of <script>, <style>, <template>
 
 _css_decl = re.compile(r"^[a-zA-Z\-]+\s*:\s*[^;]+;\s*$")
+_XML_DECLARATION = re.compile(r"\A(\s*)<\?xml[^>]*\?>")
 ITEM_HEADER_CELL_RE = re.compile(r"^\s*Item\s+([0-9IVX]+)\.\s*$", re.I)
 PART_HEADER_CELL_RE = re.compile(r"^\s*Part\s+([IVX]+)\s*$", re.I)
 _ABSOLUTE = re.compile(r"(?:^|[;{])position:absolute")
@@ -81,7 +82,9 @@ class Parser:
     """Filing HTML to markdown pages, each split into citable elements traced back to the HTML."""
 
     def __init__(self, content: str):
-        self.soup = BeautifulSoup(content, "lxml")
+        # iXBRL is XHTML, parsed as HTML on purpose: without its <?xml?> declaration (removed with
+        # the other non-content nodes below anyway), bs4 does not warn that it looks like XML.
+        self.soup = BeautifulSoup(_XML_DECLARATION.sub(r"\1", content, count=1), "lxml")
         # Comments are strings to bs4 and were rendered as page text; filing agents
         # hide markers in them ('Field: Page; Sequence: 4', base64 'Field: Set; ...').
         # smooth() re-joins the text a comment split ('F-<!-- -->1' -> 'F-1').
