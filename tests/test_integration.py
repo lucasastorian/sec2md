@@ -1,17 +1,13 @@
 """Integration tests: diff current output against golden files.
 
-Setup (one-time):
-    python tests/generate_golden.py
-    # inspect tests/golden/, commit when satisfied
-
-Run:
-    pytest -m integration
-
-Uses the AAPL 10-K from the README quickstart as the single fixture.
+Runs offline with the rest of the suite: the AAPL 10-K from the README quickstart is committed
+as tests/fixtures/aapl_10k.html.gz. After an intended output change, regenerate and review:
+    python tests/generate_golden.py && git diff tests/golden
 """
 
-import json
 import difflib
+import gzip
+import json
 from pathlib import Path
 
 import pytest
@@ -20,25 +16,15 @@ import sec2md
 from sec2md import Item10K
 
 GOLDEN_DIR = Path(__file__).parent / "golden"
-CACHE_DIR = Path(__file__).parent / ".cache"
-
-
-def _skip_if_missing():
-    if not (CACHE_DIR / "aapl_10k.html").exists():
-        pytest.skip("No cached HTML. Run: python tests/generate_golden.py")
-    if not (GOLDEN_DIR / "manifest.json").exists():
-        pytest.skip("No golden files. Run: python tests/generate_golden.py")
+FIXTURE = Path(__file__).parent / "fixtures" / "aapl_10k.html.gz"
 
 
 def _load_html() -> str:
-    return (CACHE_DIR / "aapl_10k.html").read_text(encoding="utf-8")
+    return gzip.decompress(FIXTURE.read_bytes()).decode("utf-8")
 
 
 def _load_golden(filename: str) -> str:
-    path = GOLDEN_DIR / filename
-    if not path.exists():
-        pytest.skip(f"Missing golden file: {path}")
-    return path.read_text(encoding="utf-8")
+    return (GOLDEN_DIR / filename).read_text(encoding="utf-8")
 
 
 def _load_manifest() -> dict:
@@ -66,10 +52,8 @@ def _assert_md_equal(expected: str, actual: str, context: str):
 # Full markdown output
 # ---------------------------------------------------------------------------
 
-@pytest.mark.integration
 class TestFullMarkdown:
     def test_matches_golden(self):
-        _skip_if_missing()
         html = _load_html()
         golden = _load_golden("full.md")
         actual = sec2md.convert_to_markdown(html)
@@ -80,11 +64,9 @@ class TestFullMarkdown:
 # Section extraction (README example)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.integration
 class TestSections:
     @pytest.fixture(autouse=True)
     def setup(self):
-        _skip_if_missing()
         self.html = _load_html()
         self.manifest = _load_manifest()
         self.pages = sec2md.convert_to_markdown(self.html, return_pages=True)
@@ -129,10 +111,8 @@ class TestSections:
 # get_section by enum (README example)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.integration
 class TestGetSection:
     def test_risk_factors_by_enum(self):
-        _skip_if_missing()
         html = _load_html()
         pages = sec2md.convert_to_markdown(html, return_pages=True)
         sections = sec2md.extract_sections(pages, filing_type="10-K")
@@ -149,10 +129,8 @@ class TestGetSection:
 # Chunking (README examples)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.integration
 class TestChunking:
     def test_chunk_count_stable(self):
-        _skip_if_missing()
         manifest = _load_manifest()
         html = _load_html()
         pages = sec2md.convert_to_markdown(html, return_pages=True)
@@ -160,7 +138,6 @@ class TestChunking:
         assert len(chunks) == manifest["chunk_count"]
 
     def test_no_empty_chunks(self):
-        _skip_if_missing()
         html = _load_html()
         pages = sec2md.convert_to_markdown(html, return_pages=True)
         chunks = sec2md.chunk_pages(pages, chunk_size=512)
@@ -169,7 +146,6 @@ class TestChunking:
             assert len(chunk.blocks) > 0
 
     def test_risk_section_chunks_with_header(self):
-        _skip_if_missing()
         manifest = _load_manifest()
         html = _load_html()
         pages = sec2md.convert_to_markdown(html, return_pages=True)
@@ -186,11 +162,9 @@ class TestChunking:
 # Invariants
 # ---------------------------------------------------------------------------
 
-@pytest.mark.integration
 class TestInvariants:
     @pytest.fixture(autouse=True)
     def setup(self):
-        _skip_if_missing()
         self.html = _load_html()
         self.pages = sec2md.convert_to_markdown(self.html, return_pages=True)
 

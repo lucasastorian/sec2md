@@ -20,6 +20,8 @@ For the transition period from to .
 
 Commission File Number: **001-36743**
 
+![g66145g66i43.jpg](aapl-20240928_g1.jpg)
+
 **Apple Inc.**
 
 (Exact name of Registrant as specified in its charter)
@@ -563,6 +565,8 @@ Share repurchase activity during the three months ended September 28, 2024 was a
 **Company Stock Performance**
 
 The following graph shows a comparison of five-year cumulative total shareholder return, calculated on a dividend-reinvested basis, for the Company, the S&P 500 Index and the Dow Jones U.S. Technology Supersector Index. The graph assumes $100 was invested in each of the Company’s common stock, the S&P 500 Index and the Dow Jones U.S. Technology Supersector Index as of the market close on September 27, 2019. Past stock price performance is not necessarily indicative of future stock price performance.
+
+![2218](aapl-20240928_g2.jpg)
 
 |  | September 2019 | September 2020 | September 2021 | September 2022 | September 2023 | September 2024 |
 | --- | --- | --- | --- | --- | --- | --- |

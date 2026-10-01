@@ -7,7 +7,7 @@ name = "sec2md"
 version = "0.1.24"
 description = "Convert SEC EDGAR filings to LLM-ready Markdown for AI agents and agentic RAG"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     {name = "Lucas Astorian", email = "lucas@intellifin.ai"}
@@ -19,10 +19,10 @@ classifiers = [
     "Intended Audience :: Financial and Insurance Industry",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Office/Business :: Financial",
     "Topic :: Text Processing :: Markup :: Markdown",
 ]
@@ -64,6 +64,5 @@ target-version = "py39"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 markers = [
-    "integration: hits EDGAR (deselected by default, run with: pytest -m integration)",
+    "integration: end-to-end golden tests on the committed AAPL 10-K fixture (offline)",
 ]
-addopts = "-m 'not integration'"

@@ -125,8 +125,8 @@ class TestVersionConsistency:
     """Regression: __init__.py version must match pyproject.toml."""
 
     def test_version_matches_pyproject(self):
+        import re
         import sec2md
-        import tomllib
-        with open("pyproject.toml", "rb") as f:
-            pyproject = tomllib.load(f)
-        assert sec2md.__version__ == pyproject["project"]["version"]
+        from pathlib import Path
+        pyproject = (Path(__file__).parents[1] / "pyproject.toml").read_text()
+        assert sec2md.__version__ == re.search(r'^version = "([^"]+)"', pyproject, re.M).group(1)

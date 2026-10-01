@@ -24,6 +24,10 @@ AAPL_URL = "https://www.sec.gov/Archives/edgar/data/320193/000032019324000123/aa
 
 
 def fetch_html() -> str:
+    fixture = Path(__file__).parent / "fixtures" / "aapl_10k.html.gz"
+    if fixture.exists():
+        import gzip
+        return gzip.decompress(fixture.read_bytes()).decode("utf-8")
     CACHE_DIR.mkdir(exist_ok=True)
     cache_path = CACHE_DIR / "aapl_10k.html"
 
