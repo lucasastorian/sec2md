@@ -68,9 +68,11 @@ class TableParser:
                 rowspan = self._safe_parse_int(td.get('rowspan'))
                 colspan = self._safe_parse_int(td.get('colspan'))
                 row.append(Cell(text=text, rowspan=rowspan, colspan=colspan))
-            if row:
-                rows.append(row)
-        return rows or [[Cell(text="")]]
+            # An empty <tr> is still a row: a rowspan above counts it (a header's rowspan="4"
+            # over three empty rows swallowed the three data rows after them). The grid drops
+            # rows without text later.
+            rows.append(row)
+        return rows if any(rows) else [[Cell(text="")]]
 
     @staticmethod
     def _safe_parse_int(value: str, default: int = 1) -> int:
@@ -306,9 +308,10 @@ class TableParser:
 
     def _looks_like_list_table(self) -> bool:
         """Special case - some quirky files format lists as tables"""
-        if len(self.cells) != 1:
+        rows = [row for row in self.cells if row]
+        if len(rows) != 1:
             return False
-        row = self.cells[0]
+        row = rows[0]
         texts = [c.text.strip() for c in row]
         has_bullet = any(t in BULLETS for t in texts)
         has_payload = any(t for t in texts[1:])

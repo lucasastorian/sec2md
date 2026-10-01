@@ -201,3 +201,18 @@ class TestNestedTables:
         md = TableParser(BeautifulSoup(html, "lxml").find("table")).to_markdown()
         assert md.splitlines() == ["| Name | Career | Shares |", "| --- | --- | --- |",
                                    "| Tanaka | 2008 Joined 2024 CEO | 10,610 |"]
+
+
+class TestEmptyRows:
+    """Regression: empty <tr>s were dropped before the grid was laid out, so a header's rowspan
+    meant to cover them swallowed the data rows after them instead."""
+
+    def test_rowspan_over_empty_rows(self):
+        html = """<table>
+          <tr><td rowspan="3">Item</td><td rowspan="3">2019</td></tr><tr></tr><tr></tr>
+          <tr><td>Cost</td><td>25,499</td></tr>
+          <tr><td>Accumulated depreciation</td><td>(10,192)</td></tr>
+        </table>"""
+        md = TableParser(BeautifulSoup(html, "lxml").find("table")).to_markdown()
+        assert md.splitlines() == ["| Item | 2019 |", "| --- | --- |",
+                                   "| Cost | 25,499 |", "| Accumulated depreciation | (10,192) |"]
