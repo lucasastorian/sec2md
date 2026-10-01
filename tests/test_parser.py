@@ -283,3 +283,42 @@ class TestPrintLayout:
         html = f"<html><body>{page.format('First page text')}{page.format('Second page text')}</body></html>"
         pages = Parser(html).get_pages(include_elements=False)
         assert [p.content.strip() for p in pages] == ["First page text", "Second page text"]
+
+    def test_margin_top_is_not_top(self):
+        assert Parser._extract_top_px(_tag('<div style="margin-top:0pt;position:absolute;top:72pt">x</div>')) == pytest.approx(96.0)
+
+
+class TestHtmlComments:
+    """Regression: comments are strings to bs4 and were rendered as page text."""
+
+    def test_comments_are_not_content(self):
+        html = ("<html><body><p>Hello<!-- Field: Page; Sequence: 4 --> world</p>"
+                "<!-- Field: Set; Name: xdx; ID: xdx_01 --><div><b>Bold<!-- x --></b></div></body></html>")
+        content = Parser(html).get_pages(include_elements=False)[0].content
+        assert "Field" not in content and "xdx" not in content
+        assert "Hello world" in content and "**Bold**" in content
+
+    def test_comment_inside_a_word_does_not_split_it(self):
+        content = Parser("<html><body><p>F-<!-- Field: Page; Sequence: 1 -->1</p></body></html>").get_pages()[0].content
+        assert content.strip() == "F-1"
+
+
+class TestBreaksInsideTables:
+    """Regression: page breaks inside a table (per-page footer tables:
+    page number | <p page-break-after> | TOC link) collapsed the filing to one page."""
+
+    FOOTER = ('<table><tr><td>{n}</td></tr><tr><td><p style="page-break-after: always"></p></td></tr>'
+              '<tr><td><a href="#toc">Table of Contents</a></td></tr></table>')
+
+    def test_footer_table_break_starts_new_page(self):
+        html = ("<html><body><p>Page one body.</p>" + self.FOOTER.format(n=1) +
+                "<p>Page two body.</p>" + self.FOOTER.format(n=2) + "<p>Page three body.</p></body></html>")
+        pages = Parser(html).get_pages(include_elements=False)
+        assert len(pages) == 3
+        assert "Page one body." in pages[0].content and "Page two body." not in pages[0].content
+        assert "Page two body." in pages[1].content
+        assert "Page three body." in pages[2].content
+
+    def test_table_without_breaks_stays_on_page(self):
+        html = "<html><body><table><tr><td>a</td><td>b</td></tr><tr><td>1</td><td>2</td></tr></table><p>after</p></body></html>"
+        assert len(Parser(html).get_pages(include_elements=False)) == 1

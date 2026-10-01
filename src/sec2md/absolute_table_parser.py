@@ -24,8 +24,8 @@ class AbsolutelyPositionedTableParser:
         if not isinstance(el, Tag):
             return None
         style = el.get("style", "")
-        left_match = re.search(r'left:\s*(\d+(?:\.\d+)?)(px|pt)', style)
-        top_match = re.search(r'top:\s*(\d+(?:\.\d+)?)(px|pt)', style)
+        left_match = re.search(r'(?<![\w-])left:\s*(\d+(?:\.\d+)?)(px|pt)', style)
+        top_match = re.search(r'(?<![\w-])top:\s*(\d+(?:\.\d+)?)(px|pt)', style)
 
         def _val(m) -> float:
             v = float(m.group(1))

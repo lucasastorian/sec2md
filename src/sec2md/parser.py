@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Union, Optional, Tuple
 
 from bs4 import BeautifulSoup
-from bs4.element import NavigableString, Tag
+from bs4.element import Comment, Declaration, Doctype, NavigableString, ProcessingInstruction, Tag
 
 from sec2md.absolute_table_parser import AbsolutelyPositionedTableParser
 from sec2md.utils import median, clean_text
@@ -38,6 +38,12 @@ class Parser:
 
     def __init__(self, content: str):
         self.soup = BeautifulSoup(content, "lxml")
+        # Comments are strings to bs4 and were rendered as page text; filing agents
+        # hide markers in them ('Field: Page; Sequence: 4', base64 'Field: Set; ...').
+        # smooth() re-joins the text a comment split ('F-<!-- -->1' -> 'F-1').
+        for node in self.soup.find_all(string=lambda s: isinstance(s, (Comment, Declaration, Doctype, ProcessingInstruction))):
+            node.extract()
+        self.soup.smooth()
         self.includes_table = False
         self.include_images = True
         self.pages: Dict[int, List[str]] = defaultdict(list)
@@ -140,11 +146,11 @@ class Parser:
         if not isinstance(el, Tag):
             return None
         style = el.get("style", "")
-        m_top = re.search(r'top:\s*(\d+(?:\.\d+)?)(px|pt)', style)
+        m_top = re.search(r'(?<![\w-])top:\s*(\d+(?:\.\d+)?)(px|pt)', style)
         if m_top:
             v = float(m_top.group(1))
             return v * (4.0 / 3.0) if m_top.group(2) == "pt" else v
-        m_bot = re.search(r'bottom:\s*(\d+(?:\.\d+)?)(px|pt)', style)
+        m_bot = re.search(r'(?<![\w-])bottom:\s*(\d+(?:\.\d+)?)(px|pt)', style)
         if m_bot:
             v = float(m_bot.group(1))
             if m_bot.group(2) == "pt":
@@ -461,7 +467,7 @@ class Parser:
         element_data = []
         for el in elements:
             style = el.get("style", "")
-            left_match = re.search(r'left:\s*(\d+(?:\.\d+)?)px', style)
+            left_match = re.search(r'(?<![\w-])left:\s*(\d+(?:\.\d+)?)px', style)
             y = self._extract_top_px(el)
             if left_match and y is not None:
                 element_data.append((float(left_match.group(1)), y, el))
@@ -664,6 +670,13 @@ class Parser:
             if t:
                 self._append(page_num, t, source_node=root)
             self._blankline_after(page_num)
+            # A table is rendered whole, so breaks inside it never reach the stream:
+            # filings that put each page's footer (number | <p page-break-after> |
+            # TOC link) in a table collapsed to ONE page. Count them here.
+            # ponytail: the table lands on the page before its breaks; split the
+            # table at the break row if mid-table breaks ever carry body content.
+            page_num += sum(1 for d in root.find_all(style=True)
+                            if self._has_break_before(d) or self._has_break_after(d))
             if self._has_break_after(root):
                 page_num += 1
             self._restore_text_block(text_block_started, text_block_has_continuation,
