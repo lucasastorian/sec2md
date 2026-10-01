@@ -169,6 +169,27 @@ class TestChunkerBoundary:
             assert chunk.content.strip(), f"Chunk {i} has empty content"
 
 
+class TestChunkerOverlap:
+    """Regression: a closing chunk's last text block that fit in the overlap was counted but not
+    carried, so the next chunk began with older sentences and skipped what came between."""
+
+    def test_chunks_are_document_spans_that_overlap(self):
+        paras = [f"Paragraph {i} opens here. It adds a second sentence about margins. A third closes it."
+                 for i in range(20)]
+        els = [Element(id=f"e{i}", content=p, kind="paragraph", page_start=1, page_end=1)
+               for i, p in enumerate(paras)]
+        page = Page(number=1, content="\n\n".join(paras), elements=els)
+        chunks = Chunker(chunk_size=128, chunk_overlap=48).split([page])
+        norm = lambda t: " ".join(t.split())
+        text = norm(page.content)
+        assert len(chunks) > 2
+        for c in chunks:
+            assert norm(c.content) in text  # one contiguous span, overlap included
+        for prev, nxt in zip(chunks, chunks[1:]):
+            prev_end = text.index(norm(prev.content)) + len(norm(prev.content))
+            assert text.index(norm(nxt.content)) < prev_end  # starts inside the previous chunk
+
+
 class TestChunkerElements:
     """Element linking in chunks."""
 

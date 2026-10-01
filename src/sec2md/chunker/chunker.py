@@ -254,9 +254,10 @@ class Chunker:
                         return overlap_blocks, overlap_tokens
                     sentences.insert(0, sentence)
                     overlap_tokens += sentence.tokens
+                overlap_blocks.insert(0, block)  # every sentence fit: the whole block
             else:
                 if overlap_tokens + block.tokens > self.chunk_overlap:
                     return overlap_blocks, overlap_tokens
                 overlap_blocks.insert(0, block)
                 overlap_tokens += block.tokens
-        return [], 0
+        return [], 0  # the whole chunk would be repeated: no overlap
