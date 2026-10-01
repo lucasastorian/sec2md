@@ -76,7 +76,7 @@ def _lost_cells(html: str) -> tuple[int, int]:
     from bs4 import BeautifulSoup
     from sec2md.table_parser import TableParser
 
-    norm = lambda t: re.sub(r"\s+", " ", t.replace("\xa0", " ")).strip()
+    norm = lambda t: re.sub(r"\s+", " ", t.replace("\xa0", " ").replace("|", " ").replace("**", "")).strip()  # | escaped, ** bold in md
     tables = lost = 0
     for t in BeautifulSoup(html, "lxml").find_all("table"):
         if t.find_parent("table") or any("display:none" in (a.get("style") or "").replace(" ", "").lower()
@@ -85,7 +85,7 @@ def _lost_cells(html: str) -> tuple[int, int]:
         cells = {norm(td.get_text(" ")) for td in t.find_all(["td", "th"])} - TRIVIAL - {""}
         if len(t.find_all("tr")) < 2 or not cells:
             continue
-        md = norm(TableParser(t).to_markdown().replace("\\|", " ").replace("|", " ").replace("**", ""))
+        md = norm(TableParser(t).to_markdown().replace("\\|", " "))
         tables += 1
         lost += sum(c not in md for c in cells)
     return tables, lost
