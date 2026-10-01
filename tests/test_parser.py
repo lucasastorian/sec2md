@@ -247,3 +247,39 @@ class TestSpacerPreservation:
         container = parser.soup.find("div", style=re.compile("position:relative"))
         children = parser._extract_absolutely_positioned_children(container)
         assert len(children) == 3, f"Expected 3 children (including spacer), got {len(children)}"
+
+
+def _tag(html: str):
+    from bs4 import BeautifulSoup
+    return BeautifulSoup(html, "lxml").body.contents[0]
+
+
+class TestPrintLayout:
+    """Regressions from print-layout filings (2026 S-1s): pt units, CSS custom
+    properties, normal-flow bodies beside positioned bands, per-page containers."""
+
+    def test_custom_property_is_not_absolute_positioning(self):
+        assert not Parser._is_absolutely_positioned(_tag('<div style="--position:absolute">x</div>'))
+        assert Parser._is_absolutely_positioned(_tag('<div style="left:0;position: absolute">x</div>'))
+        assert Parser._is_absolutely_positioned(_tag('<div style="position:absolute">x</div>'))
+
+    def test_top_in_pt_is_normalized_to_px(self):
+        assert Parser._extract_top_px(_tag('<div style="top:72pt">x</div>')) == pytest.approx(96.0)
+        assert Parser._extract_top_px(_tag('<div style="top:96px">x</div>')) == 96.0
+
+    def test_normal_flow_body_beside_positioned_bands_is_kept(self):
+        html = """<html><body><div>
+          <div style="position:absolute;top:10px;left:10px">HEADER BAND</div>
+          <div><p>The body paragraph of the page.</p></div>
+          <div style="position:absolute;top:900px;left:10px">FOOTER BAND</div>
+        </div></body></html>"""
+        content = Parser(html).get_pages(include_elements=False)[0].content
+        assert "The body paragraph of the page." in content
+        assert content.index("The body paragraph") < content.index("HEADER BAND")
+
+    def test_content_visibility_container_is_a_page(self):
+        page = ('<div style="content-visibility:auto;position:relative">'
+                '<div style="position:absolute;top:10px;left:10px">{}</div></div>')
+        html = f"<html><body>{page.format('First page text')}{page.format('Second page text')}</body></html>"
+        pages = Parser(html).get_pages(include_elements=False)
+        assert [p.content.strip() for p in pages] == ["First page text", "Second page text"]

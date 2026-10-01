@@ -129,20 +129,27 @@ class Parser:
         if not isinstance(el, Tag):
             return False
         style = (el.get("style") or "").lower().replace(" ", "")
-        return "position:absolute" in style
+        # NOTE: substring check must not match CSS custom properties like
+        # "--position:absolute" (seen in 2026 print-layout S-1s), which would
+        # misroute normal block containers to the absolute-position parser.
+        return re.search(r"(?:^|[;{])position:absolute", style) is not None
 
     @staticmethod
     def _extract_top_px(el: Tag, fallback_height: float = 10000.0) -> Optional[float]:
-        """Extract Y position from top: or bottom: CSS."""
+        """Extract Y position from top: or bottom: CSS. Accepts px or pt (pt normalized to px)."""
         if not isinstance(el, Tag):
             return None
         style = el.get("style", "")
-        m_top = re.search(r'top:\s*(\d+(?:\.\d+)?)px', style)
+        m_top = re.search(r'top:\s*(\d+(?:\.\d+)?)(px|pt)', style)
         if m_top:
-            return float(m_top.group(1))
-        m_bot = re.search(r'bottom:\s*(\d+(?:\.\d+)?)px', style)
+            v = float(m_top.group(1))
+            return v * (4.0 / 3.0) if m_top.group(2) == "pt" else v
+        m_bot = re.search(r'bottom:\s*(\d+(?:\.\d+)?)(px|pt)', style)
         if m_bot:
-            return fallback_height - float(m_bot.group(1))
+            v = float(m_bot.group(1))
+            if m_bot.group(2) == "pt":
+                v *= 4.0 / 3.0
+            return fallback_height - v
         return None
 
     @staticmethod
@@ -520,6 +527,13 @@ class Parser:
                 current = self._stream_pages(child, current)
             return current
 
+        # Print-layout pages (e.g. 2026 S-1s) nest the page body in a normal-flow
+        # wrapper NEXT TO positioned header/footer bands — stream those wrappers
+        # first so the body is not dropped and reads before the page furniture.
+        for child in container.children:
+            if isinstance(child, Tag) and not self._is_absolutely_positioned(child):
+                page_num = self._stream_pages(child, page_num)
+
         content_elements = []
 
         for child in positioned_children:
@@ -610,7 +624,13 @@ class Parser:
 
         if has_positioned_children and root.name == "div":
             current = self._process_absolutely_positioned_container(root, page_num)
-            if self._has_break_after(root):
+            # Print-layout docs (e.g. 2026 S-1s) emit one container div per
+            # printed page with content-visibility:auto and NO CSS page-break
+            # styles — treat each such container as a page boundary.
+            is_page_container = "content-visibility:auto" in (
+                (root.get("style") or "").lower().replace(" ", "")
+            )
+            if self._has_break_after(root) or is_page_container:
                 current += 1
             self._restore_text_block(text_block_started, text_block_has_continuation,
                                      continuation_ends_text_block, previous_text_block)

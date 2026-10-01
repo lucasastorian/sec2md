@@ -155,3 +155,13 @@ class TestClusterByEps:
         clusters = parser._cluster_by_eps([10.0, 50.0, 100.0], eps=5)
         assert len(set(clusters.values())) == 3
 
+
+
+class TestPositionUnits:
+    """Regression: print-layout filings position in pt, and full-width lines omit left."""
+
+    def test_pt_units_and_missing_left(self):
+        el = _make_elements(['<div style="position:absolute;top:72pt">Line</div>'])[0]
+        parser = AbsolutelyPositionedTableParser([el])
+        assert parser._get_position(el) == pytest.approx((0.0, 96.0))
+        assert parser._get_position(_make_elements(['<div style="left:10px;top:20px">x</div>'])[0]) == (10.0, 20.0)

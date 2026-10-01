@@ -16,14 +16,23 @@ class AbsolutelyPositionedTableParser:
         self.positioned_elements = self._extract_positions()
 
     def _get_position(self, el: Tag) -> Optional[Tuple[float, float]]:
-        """Extract (left, top) position from element style."""
+        """Extract (left, top) position from element style.
+
+        Accepts px or pt units (pt normalized to px). Elements with a top but
+        no left (full-width line divs in print-layout filings) default left=0.
+        """
         if not isinstance(el, Tag):
             return None
         style = el.get("style", "")
-        left_match = re.search(r'left:\s*(\d+(?:\.\d+)?)px', style)
-        top_match = re.search(r'top:\s*(\d+(?:\.\d+)?)px', style)
-        if left_match and top_match:
-            return (float(left_match.group(1)), float(top_match.group(1)))
+        left_match = re.search(r'left:\s*(\d+(?:\.\d+)?)(px|pt)', style)
+        top_match = re.search(r'top:\s*(\d+(?:\.\d+)?)(px|pt)', style)
+
+        def _val(m) -> float:
+            v = float(m.group(1))
+            return v * (4.0 / 3.0) if m.group(2) == "pt" else v
+
+        if top_match:
+            return (_val(left_match) if left_match else 0.0, _val(top_match))
         return None
 
     def _clean_text(self, element: Tag) -> str:
