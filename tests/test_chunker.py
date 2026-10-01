@@ -230,14 +230,15 @@ class TestChunkerTableSplitting:
 
         elem = Element(
             id="big-table", content=table_content, kind="table",
-            page_start=1, page_end=1
+            page_start=1, page_end=1, tags=["us-gaap:Revenues"],
         )
         page = Page(number=1, content=table_content, elements=[elem])
         # chunk_size must also be small enough that split table parts land in separate chunks
         chunker = Chunker(chunk_size=64, chunk_overlap=0, max_table_tokens=64)
         chunks = chunker.split(pages=[page])
-        # Should be split into multiple chunks
+        # Should be split into multiple chunks, each part keeping the table's XBRL tags
         assert len(chunks) > 1
+        assert all(c.tags == ["us-gaap:Revenues"] for c in chunks)
 
     def test_small_table_not_split(self):
         table_content = "| A | B |\n| --- | --- |\n| 1 | 2 |"

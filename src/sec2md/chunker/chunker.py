@@ -143,6 +143,7 @@ class Chunker:
                 id=segment_id, content=segment_content, kind=elem.kind,
                 page_start=elem.page_start, page_end=elem.page_end,
                 content_start_offset=elem.content_start_offset, content_end_offset=elem.content_end_offset,
+                tags=elem.tags,
             )
             results.append((segment_element, TableBlock(content=segment_content, page=page_number,
                                                         element_ids=[segment_id])))
