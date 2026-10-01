@@ -97,6 +97,21 @@ sec2md works with any SEC filing served as HTML. For filings with standardized s
 
 All other filing types — S-1, S-3, S-4, F-1, 424B, 6-K, DEF 14A, DEFA14A, 40-F, N-CSR, SC TO-T, and any HTML exhibit or attachment — are parsed as clean Markdown with full traceability.
 
+### Beyond EDGAR
+
+The parser has no EDGAR-specific assumptions below section extraction, so it reads other regulators' HTML filings too. Japanese, Korean and other non-Latin text is kept as written (no translation, no transliteration); section extraction (`extract_sections`) is SEC-only.
+
+| Source | Input | Notes |
+|---|---|---|
+| **EDINET** (Japan) | iXBRL `PublicDoc/*_ixbrl.htm` files from the XBRL zip, one `Parser` per file | 有価証券報告書 headings and tables preserved; `jpcrp`/`jppfs` iXBRL tags attached to elements |
+| **ESEF** (EU) | the iXBRL XHTML annual report inside the ESEF package | `ifrs-full` tags attached to elements |
+| **DART** (Korea) | disclosure HTML (decode EUC-KR first) | `rowspan`/`colspan` label-value layouts kept cell for cell |
+
+```python
+from sec2md import Parser
+pages = Parser(html).get_pages(include_elements=True)   # same Page/Element API as EDGAR
+```
+
 ## Complex Table Handling
 
 SEC tables are notoriously complex — rowspans, colspans, merged cells, currency symbols in separate columns. Some filings don't even use `<table>` tags, building tables from absolutely-positioned CSS divs instead.
