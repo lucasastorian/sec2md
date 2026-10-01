@@ -143,7 +143,7 @@ class Parser:
     @staticmethod
     def _wrap_markdown(el: Tag) -> str:
         """'**', '*' or '***' for an element bold and/or italic by tag or inline style."""
-        style = (el.get("style") or "").lower()
+        style = _style(el)
         bold = "font-weight:700" in style or "font-weight:bold" in style or el.name in BOLD_TAGS
         italic = "font-style:italic" in style or el.name in ITALIC_TAGS
         return "***" if bold and italic else "**" if bold else "*" if italic else ""

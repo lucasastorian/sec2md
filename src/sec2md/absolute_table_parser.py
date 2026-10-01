@@ -41,7 +41,7 @@ class AbsolutelyPositionedTableParser:
 
     @staticmethod
     def _is_bold(el: Tag) -> bool:
-        style = (el.get("style") or "").lower()
+        style = (el.get("style") or "").lower().replace(" ", "")
         return "font-weight:700" in style or "font-weight:bold" in style
 
     @staticmethod

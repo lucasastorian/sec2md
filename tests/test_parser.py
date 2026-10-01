@@ -288,6 +288,14 @@ class TestPrintLayout:
         assert _top_px(_tag('<div style="margin-top:0pt;position:absolute;top:72pt">x</div>')) == pytest.approx(96.0)
 
 
+class TestBoldStyles:
+    """Regression: bold was read from the style with its spaces, so 'font-weight: bold' was not bold."""
+
+    def test_bold_with_spaces_in_the_style(self):
+        html = '<html><body><p><span style="font-weight: bold">Revenue</span> grew.</p></body></html>'
+        assert "**Revenue** grew." in Parser(html).get_pages(include_elements=False)[0].content
+
+
 class TestHtmlComments:
     """Regression: comments are strings to bs4 and were rendered as page text."""
 
