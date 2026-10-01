@@ -28,6 +28,8 @@ ITEM_HEADER_CELL_RE = re.compile(r"^\s*Item\s+([0-9IVX]+)\.\s*$", re.I)
 PART_HEADER_CELL_RE = re.compile(r"^\s*Part\s+([IVX]+)\s*$", re.I)
 _ABSOLUTE = re.compile(r"(?:^|[;{])position:absolute")
 _LEFT_PX = re.compile(r"(?<![\w-])left:\s*(\d+(?:\.\d+)?)px")
+_CSS_RULE = re.compile(r"([^{}]+)\{([^{}]*)\}")
+_CLASS_SELECTOR = re.compile(r"\.([\w-]+)")
 _PAGE_NUMBER_PATTERNS = [re.compile(p, re.I) for p in (r"\bPage\s+(\d{1,4})\b", r"\b(\d{1,4})\s*\|", r"\|\s*(\d{1,4})\b")]
 _PART_BREADCRUMB = re.compile(r"^(?:\*\*|__)?\s*PART\s+[IVXLC]+\s*(?:\*\*|__)?$", re.I)
 # e.g. "ITEM 2", "ITEM 2, 3, 4", "ITEM 9, 9A"
@@ -90,6 +92,8 @@ class Parser:
         self.current_text_block: Optional[TextBlockInfo] = None
         self.continuation_map: Dict[str, TextBlockInfo] = {}
         self.footer_page_numbers: Dict[int, int] = {}
+        self._classes_break_before: frozenset = frozenset()
+        self._classes_break_after: frozenset = frozenset()
 
     # -- XBRL text blocks ---------------------------------------------------------------------
 
@@ -399,6 +403,38 @@ class Parser:
                     self._append(page_num, text, source_node=group[0])
         return page_num
 
+    # -- page breaks ----------------------------------------------------------------------------
+
+    def _stylesheet_break_classes(self) -> Tuple[frozenset, frozenset]:
+        """Classes a <style> rule breaks the page before / after, as pdf2htmlEX's
+        .pf{page-break-after:always} in ESEF reports. Plain .class selectors only."""
+        before, after = set(), set()
+        for sheet in self.soup.find_all("style"):
+            for selectors, declarations in _CSS_RULE.findall(sheet.get_text()):
+                declarations = declarations.lower().replace(" ", "")
+                breaks_before, breaks_after = _breaks_before(declarations), _breaks_after(declarations)
+                if not (breaks_before or breaks_after):
+                    continue
+                for selector in selectors.split(","):
+                    if m := _CLASS_SELECTOR.fullmatch(selector.strip()):
+                        if breaks_before:
+                            before.add(m.group(1))
+                        if breaks_after:
+                            after.add(m.group(1))
+        return frozenset(before), frozenset(after)
+
+    def _page_breaks(self, el: Tag, style: str) -> Tuple[bool, bool]:
+        """Does the page break before / after the element: by inline style or stylesheet class.
+        A content-visibility:auto container is one printed page (Workiva's print layout: no
+        page-break styles, each page's furniture positioned by a CSS variable)."""
+        before = _breaks_before(style)
+        after = _breaks_after(style) or "content-visibility:auto" in style
+        if self._classes_break_before or self._classes_break_after:
+            classes = el.get("class") or ()
+            before = before or not self._classes_break_before.isdisjoint(classes)
+            after = after or not self._classes_break_after.isdisjoint(classes)
+        return before, after
+
     # -- the walk -------------------------------------------------------------------------------
 
     def _stream_pages(self, root: Union[Tag, NavigableString], page_num: int = 1) -> int:
@@ -412,7 +448,8 @@ class Parser:
             return page_num
 
         style = _style(root)
-        if _breaks_before(style):
+        breaks_before, breaks_after = self._page_breaks(root, style)
+        if breaks_before:
             page_num += 1
         if "display:none" in style:
             return page_num
@@ -450,10 +487,7 @@ class Parser:
         if root.name == "div" and not is_absolute and any(
                 isinstance(child, Tag) and _is_absolute(_style(child)) for child in root.children):
             page_num = self._process_absolutely_positioned_container(root, page_num)
-            # Print-layout docs (e.g. 2026 S-1s) emit one container div per
-            # printed page with content-visibility:auto and NO CSS page-break
-            # styles — treat each such container as a page boundary.
-            if _breaks_after(style) or "content-visibility:auto" in style:
+            if breaks_after:
                 page_num += 1
             restore()
             return page_num
@@ -487,10 +521,9 @@ class Parser:
             # ponytail: the table lands on the page before its breaks; split the
             # table at the break row if mid-table breaks ever carry body content.
             for d in root.descendants:
-                if isinstance(d, Tag) and d.get("style"):
-                    s = _style(d)
-                    page_num += _breaks_before(s) or _breaks_after(s)
-            if _breaks_after(style):
+                if isinstance(d, Tag) and (d.get("style") or d.get("class")):
+                    page_num += any(self._page_breaks(d, _style(d)))
+            if breaks_after:
                 page_num += 1
             restore()
             return page_num
@@ -500,7 +533,7 @@ class Parser:
             t = self._process_element(root)
             if t:
                 self._append(page_num, t + " ", source_node=root)
-            if _breaks_after(style):
+            if breaks_after:
                 page_num += 1
             restore()
             return page_num
@@ -509,7 +542,7 @@ class Parser:
             page_num = self._stream_pages(child, page_num)
         if is_block:
             self._blankline(page_num)
-        if _breaks_after(style):
+        if breaks_after:
             page_num += 1
         restore()
         return page_num
@@ -579,19 +612,30 @@ class Parser:
         self.include_images = include_images
         self.pages = defaultdict(list)
         self.page_segments = defaultdict(list)
+        self.footer_page_numbers = {}
+        self.continuation_map = {}
+        self.current_text_block = None
+        self._classes_break_before, self._classes_break_after = self._stylesheet_break_classes()
         root = self.soup.body if self.soup.body else self.soup
         self._stream_pages(root, page_num=1)
 
+        # Pages that came out empty (a break with nothing after it, two breaks in a row) are
+        # dropped, the rest numbered from 1.
         result: List[Page] = []
-        for page_num in sorted(self.pages.keys()):
-            raw = re.sub(r"\n{3,}", "\n\n", "".join(self.pages[page_num]))
+        renumbered: Dict[int, int] = {}
+        for walk_page in sorted(self.pages):
+            raw = re.sub(r"\n{3,}", "\n\n", "".join(self.pages[walk_page]))
             lines: List[str] = []
             for line in raw.split("\n"):
                 line = line.strip()
                 if line or (lines and lines[-1]):
                     lines.append(line)
             content = self._strip_page_breadcrumbs("\n".join(lines).strip()).strip()
-            result.append(Page(number=page_num, content=content, elements=None))
+            if content:
+                renumbered[walk_page] = len(result) + 1
+                result.append(Page(number=len(result) + 1, content=content, elements=None))
+        self.page_segments = {renumbered[n]: s for n, s in self.page_segments.items() if n in renumbered}
+        self.footer_page_numbers = {renumbered[n]: d for n, d in self.footer_page_numbers.items() if n in renumbered}
 
         result = self._detect_display_page_numbers(result)
         if include_elements:

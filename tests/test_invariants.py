@@ -16,9 +16,10 @@ def fixture(request):
     return request.param
 
 
-def test_pages_are_numbered_from_one(fixture):
+def test_pages_are_numbered_from_one_and_none_is_empty(fixture):
     pages = parse(fixture)[0]
     assert [p.number for p in pages] == list(range(1, len(pages) + 1))
+    assert all(p.content.strip() for p in pages)
 
 
 def test_no_html_or_comment_markers_leak(fixture):

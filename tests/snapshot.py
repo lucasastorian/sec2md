@@ -13,8 +13,8 @@ Fixtures (tests/fixtures/<name>.html.gz, EDGAR primary documents) and what each 
     apnimed_ex99          Apnimed EX-99 press release (from 0001193125-26-385355)
     techprecision_10q     TechPrecision 10-Q (0001104659-26-095944): position:absolute layout and
                           pseudo-tables (absolute_table_parser)
-    general_mills_10q     General Mills 10-Q (0001628280-26-063201): print layout, one
-                          content-visibility container per page (comes out as ONE page: known)
+    general_mills_10q     General Mills 10-Q (0001628280-26-063201): Workiva print layout, one
+                          content-visibility container per page, furniture placed by a CSS variable
     quantum_biopharma_6k  Quantum Biopharma 6-K (0001185185-26-003794): uppercase legacy-style HTML
 """
 from __future__ import annotations

@@ -65,7 +65,7 @@ Indicate by check mark whether the registrant has submitted electronically every
 pursuant to Rule 405 of Regulation S-T (§ 232.405 of this chapter) during the preceding 12 months (or for such shorter period that the
 
 registrant was required to submit such files). Yes ☑ No ☐
-
+<!-- page 2 -->
 Indicate by check mark whether the registrant is a large accelerated filer, an accelerated filer, a non-accelerated filer, a smaller
 
 reporting company, or an emerging growth company. See the definitions of “large accelerated filer,” “accelerated filer,” “smaller
@@ -87,7 +87,7 @@ Yes ☐ No ☑
 Number of shares of Common Stock outstanding as of September 16, 2026 : 534,687,144 (excluding 219,926,184 shares held in the
 
 treasury).
-
+<!-- page 3 -->
 3
 
 General Mills, Inc.
@@ -111,7 +111,7 @@ Table of Contents
 | Item 5. Other Information | 36 |
 | Item 6. Exhibits | 37 |
 | Signatures | 38 |
-
+<!-- page 4 -->
 4
 
 PART I. FINANCIAL INFORMATION
@@ -144,7 +144,7 @@ GENERAL MILLS, INC. AND SUBSIDIARIES
 | Earnings per share – diluted | $ 0.74 | $ 2.22 |
 
 See accompanying notes to consolidated financial statements
-
+<!-- page 5 -->
 5
 
 **Consolidated Statements of Comprehensive Income**
@@ -170,7 +170,7 @@ GENERAL MILLS, INC. AND SUBSIDIARIES
 | Comprehensive income attributable to General Mills | $ 402.4 | $ 1,148.7 |
 
 See accompanying notes to consolidated financial statements.
-
+<!-- page 6 -->
 6
 
 **Consolidated Balance Sheets**
@@ -218,7 +218,7 @@ GENERAL MILLS, INC. AND SUBSIDIARIES
 | Total liabilities and equity | $ 30,273.4 | $ 30,016.7 |
 
 See accompanying notes to consolidated financial statements.
-
+<!-- page 7 -->
 7
 
 **Consolidated Statements of Total Equity**
@@ -260,7 +260,7 @@ GENERAL MILLS, INC. AND SUBSIDIARIES
 | Total equity, ending balance |  | $ 7,463.8 |  | $ 9,518.9 |
 
 See accompanying notes to consolidated financial statements.
-
+<!-- page 8 -->
 8
 
 **Consolidated Statements of Cash Flows**
@@ -313,7 +313,7 @@ GENERAL MILLS, INC. AND SUBSIDIARIES
 | Changes in current assets and liabilities | $ ( 251.5 ) | $ 58.8 |
 
 See accompanying notes to consolidated financial statements.
-
+<!-- page 9 -->
 9
 
 GENERAL MILLS, INC. AND SUBSIDIARIES
@@ -373,7 +373,7 @@ Earnings, and adjusted the reserve for assets held for sale and accrual for the 
 On September 2, 2026, subsequent to the end of the first quarter of fiscal 2027, we completed the sale of our business in Brazil to
 
 3corações. We expect to record certain customary post-closing sale price adjustments in the second quarter of fiscal 2027.
-
+<!-- page 10 -->
 10
 
 The components of assets held for sale and liabilities held for sale are as follows:
@@ -433,7 +433,7 @@ of fiscal 2030.
 We paid net $ 2.9 million of cash in the first quarter of fiscal 2027 related to restructuring and transformation actions. We paid net
 
 $ 21.0 million of cash in the same period of fiscal 2026 .
-
+<!-- page 11 -->
 11
 
 Restructuring, transformation, and impairment charges are recorded in our Consolidated Statements of Earnings as follows:
@@ -495,7 +495,7 @@ The changes in the carrying amount of goodwill during the three-month period end
 (a) The carrying amounts of goodwill within the North America Pet segment as of May 31, 2026 , and August 30, 2026 , were net of accumulated
 
 impairment losses of $ 1,500.0 million .
-
+<!-- page 12 -->
 12
 
 The changes in the carrying amount of other intangible assets during the three-month period ended August 30, 2026 , were as follows:
@@ -585,7 +585,7 @@ We use derivatives to manage our exposure to changes in commodity prices. We do 
 hedge accounting for commodity derivative positions. Accordingly, the changes in the values of these derivatives are recorded
 
 currently in cost of sales in our Consolidated Statements of Earnings.
-
+<!-- page 13 -->
 13
 
 Although we do not meet the criteria for cash flow hedge accounting, we believe that these instruments are effective in achieving our
@@ -650,7 +650,7 @@ agreements.
 (a) As of May 31, 2026, $ 1,356.5 million of our obligations were included in accounts payable and $ 43.1 million were included in liabilities held
 
 for sale.
-
+<!-- page 14 -->
 14
 
 (7) Debt
@@ -719,7 +719,7 @@ In the second quarter of fiscal 2026 , we repaid € 500.0 million of 0.125 perc
 cash on hand.
 
 Certain of our long-term debt agreements contain restrictive covenants. W e are in compliance with all of these covenants.
-
+<!-- page 15 -->
 15
 
 (8) Stockholders’ Equity
@@ -785,7 +785,7 @@ Shortfall tax expense from stock-based payments in income tax expense in our Con
 As of August 30, 2026 , unrecognized compensation expense related to non-vested stock options, restricted stock units, and
 
 performance share units was $ 184.4 million . This expense will be recognized over 29 months on average.
-
+<!-- page 16 -->
 16
 
 Net cash proceeds from the exercise of stock options less shares used for withholding taxes and the intrinsic value of options exercised
@@ -831,7 +831,7 @@ The total grant date fair value of restricted stock unit awards that vested duri
 | In Millions | Quarter Ended — Aug. 30, 2026 | Aug. 24, 2025 |
 | --- | --- | --- |
 | Total grant date fair value | $ 91.6 | $ 98.6 |
-
+<!-- page 17 -->
 17
 
 (10) Earnings Per Share
@@ -898,7 +898,7 @@ Our Consolidated Statements of Cash Flows include the following:
 | --- | --- | --- |
 | Net cash interest payments | $ 93.3 | $ 125.9 |
 | Net income tax payments | $ 20.7 | $ 24.8 |
-
+<!-- page 18 -->
 18
 
 (13) Retirement and Postemployment Benefits
@@ -979,7 +979,7 @@ fruits, vegetables and other high-quality natural ingredients. Our tailored pet 
 life-stage needs and span different product types, diet types, breed sizes for dogs, life-stages, flavors, product functions, and textures
 
 and cuts for wet and fresh foods.
-
+<!-- page 19 -->
 19
 
 Our North America Foodservice segment consists of foodservice businesses in the United States and Canada. Our major product
@@ -1023,7 +1023,7 @@ management. Under our supply chain organization, our manufacturing, warehouse, a
 integrated across our operations in order to maximize efficiency and productivity. As a result, fixed assets and depreciation and
 
 amortization expenses are neither maintained nor available by operating segment.
-
+<!-- page 20 -->
 20
 
 Our operating segment results were as follows:
@@ -1061,7 +1061,7 @@ Net sales for our North America Retail operating units were as follows:
 | U.S. Snacks | 789.0 | 837.2 |
 | Big G Cereal & Canada | 744.4 | 866.9 |
 | Total | $ 2,451.8 | $ 2,625.5 |
-
+<!-- page 21 -->
 21
 
 Net sales by class of similar products were as follows:
@@ -1078,7 +1078,7 @@ Net sales by class of similar products were as follows:
 | Yogurt | — | 102.0 |
 | Other | 86.5 | 120.3 |
 | Total | $ 4,389.5 | $ 4,517.5 |
-
+<!-- page 22 -->
 22
 
 Item 2. Management’s Discussion and Analysis of Financial Condition and Results of Operations.
@@ -1156,7 +1156,7 @@ A summary of our consolidated financial results for the first quarter of fiscal 
 | Adjusted diluted earnings per share (a) | $ 0.75 | (13) % |  | (13) % |
 
 (a) See the “Non-GAAP Measures” section below for our use of measures not defined by GAAP.
-
+<!-- page 23 -->
 23
 
 Consolidated **net sales** were as follows:
@@ -1243,7 +1243,7 @@ and favorable earnings mix by jurisdiction in fiscal 2027, partially offset by c
 effective tax rate excluding certain items affecting comparability was 23.4 percent in the first quarter of fiscal 2027 , compared to 24.1
 
 percent in the same period last year (see the “Non-GAAP Measures” section below for a description of our use of measures not
-
+<!-- page 24 -->
 24
 
 defined by GAAP). The 0.7 percentage point decrease was primarily due to favorable earnings mix by jurisdiction in fiscal 2027,
@@ -1306,7 +1306,7 @@ North America Retail net sales decreased 7 percent in the first quarter of fisca
 driven by a decrease in contributions from volume growth, partially offset by favorable net price realization and mix, both of which
 
 include the impact of the Divestiture.
-
+<!-- page 25 -->
 25
 
 The components of North America Retail organic net sales growth are shown in the following table:
@@ -1377,7 +1377,7 @@ International net sales increased 4 percent in the first quarter of fiscal 2027 
 increase in contributions from volume growth and favorable foreign currency exchange impacts, partially offset by unfavorable net
 
 price realization and mix.
-
+<!-- page 26 -->
 26
 
 The components of International organic net sales growth are shown in the following table:
@@ -1452,7 +1452,7 @@ expenses, partially offset by favorable price realization and mix. Segment opera
 basis in the first quarter of fiscal 2027 , compared to the same period in fiscal 2026 (see the “Non-GAAP Measures” section below for
 
 our use of this measure not defined by GAAP).
-
+<!-- page 27 -->
 27
 
 North America Foodservice Segment Results
@@ -1537,7 +1537,7 @@ year. The $99 million decrease was primarily driven by a $310 million change in 
 accrued federal income taxes payable, which included tax expense of $277 million associated with the Divestiture in fiscal 2026 . This
 
 was partially offset by a $248 million increase in net earnings, excluding the pretax gain on the Divestiture in fiscal 2026 .
-
+<!-- page 28 -->
 28
 
 Cash used by investing activities during the first quarter of fiscal 2027 was $116 million compared to $1,695 million provided by
@@ -1631,7 +1631,7 @@ and our *Nudges* and *True Chews* brand intangible assets no longer exceeded the
 driven by an increase in the discount rates. As a result, in the fourth quarter of fiscal 2026 we recorded $1,750 million of non-cash
 
 impairment charges, of which $1,500 million related to the North America Pet reporting unit goodwill and $250 million related to the
-
+<!-- page 29 -->
 29
 
 brand intangible assets, all of which are included within our North America Pet segment. The $1,500 million goodwill impairment
@@ -1727,7 +1727,7 @@ Fiscal 2027 transaction costs primarily related to the definitive agreement to s
 related to the sale of our United States yogurt business. Please refer to Note 2 to the Consolidated Financial Statements in Part I, Item
 
 1 of this report.
-
+<!-- page 30 -->
 30
 
 Acquisition integration costs
@@ -1796,7 +1796,7 @@ Our adjusted operating profit margins are calculated as follows:
 Note: Table may not foot due to rounding.
 
 For more information on the reconciling items, see the Significant Items Impacting Comparability section above.
-
+<!-- page 31 -->
 31
 
 ***Adjusted Operating Profit and Related Constant-currency Growth Rate***
@@ -1869,7 +1869,7 @@ We believe that this measure provides useful information to investors because it
 our joint ventures by excluding the effect that foreign currency exchange rate fluctuations have on year-to-year comparability given
 
 volatility in foreign currency exchange markets.
-
+<!-- page 32 -->
 32
 
 After-tax earnings from joint ventures growth rates on a constant-currency basis are calculated as follows:
@@ -1931,7 +1931,7 @@ Note: Table may not foot due to rounding.
 (a) Earnings before income taxes and after-tax earnings from joint ventures.
 
 For more information on the reconciling items, please see the Significant Items Impacting Comparability section above.
-
+<!-- page 33 -->
 33
 
 **Glossary**
@@ -2017,7 +2017,7 @@ that will be allocated to segment operating profit when the exposure we are hedg
 instruments are calculated.
 
 **OCI** . Other Comprehensive Income (Loss).
-
+<!-- page 34 -->
 34
 
 **Organic net sales growth** . Net sales growth adjusted for foreign currency translation, acquisitions, divestitures and a 53 rd fiscal week,
@@ -2041,7 +2041,7 @@ management, logistics, and warehousing.
 **Translation adjustments** . The impact of the conversion of our foreign affiliates’ financial statements to United States dollars for the
 
 purpose of consolidating our financial statements.
-
+<!-- page 35 -->
 35
 
 CAUTIONARY STATEMENT RELEVANT TO FORWARD-LOOKING INFORMATION FOR THE PURPOSE OF “SAFE
@@ -2126,7 +2126,7 @@ commodity, and equity market-risk-sensitive instruments outstanding as of August
 | Equity instruments | 3 | 1 | Immaterial |
 
 For additional information, see Item 7A of Part II of our Annual Report on Form 10-K for the fiscal year ended May 31, 2026 .
-
+<!-- page 36 -->
 36
 
 Item 4. Controls and Procedures.
@@ -2187,7 +2187,7 @@ Item 5. Other Information.
 During the fiscal quarter ended August 30, 2026 , no director or officer of the Company adopted or terminated a “Rule 10b5-1 trading
 
 arrangement” or “ non-Rule 10b5-1 trading arrangement,” as each term is defined in Item 408(a) of Regulation S-K.
-
+<!-- page 37 -->
 37
 
 PART II. OTHER INFORMATION
@@ -2201,7 +2201,7 @@ PART II. OTHER INFORMATION
 | 32.2 | Certification of Chief Financial Officer pursuant to Section 906 of the Sarbanes-Oxley Act of 2002. |
 | 101 | Financial Statements from the Quarterly Report on Form 10-Q of the Company for the quarter ended August 30, 2026 , formatted in Inline Extensible Business Reporting Language: (i) Consolidated Statements of Earnings; (ii) Consolidated Statements of Comprehensive Income, (iii) Consolidated Balance Sheets; (iv) Consolidated Statements of Total Equity; (v) Consolidated Statements of Cash Flows; and (vi) Notes to Consolidated Financial Statements. |
 | 104 | Cover Page, formatted in Inline Extensible Business Reporting Language and contained in Exhibit 101. |
-
+<!-- page 38 -->
 38
 
 SIGNATURES
