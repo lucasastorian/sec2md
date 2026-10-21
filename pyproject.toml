@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sec2md"
-version = "0.1.24"
+version = "0.1.25"
 description = "Convert SEC EDGAR filings (and EDINET, ESEF and DART HTML) to LLM-ready Markdown for AI agents and agentic RAG"
 readme = "README.md"
 requires-python = ">=3.10"
