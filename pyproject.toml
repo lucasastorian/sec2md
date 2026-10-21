@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
-    {name = "Lucas Astorian", email = "lucas@intellifin.ai"}
+    {name = "Lucas Astorian", email = "lucasastorian@gmail.com"}
 ]
 keywords = ["sec", "edgar", "markdown", "filings", "10-k", "10-q", "llm", "rag", "ai", "embeddings"]
 classifiers = [

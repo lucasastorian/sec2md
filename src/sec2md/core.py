@@ -102,7 +102,7 @@ def convert_to_markdown(
         >>> # From URL - get markdown
         >>> md = convert_to_markdown(
         ...     "https://www.sec.gov/Archives/edgar/data/.../10k.htm",
-        ...     user_agent="Lucas Astorian <lucas@intellifin.ai>"
+        ...     user_agent="Lucas Astorian <lucasastorian@gmail.com>"
         ... )
 
         >>> # Get pages for section extraction
@@ -110,7 +110,7 @@ def convert_to_markdown(
 
         >>> # With edgartools
         >>> from edgar import Company, set_identity
-        >>> set_identity("Lucas Astorian <lucas@intellifin.ai>")
+        >>> set_identity("Lucas Astorian <lucasastorian@gmail.com>")
         >>> company = Company('AAPL')
         >>> filing = company.get_filings(form="10-K").latest()
         >>> md = convert_to_markdown(filing.html())
